@@ -1,8 +1,8 @@
 #!/bin/bash
 clear
 #--------------------------
-# SCRIPT SSH-PLUS
-# TELEGRAM: @TMYCOMNECTVPN
+# SCRIPT NEW-SSHPLUS
+# TELEGRAM: @TURBONET2023
 #--------------------------
 
 # - Cores
@@ -57,25 +57,7 @@ apt install unzip python3 -y
 sysctl -w net.ipv6.conf.all.disable_ipv6=1 && sysctl -p
 echo 'net.ipv6.conf.all.disable_ipv6 = 1' > /etc/sysctl.d/70-disable-ipv6.conf
 sysctl -p -f /etc/sysctl.d/70-disable-ipv6.conf
-clear
-
-# - Solicita a chave ao usuario
-echo -ne "${YELLOW}[?] DIGITE SUA CHAVE DE INSTALACAO: ${SCOLOR}"
-read user_key
-
-# - Verifica a chave com a API
-response=$(curl -s -H "Key: $user_key" "http://tmysshplus.xyz:3000/key")
-
-if [[ "$response" != *"invalid"* ]]; then
-    echo -e "${YELLOW}[✔] Key Valida, iniciando instalação...${SCOLOR}"
-    _=$(curl -s -H "Key: $user_key" "http://tmysshplus.xyz:3000/use")
-    echo $user_key >> /bin/tmy-key
 
     # - Execulta instalador
     [[ -e Plus ]] && rm Plus
-    wget https://raw.githubusercontent.com/root719/TMY-SSH-PLUS-V3/refs/heads/main/script/${arch}/Plus && chmod 777 Plus && ./Plus
-
-else
-    echo -e "${RED}[x] Key invalida! A instalação foi cancelada.${SCOLOR}"
-fi
-
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/refs/heads/main/script/Plus && chmod 777 Plus && ./Plus

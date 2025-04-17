@@ -68,11 +68,6 @@ Opção 1:
 apt update -y && apt upgrade -y && wget -y; bash <(wget -qO- raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/ssh-plus)
 ````
 
-Opção 2:
-
-````
-apt update -y && apt upgrade -y && wget -y; bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/refs/heads/main/ssh-plus)
-````
 
 ## TELEGRAM: [@TURBONET2023](https://t.me/TURBONET2023)
 

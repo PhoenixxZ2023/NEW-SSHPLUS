@@ -1,20 +1,8 @@
-# BEM VINDO
+# SSHPLUS
 
-# SSH-PLUS
-*PROJETO EM ANDAMENTO...
+apt update -y && apt upgrade -y && wget https://raw.githubusercontent.com/kiritosshxd/SSHPLUS/master/Plus && chmod 777 Plus && ./Plus
 
 
-# Modo de instalação
-# 👇👽👍
-Só joga na máquina e deixar instalar
+#Acessa Root
 
-• atualiza sistema
-
-• desativa Ipv6
-
-• instala recursos e o script
-```
-apt install wget -y; bash <(wget -qO- https://raw.githubusercontent.com/root719/TMY-SSH-PLUS-V3/refs/heads/main/ssh-plus)
-
-```
-# TMY-SSH-PLUS-V3
+wget https://raw.githubusercontent.com/kiritosshxd/SSHPLUS/master/senharoot.sh && chmod 777 senharoot.sh && ./senharoot.sh

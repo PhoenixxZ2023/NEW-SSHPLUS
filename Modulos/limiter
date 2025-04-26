@@ -1,0 +1,51 @@
+#!/bin/bash
+#====================================================
+# SCRIPT: SSH and OpenVPN Connection Limiter
+# DEVELOPED BY: CRAZY_VPN
+# TELEGRAM CONTACT: http://t.me/crazy_vpn
+# TELEGRAM CHANNEL: http://t.me/sshplus
+#====================================================
+clear
+system=$(cat /etc/issue.net)
+date=$(date '+%d-%m-%Y %H:%M:%S')
+database="/root/usuarios.db"
+logfile="/var/log/limiter.log"
+
+fun_multilogin() {
+    while read -r user; do
+        # Determine user's connection limit
+        if limit=$(grep "^$user " "$database" | awk '{print $2}'); then
+            limit=${limit:-1}
+        else
+            limit=1
+        fi
+
+        # Count SSH connections for the user
+        conssh=$(pgrep -u "$user" sshd | wc -l)
+        if [[ "$conssh" -gt "$limit" ]]; then
+            pkill -u "$user"
+            echo "Exceeded SSH limit for user: $user at $date" >> "$logfile"
+        fi
+
+        # Count OpenVPN connections for the user
+        if [[ -e /etc/openvpn/openvpn-status.log ]]; then
+            ovp=$(grep -Ec ",$user," /etc/openvpn/openvpn-status.log)
+            if [[ "$ovp" -gt "$limit" ]]; then
+                pidokill=$((ovp - limit))
+                listpid=$(grep -E ",$user," /etc/openvpn/openvpn-status.log | cut -d "," -f3 | head -n "$pidokill")
+                while read -r ovpids; do
+                    (
+                        echo "kill $ovpids" | telnet localhost 7505
+                        echo "Exceeded OpenVPN limit for user: $user at $date" >> "$logfile"
+                    ) &>/dev/null &
+                done <<<"$listpid"
+            fi
+        fi
+    done < <(awk -F: '$3 >= 1000 {print $1}' /etc/passwd)
+}
+
+while true; do
+    echo "Checking user connections..."
+    fun_multilogin
+    sleep 15
+done

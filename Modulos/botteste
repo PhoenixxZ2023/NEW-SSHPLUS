@@ -1,0 +1,61 @@
+#!/bin/bash
+
+# Definição de variáveis
+SESSION_NAME="bot_teste"
+BOT_DIR="$HOME/BOT"
+AUTOSTART_FILE="/etc/autostart"
+BOT_COMMAND="./botssh"
+
+# Verifica se o comando 'screen' está disponível
+if ! command -v screen &> /dev/null; then
+    echo "O comando 'screen' não está instalado. Instale-o para continuar."
+    exit 1
+fi
+
+# Função para atualizar o arquivo de autostart
+update_autostart() {
+    local cmd="ps x | grep '$SESSION_NAME' | grep -v 'grep' || cd $BOT_DIR && sudo screen -dmS $SESSION_NAME $BOT_COMMAND $token && cd $HOME"
+    if grep -q "$SESSION_NAME" "$AUTOSTART_FILE"; then
+        sed -i "/$SESSION_NAME/d" "$AUTOSTART_FILE"
+    fi
+    echo "$cmd" >> "$AUTOSTART_FILE"
+}
+
+# Verifica se a sessão está em execução
+if [[ $(screen -list | grep -c "$SESSION_NAME") -eq 0 ]]; then
+    clear
+    echo -e "\E[44;1;37m     ATIVAÇÃO BOT SSH TESTE     \E[0m"
+    echo ""
+    echo -ne "\033[1;32mINFORME O TOKEN\033[1;37m: "
+    read -r token
+
+    # Verifica se o diretório do bot existe
+    if [[ ! -d "$BOT_DIR" ]]; then
+        echo "O diretório do bot ($BOT_DIR) não existe."
+        exit 1
+    fi
+
+    # Inicia a sessão do bot
+    cd "$BOT_DIR" || exit
+    screen -dmS "$SESSION_NAME" $BOT_COMMAND "$token" > /dev/null 2>&1
+
+    # Atualiza o arquivo de autostart
+    update_autostart
+
+    clear
+    echo "BOT ATIVADO"
+    return
+else
+    screen -r -S "$SESSION_NAME" -X quit
+    clear
+    echo "BOT DESATIVADO"
+    return
+fi
+
+# Retornar ao menu2
+menu2  # Substitua pelo caminho real para o seu script de menu
+
+echo -e "${GREEN}Configuração concluída.${NC}"
+
+return
+menu2

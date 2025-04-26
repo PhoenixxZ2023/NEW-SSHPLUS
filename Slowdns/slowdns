@@ -118,7 +118,7 @@ Opcao9 () {
 
 Opcao10 () {
     clear
-    wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Slowdns/update
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/update
     chmod +x update
     bash update
 }

@@ -95,5 +95,5 @@ echo -e "          \033[1;33mINSTALAÇÃO FINALIZADA ${RESET}        "
 echo ""
 echo -e "To open the menu, use the command: ${RED}slowdns${RESET}"
 cd
-sleep 3
+rm install
 slowdns

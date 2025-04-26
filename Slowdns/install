@@ -61,15 +61,15 @@ fun_att () {
 apt install ncurses-utils -y
 mkdir /etc/slowdns
 cd /etc/slowdns
-wget https://github.com/PhoenixxZ2023/PLUS/raw/main/Slowdns/dns-server; chmod +x dns-server
-wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Slowdns/remove-slow; chmod +x remove-slow
-wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Slowdns/slowdns-info; chmod +x slowdns-info
-wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Slowdns/slowdns-drop; chmod +x slowdns-drop
-wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Slowdns/slowdns-ssh; chmod +x slowdns-ssh
-wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Slowdns/slowdns-ssl; chmod +x slowdns-ssl
-wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Slowdns/slowdns-socks; chmod +x slowdns-socks
-wget -qO /bin/slowdns https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Slowdns/slowdns && chmod +x /bin/slowdns
-wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Slowdns/stopdns; chmod +x stopdns
+wget https://github.com/PhoenixxZ2023/NEW-SSHPLUS/raw/main/Slowdns/dns-server; chmod +x dns-server
+wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/remove-slow; chmod +x remove-slow
+wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/slowdns-info; chmod +x slowdns-info
+wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/slowdns-drop; chmod +x slowdns-drop
+wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/slowdns-ssh; chmod +x slowdns-ssh
+wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/slowdns-ssl; chmod +x slowdns-ssl
+wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/slowdns-socks; chmod +x slowdns-socks
+wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/slowdns; chmod +x slowdns; cp slowdns /bin/slowdns
+wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/stopdns; chmod +x stopdns
 }
 fun_bar 'fun_att'
 echo -e "CONFIGURANDO FIREWALL..."

@@ -1,0 +1,320 @@
+#!/bin/bash
+clear
+# Instalação silenciosa de pacotes
+sudo apt-get install lolcat -y &>/dev/null 2>&1
+sudo apt-get install toilet -y &>/dev/null 2>&1
+sudo apt-get install curl -y &>/dev/null 2>&1
+sudo apt-get install git -y &>/dev/null 2>&1 
+sudo apt-get install figlet boxes -y &>/dev/null 2>&1 
+sudo apt-get install net-tools -y &>/dev/null 2>&1
+sudo apt-get install procps -y >/dev/null 2>&1
+sudo apt-get install sysstat -y >/dev/null 2>&1
+
+# Verificação se o usuário é root
+cd $HOME
+if [[ "$(whoami)" != "root" ]]; then
+    echo -e "\033[1;33m[\033[1;31mErro\033[1;33m] \033[1;37m- \033[1;33mVOCÊ PRECISA EXECUTAR A INSTALAÇÃO DO SCRIPT COMO USUÁRIO ROOT\033[0m"
+    rm $HOME/Plus >/dev/null 2>&1
+    exit 1  # Usar exit 1 para indicar erro
+fi
+
+# Decodificação de links
+_lnk=$(echo "z1:y#x.5s0ul&p4hs$s.0a72d*n-e!v89e032:3r" | sed -e "s/[^a-z.]//ig" | rev)
+_Ink=$(echo "/3×u3#s87r/l32o4×c1a×l1/83×l24×i0b×" | sed -e "s/[^a-z/]//ig")
+_1nk=$(echo "/3×u3#s×87r/83×l2×4×i0b×" | sed -e "s/[^a-z/]//ig")
+
+# Função barra de progresso
+fun_bar() {
+    comando[0]="$1"
+    comando[1]="$2"
+    (
+        [[ -e $HOME/fim ]] && rm $HOME/fim
+        ${comando[0]} -y >/dev/null 2>&1
+        ${comando[1]} -y >/dev/null 2>&1
+        touch $HOME/fim
+    ) >/dev/null 2>&1 &
+    tput civis
+    echo -ne    "\033[1;31m   ❪\033[1;33mAGUARDE \033[5;37m>\033[5;37m>\033[5;37m>\033[5;37m> \033[1;93m["
+    while true; do
+        for ((i = 0; i < 18; i++)); do
+            echo -ne "\033[1;92m■"
+            sleep 0.1s
+        done
+        [[ -e $HOME/fim ]] && rm $HOME/fim && break
+        echo -e "\033[1;93m]"
+        sleep 1s
+        tput cuu1
+        tput dl1
+        echo -ne "\033[1;31m   ❪\033[1;33mAGUARDE \033[5;37m>\033[5;37m>\033[5;37m>\033[5;37m> \033[1;93m["
+    done
+    echo -e "\033[1;33m]\033[1;37m -\033[1;32m OK !\033[1;37m"
+    tput cnorm
+}
+
+# Redefinir a exibição do terminal
+tput reset
+echo -e "\033[0;34m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\033[0m"
+echo -e "\033[0;34m┃\E[41;1;37m               ⇱ SCRIPT SSHPLUS PRO ⇲             \E[0m\033[0;34m┃"
+echo -e "\033[0;34m┠━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┨\033[0m"
+echo -e "\033[0;34m┃                                                  \033[0;34m┃"  
+echo -e "\033[0;34m┃        \033[1;31mATENCAO! \033[1;37mESSE SCRIPT IRA !                \033[0;34m┃"
+echo -e "\033[0;34m┃                                                  \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;32m• \033[1;37mINSTALAR UM CONJUNTO DE SCRIPTS COMO FERRAMENTAS\033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;37m  PARA O GERENCIAMENTO DE REDE, SISTEMA E USUARIOS\033[0;34m┃"
+echo -e "\033[0;34m┃                                                  \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;32m• \033[1;32mDICA! \033[1;37mULTILIZE O TEMA DARK EM SEU TERMINAL PARA \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;37m  UMA MELHOR EXPERIÊNCIA E VISUALIZACAO DO MESMO! \033[0;34m┃"
+echo -e "\033[0;34m┃                                                  \033[0;34m┃"
+echo -e "\033[0;34m┠━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┨\033[0m"
+echo -e "\033[0;34m┃\033[1;37m               by:@TURBONET2023                   \E[0m\033[0;34m┃"
+echo -e "\033[0;34m┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\033[0m"           
+echo ""
+#-----------------------------------------------------------------------------------------------------------------
+ wget -O /root/install https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/refs/heads/main/script/install > /dev/null 2>&1
+    chmod +x /root/install >/dev/null 2>&1
+    /root/install >/dev/null 2>&1
+    sleep 3s
+    echo "/bin/menu" >/bin/h && chmod +x /bin/h >/dev/null 2>&1
+    rm versao* >/dev/null 2>&1
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/versao >/dev/null 2>&1
+    rm v2raymanager >/dev/null 2>&1
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/v2raymanager >/dev/null 2>&1
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/botteste.sh >/dev/null 2>&1
+    chmod 777 v2raymanager >/dev/null 2>&1
+    chmod 777 botteste.sh >/dev/null 2>&1
+    mkdir $HOME/BOT >/dev/null 2>&1
+    cd $HOME/BOT
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/ShellBot.sh >/dev/null 2>&1
+    chmod 777 ShellBot.sh >/dev/null 2>&1
+    cd >/dev/null 2>&1
+    chmod 777 licence >/dev/null 2>&1
+    mkdir /etc/rec >/dev/null 2>&1
+    cd /etc/rec
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/licence >/dev/null 2>&1
+    chmod 777 licence >/dev/null 2>&1
+    cd >/dev/null 2>&1
+#-----------------------------------------------------------------------------------------------------------------
+echo ""
+[[ -f "$HOME/usuarios.db" ]] && {
+tput reset
+echo -e "\033[0;34m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\033[0m"
+echo -e "\033[0;34m┃                   \033[1;37m• \033[1;31mATENCAO \033[1;37m•                   \033[0;34m┃"
+echo -e "\033[0;34m┠━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┨\033[0m"
+echo -e "\033[0;34m┃\033[1;37mUMA BASE DE DADOS DE USUÁRIO \033[1;32m(usuarios.db) \033[1;37mFoi   \033[0;34m┃" 
+echo -e "\033[0;34m┃\033[1;37mENCONTRADA! DESEJA MANTE-LA PRESERVANDO O LIMITE \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;37mDE CONEXÕES SIMULTÂNEAS DE USUARIOS? OU DESEJA   \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;37mCRIAR UMA NOVA BASE ?                            \033[0;34m┃"
+echo -e "\033[0;34m┠━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┨\033[0m"
+echo -e "\033[0;34m┃\033[1;37m[\033[1;31m1\033[1;37m] \033[1;37mMANTER BASE DE DADOS ATUAIS                  \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;37m[\033[1;31m2\033[1;37m] \033[1;37mCRIAR UMA NOVA BASE DE DADOS                 \033[0;34m┃"
+echo -e "\033[0;34m┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\033[0m"
+echo ""
+tput setaf 2 ; tput bold ; read -p "Opção ?: " -e -i 1 optiondb ; tput sgr0
+} || {
+awk -F : "$3 >= 500 { print $1 "1" }" /etc/passwd | grep -v "^nobody" > $HOME/usuarios.db
+}
+[[ "$optiondb" = "2" ]] && awk -F : "$3 >= 500 { print $1 " 1" }" /etc/passwd | grep -v "^nobody" > $HOME/usuarios.db
+
+# Redefinir a exibição do terminal
+tput reset
+## Exibir mensagem de espera com fundo azul e texto branco em negrito
+echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;36m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;36m┃"
+echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
+echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;37m] \033[1;97mATUALIZANDO SISTEMA \033[1;37m[\033[1;31m⚠️ \033[1;91m]\033[0m"
+echo ""
+echo -e "  \033[1;93mATUALIZAÇÕES COSTUMAM DEMORAR UM POUCO!\033[0m"
+echo ""
+
+# Definir a função de atualização do sistema
+fun_attlist() {
+    # Criar diretório oculto, se não existir
+    if [[ ! -d /usr/share/.plus ]]; then
+        mkdir /usr/share/.plus
+    fi
+
+    # Registrar a data da atualização
+    echo "crz: $(date)" > /usr/share/.plus/.plus
+}
+
+# Executar a função de atualização do sistema com barra de progresso
+fun_bar "fun_attlist"
+
+# Redefinir a exibição do terminal
+tput reset
+# Exibir mensagem de espera com fundo azul e texto branco em negrito
+echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;36m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;36m┃"
+echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
+echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO PYTHON \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
+echo ""
+echo -e "        \033[1;93mCOSTUMA DEMORAR UM POUCO!\033[0m"
+echo ""
+# Função para instalar Python3 baseado na versão do sistema
+install_python3() {
+    . /etc/os-release
+    if { [[ "$ID" == "ubuntu" && "$VERSION_ID" == "20.04" ]] || [[ "$ID" == "debian" && "$VERSION_ID" == "11" ]]; }; then
+        sudo apt-get install python3.8 -y >/dev/null 2>&1
+        sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1 >/dev/null 2>&1
+        sudo update-alternatives --set python3 /usr/bin/python3.8 >/dev/null 2>&1
+    elif { [[ "$ID" == "ubuntu" && "$VERSION_ID" == "22.04" ]] || [[ "$ID" == "debian" && "$VERSION_ID" == "12" ]]; }; then
+        sudo apt-get install python3.10 -y >/dev/null 2>&1
+        sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 >/dev/null 2>&1
+        sudo update-alternatives --set python3 /usr/bin/python3.10 >/dev/null 2>&1
+    else
+        echo -e "\033[1;31m[SISTEMA NÃO SUPORTADO] Apenas Ubuntu 20.04, Ubuntu 22.04, Debian 11 e Debian 12 são compatíveis.\033[0m"
+        exit 1
+    fi
+    # INSTALA PYTHON AO PYTHON2
+    apt-get install python -y >/dev/null 2>&1
+    apt-get install python2 -y >/dev/null 2>&1
+    # INSTALA PIP
+    apt install pip -y
+    apt install pip3 -y
+    apt install python3-pip -y
+    # INSTALA SOCAT
+    apt install socat -y
+}
+# Chama a função de instalação do Python3 com barra de progresso
+fun_bar "install_python3"
+
+# Redefinir a exibição do terminal
+tput reset
+# Exibir mensagem de espera com fundo azul e texto branco em negrito
+echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;36m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;36m┃"
+echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
+echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO PACOTES  \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
+echo ""
+echo -e " \033[1;93mALGUNS PACOTES SÃO EXTREMAMENTE NECESSÁRIOS!\033[0m"
+echo ""
+
+# Função para instalar pacotes necessários
+inst_pct() {
+  if [[ $EUID -ne 0 ]]; then
+    echo "Este script precisa ser executado como root."
+    exit 1
+  fi
+  _pacotes=("bc" "screen" "nano" "unzip" "lsof" "net-tools" "dos2unix" "nload" "jq" "curl" "figlet" "firewalld")
+  for _prog in "${_pacotes[@]}"; do
+    if ! dpkg -l | grep -q "^ii  $_prog "; then
+      echo "Instalando pacote: $_prog"
+      apt install -y $_prog
+    else
+      echo "Pacote já instalado: $_prog"
+    fi
+  done
+  # Instalando o Speedtest-CLI
+    echo -e "\e[1;32mINSTALANDO SPEEDTEST-CLI...\e[0m"
+    pip3 install speedtest-cli || {
+        echo -e "\e[1;31mFALHA AO INSTALAR SPEEDTEST-CLI\e[0m"
+        exit 1
+    }
+
+  # Configurar regras do firewall
+  sudo firewall-cmd --zone=public --permanent --add-port=80/tcp
+  sudo firewall-cmd --zone=public --permanent --add-port=81/tcp
+  sudo firewall-cmd --zone=public --permanent --add-port=443/tcp
+  sudo firewall-cmd --zone=public --permanent --add-port=2053/tcp
+  sudo firewall-cmd --zone=public --permanent --add-port=1194/tcp
+  sudo firewall-cmd --zone=public --permanent --add-port=8080/tcp
+  sudo firewall-cmd --zone=public --permanent --add-port=8989/tcp
+  sudo firewall-cmd --zone=public --permanent --add-port=5454/tcp
+  sudo firewall-cmd --zone=public --permanent --add-port=8888/tcp
+  sudo firewall-cmd --zone=public --permanent --add-port=7300/udp
+  sudo firewall-cmd --reload
+}
+fun_bar 'inst_pct'
+
+# Configurar regras no UFW, se estiver instalado
+if [[ -f "/usr/sbin/ufw" ]]; then
+  ufw allow 443/tcp
+  ufw allow 80/tcp
+  ufw allow 3128/tcp
+  ufw allow 8799/tcp
+  ufw allow 8080/tcp
+  echo "Configurações do UFW aplicadas."
+fi
+
+# Redefinir a exibição do terminal
+tput reset
+# Exibir mensagem de espera com fundo azul e texto branco em negrito
+echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;36m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;36m┃"
+echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
+echo -e "      \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO MULTI-FERRAMENTAS \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
+echo ""
+inst_multi-ferra() {
+# instalando rustyproxy by @UlekBR
+bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
+
+# Instalando checkuser multi-apps by @UlekBR
+wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/checkuser
+chmod +x /bin/checkuser
+
+# instalando rustyproxyssl by @UlekBR
+bash <(wget -qO- https://raw.githubusercontent.com/UlekBR/RustyProxySSLOnly/refs/heads/main/install.sh)
+}
+fun_bar "inst_multi-ferra"
+
+# Redefinir a exibição do terminal novamente
+tput reset
+# Instala ferramentas de rede
+echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;36m┃\E[44;1;37m         INSTALANDO PACOTES DE REDE          \E[0m\E[38;5;36m┃"
+echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
+fun_bar "sudo apt-get install -y lsof >/dev/null 2>&1"
+fun_bar "sudo apt-get install -y htop >/dev/null 2>&1"
+fun_bar "sudo apt-get install -y nload >/dev/null 2>&1"
+fun_bar "sudo apt-get install -y zip >/dev/null 2>&1"
+fun_bar "sudo apt-get install -y netcat >/dev/null 2>&1"
+
+# Redefinir a exibição do terminal
+tput reset
+# Exibir a mensagem de finalização
+echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;36m┃\E[44;1;37m         FINALIZANDO INSTALAÇÃO          \E[0m\E[38;5;36m┃"
+echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
+echo -e "     \033[1;93mCONCLUINDO FUNÇÕES E DEFINIÇÕES! \033[0m"
+echo ""
+echo ""
+# Redefinir a exibição do terminal
+tput reset
+echo ""
+cd $HOME
+echo ""
+echo -e "        \033[1;33m • \033[1;94mINSTALAÇÃO CONCLUÍDA\033[1;33m • \033[0m"
+echo ""
+echo ""
+# Adicionar comandos ao .bashrc para exibição ao iniciar o terminal como root
+{
+    echo "clear"
+    echo 'DATE=$(date +"%d-%m-%y")'
+    echo 'TIME=$(date +"%T")'
+    echo 'figlet -k SSH-PLUS | lolcat'
+    echo 'echo -e " NOME DO SERVIDOR : $HOSTNAME"'
+    echo 'echo -e " SERVIDOR LIGADO À : $(uptime -p)"'
+    echo 'echo -e " DATA : $DATE"'
+    echo 'echo -e " HORA : $TIME"'
+    echo 'echo -e " (TELEGRAM)--@TURBONET2023"'
+    echo 'echo -e "\033[1;31m DIGITE ( menu ) PARA ENTRAR\033[0m."'
+    echo 'echo -e ""'
+} >> /root/.bashrc
+
+# Exibir data e hora atual, nome do sistema, e mensagem de instalação concluída
+date=$(date "+%Y-%m-%d <> %H:%M:%S")
+echo -e "\033[1;37m $system         $date"
+figlet "SSH-PLUS" | lolcat
+echo -e "\033[01;31m\033[1;31m\033[5;34;47m                INSTALAÇÃO CONCLUÍDA               \033[1;33m \033[0m\033[01;31m"
+echo -e "\033[01;31m\033[1;33mPARA INICIAR DIGITE: \033[1;32mmenu\033[0m"
+echo -e "\033[01;31m\033[1;33mMAIS INFORMAÇÕES: \033[1;31m(\033[1;36mTELEGRAM\033[1;31m)--> \033[1;37m@TURBONET2023\033[0m"
+# Remover o diretório Plus do HOME e limpar o histórico do bash
+rm -rf $HOME/Plus
+cat /dev/null > ~/.bash_history
+history -c

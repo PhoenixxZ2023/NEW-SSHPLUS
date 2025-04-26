@@ -26,10 +26,9 @@ done
 echo -e "\033[1;37m]\033[1;37m -\033[1;32m OK !\033[1;37m"
 tput cnorm
 }
-
 IP=$(cat /etc/IP)
 x="ok"
-
+menu ()
 velocity () {
 aguarde () {
 comando[0]="$1"

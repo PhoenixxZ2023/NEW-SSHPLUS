@@ -68,7 +68,7 @@ wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/sl
 wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/slowdns-ssh; chmod +x slowdns-ssh
 wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/slowdns-ssl; chmod +x slowdns-ssl
 wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/slowdns-socks; chmod +x slowdns-socks
-wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/slowdns; chmod +x slowdns; cp slowdns /bin/slowdns
+wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/slowdns; chmod +x slowdns; cp slowdns /bin
 wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/stopdns; chmod +x stopdns
 }
 fun_bar 'fun_att'

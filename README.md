@@ -65,7 +65,7 @@ bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/senharoot/main/
 Opção 1:
 
 ````
-apt update -y && apt upgrade -y && wget -y; bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/refs/heads/main/ssh-plus)
+clear && apt update -y && apt upgrade -y && wget -y; bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/refs/heads/main/ssh-plus)
 ````
 
 

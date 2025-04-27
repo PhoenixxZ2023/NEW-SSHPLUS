@@ -133,7 +133,7 @@ Opcao11 () {
 
 Sair() {
     clear
-    exit
+    menu
 }
 clear
 slowdns

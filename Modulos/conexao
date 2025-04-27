@@ -59,7 +59,7 @@ SCOLOR='\033[0m'
 			slowdns
 		} || {
 			cd $HOME
-			rm -rf install; apt update; wget https://github.com/PhoenixxZ2023/PLUS/raw/main/Slowdns/install; chmod 777 install; ./install --start
+			rm -rf install; apt update; wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Slowdns/install; chmod 777 install; ./install --start
 		}
 
 	}

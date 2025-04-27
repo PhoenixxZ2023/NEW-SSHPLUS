@@ -251,8 +251,6 @@ bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/
 wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/checkuser
 chmod +x /bin/checkuser
 
-# instalando rustyproxyssl by @UlekBR
-bash <(wget -qO- https://raw.githubusercontent.com/UlekBR/RustyProxySSLOnly/refs/heads/main/install.sh)
 }
 fun_bar "inst_multi-ferra"
 

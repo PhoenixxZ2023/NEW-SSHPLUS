@@ -29,6 +29,7 @@ tput cnorm
 IP=$(cat /etc/IP)
 x="ok"
 menu ()
+{
 velocity () {
 aguarde () {
 comando[0]="$1"

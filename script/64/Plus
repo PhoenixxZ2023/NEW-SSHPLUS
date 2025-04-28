@@ -248,7 +248,7 @@ inst_multi-ferra() {
 bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
 
 # Instalando checkuser multi-apps by @UlekBR
-wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/checkuser
+wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
 chmod +x /bin/checkuser
 
 }

@@ -71,10 +71,12 @@ echo ""
 
 if [ -d /etc/SSHPlus/v2ray ]; then
     vt=0
+    declare -A seen_uuids
     for file in /etc/SSHPlus/RegV2ray /etc/SSHPlus/v2ray/RegV2ray-*; do
         if [ -f "$file" ]; then
             while IFS='|' read -r uuid user date || IFS=' ' read -r user uuid date; do
-                if [ -n "$user" ] && [ -n "$uuid" ] && [ -n "$date" ]; then
+                if [ -n "$user" ] && [ -n "$uuid" ] && [ -n "$date" ] && [ -z "${seen_uuids[$uuid]}" ]; then
+                    seen_uuids[$uuid]=1
                     VPSsec=$(date +%s)
                     DataSec=$(date +%s --date="$date")
                     if [ "$VPSsec" -gt "$DataSec" ]; then

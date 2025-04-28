@@ -40,21 +40,25 @@ for port in $SSH_PORTS; do
     count=$(netstat -t | grep :$port | grep ESTABLISHED | wc -l 2>/dev/null || echo "0")
     _ons=$(( _ons + count ))
 done
-OPENVPN_PORTS=$(grep -E "^port" /etc/openvpn/*.conf | awk '{print $2}' | tr '\n' ' ')
-for port in $OPENVPN_PORTS; do
-    count=$(netstat -t | grep :$port | grep ESTABLISHED | wc -l 2>/dev/null || echo "0")
-    _onop=$(( _onop + count ))
-done
+if [ -d /etc/openvpn ]; then
+    OPENVPN_PORTS=$(grep -E "^port" /etc/openvpn/*.conf 2>/dev/null | awk '{print $2}' | tr '\n' ' ')
+    for port in $OPENVPN_PORTS; do
+        count=$(netstat -t | grep :$port | grep ESTABLISHED | wc -l 2>/dev/null || echo "0")
+        _onop=$(( _onop + count ))
+    done
+fi
 DROPBEAR_PORTS=$(ps aux | grep dropbear | grep -oP '\-p\s+\K[\d\s]+' | tr '\n' ' ')
 for port in $DROPBEAR_PORTS; do
     count=$(netstat -t | grep :$port | grep ESTABLISHED | wc -l 2>/dev/null || echo "0")
     _ondrp=$(( _ondrp + count ))
 done
-V2RAY_PORTS=$(grep -E '"port":' /etc/v2ray/config.json | awk '{print $2}' | tr -d ',"' | tr '\n' ' ')
-for port in $V2RAY_PORTS; do
-    count=$(netstat -t | grep :$port | grep ESTABLISHED | wc -l 2>/dev/null || echo "0")
-    _onv2ray=$(( _onv2ray + count ))
-done
+if [ -f /etc/v2ray/config.json ]; then
+    V2RAY_PORTS=$(grep -E '"port":' /etc/v2ray/config.json | awk '{print $2}' | tr -d ',"' | tr '\n' ' ')
+    for port in $V2RAY_PORTS; do
+        count=$(netstat -t | grep :$port | grep ESTABLISHED | wc -l 2>/dev/null || echo "0")
+        _onv2ray=$(( _onv2ray + count ))
+    done
+fi
 _onli=$(( $_ons + $_onop + $_ondrp + $_onv2ray ))
 _expuser=$(cat /etc/SSHPlus/Exp 2>/dev/null || echo "0")
 
@@ -78,8 +82,8 @@ if [ -d /etc/SSHPlus/v2ray ]; then
                 if [ -n "$user" ] && [ -n "$uuid" ] && [ -n "$date" ] && [ -z "${seen_uuids[$uuid]}" ]; then
                     seen_uuids[$uuid]=1
                     VPSsec=$(date +%s)
-                    DataSec=$(date +%s --date="$date")
-                    if [ "$VPSsec" -gt "$DataSec" ]; then
+                    DataSec=$(date +%s --date="$date" 2>/dev/null || echo "0")
+                    if [ "$DataSec" -eq 0 ] || [ "$VPSsec" -gt "$DataSec" ]; then
                         validade="\033[1;31mVenceu\033[0m"
                     else
                         dias_restantes=$(( ( $DataSec - $VPSsec ) / 86400 ))
@@ -105,3 +109,4 @@ echo ""
 echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 echo -e "\033[1;33m• \033[1;36mTOTAL USUARIOS\033[1;37m $vt \033[0m"
 echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e "\033[1;37m• \033[1;33mENTER para retornar ao MENU!\033[0m" && read enter

@@ -256,7 +256,7 @@ _system=$(printf '%-20s' "$(lsb_release -si 2>/dev/null || echo 'Linux') $(lsb_r
 _hora=$(printf '%(%H:%M:%S)T')
 _onlin=$(printf '%-5s' "$_onli")
 _userexp=$(printf '%-5s' "$_expuser")
-_tuser=$(printf '%-5s' "$(awk -F: '$3>=1000 {print $1}' /etc/passwd | grep -Ev '^(nobody|ubuntu)$' | wc -l)")
+_tuser=$(printf '%-5s' "$(awk -F: '$3>=1000 {print $1}' /etc/passwd | grep -Ev '^(nobody|ubuntu|lxd)$' | wc -l)")
 swap1=$(printf '%-5s' "$(free -h | grep -i swap | awk {'print $2'})")
 swap2=$(printf '%-5s' "$(free -h | grep -i swap | awk {'print $4'})")
 swap3=$(printf '%-5s' "$(free -h | grep -i swap | awk {'print $3'})")

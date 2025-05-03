@@ -1,6 +1,6 @@
 #!/bin/bash
-# EDIT: @kiritossh
-# github: https://github.com/Jrohy/multi-v2ray
+# EDIT: @TURBONET2023
+# github: https://github.com/PhoenixxZ2023/NEW-SSHPLUS
 
 #定时任务北京执行时间(0~23)
 BEIJING_UPDATE_TIME=3
@@ -29,7 +29,7 @@ BASH_COMPLETION_SHELL="$BASE_SOURCE_PATH/v2ray"
 CLEAN_IPTABLES_SHELL="$BASE_SOURCE_PATH/v2ray_util/global_setting/clean_iptables.sh"
 
 # Novo link do go.sh hospedado no GitHub
-GO_SH_URL="https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Modulos/go.sh"
+GO_SH_URL="https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/go.sh"
 
 #Centos 临时取消别名
 [[ -f /etc/redhat-release && -z $(echo $SHELL|grep zsh) ]] && unalias -a

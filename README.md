@@ -1,4 +1,4 @@
-<h2 align="center" color="red">SCRIPT SSHPLUS 2023</h2>
+<h2 align="center" color="red">SCRIPT NEW-SSHPLUS 2025</h2>
 
 ## FUNCIONALIDADES:
 

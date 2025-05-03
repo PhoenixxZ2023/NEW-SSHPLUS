@@ -565,25 +565,25 @@ msg17='\033[1;37m\033[1;33m(SEM INFORMAÇÃO - PARA CANCELAR PRESSIONE CTRL + C)
     #SPR &
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
 
-    fun_v2raymanager() {
-        while true $x != "ok"; do
-            [[ ! -e '/home/sshplus' ]] && exit 0
-            clear
-            echo -e "\E[44;1;37m                MENU V2RAY                 \E[0m\n"
+   fun_v2raymanager() {
+		while true $x != "ok"; do
+			[[ ! -e '/home/sshplus' ]] && exit 0
+			clear
+			echo -e "\E[44;1;37m                GERENCIADOR V2RAY                 \E[0m\n"
 
-            xv2ray1=$(if netstat -tunlp | grep v2ray 1>/dev/null 2>/dev/null; then
-                echo -e "\e[92m ATIVADO"
-            else
-                echo -e "\e[91m DESATIVADO"
-            fi)
-            echo -e "\033[1;32mSERVIÇO: \033[1;33mV2RAY \033[1;32m$xv2ray1\033[1;37m"
-            xv2ray=$(if netstat -tunlp | grep v2ray 1>/dev/null 2>/dev/null; then
-                echo -e "\033[1;32m◉ "
-            else
-                echo -e "\033[1;31m○ "
-            fi)
-            echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-            echo ""
+			xv2ray1=`if netstat -tunlp |grep v2ray 1> /dev/null 2> /dev/null; then
+			echo -e "\e[92m ATIVADO"
+			else
+			echo -e "\e[91m DESATIVADO"
+			fi`;
+            echo -e "\033[1;32mSERVICO: \033[1;33mV2RAY \033[1;32m$xv2ray1\033[1;37m" 
+			xv2ray=`if netstat -tunlp |grep v2ray 1> /dev/null 2> /dev/null; then
+			echo -e "\033[1;32m◉ "
+			else
+			echo -e "\033[1;31m○ "
+			fi`;          
+			echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+			echo ""
             echo -e "\033[1;31m[\033[1;36m01\033[1;31m] \033[1;37m• \033[1;33mINSTALAR V2RAY $xv2ray\033[1;31m
 [\033[1;36m02\033[1;31m] \033[1;37m• \033[1;33mALTERAR PROTOCOLO\033[1;31m
 [\033[1;36m03\033[1;31m] \033[1;37m• \033[1;33mATIVAR TLS\033[1;31m

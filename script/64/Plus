@@ -247,7 +247,6 @@ bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/
 # Instalando checkuser multi-apps by @UlekBR
 wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
 chmod +x /bin/checkuser
-
 }
 fun_bar "inst_multi-ferra"
 
@@ -266,6 +265,8 @@ fun_bar "sudo apt-get install -y netcat >/dev/null 2>&1"
 fun_bar "sudo apt install -y fail2ban >/dev/null 2>&1"
 fun_bar "sudo systemctl start fail2ban >/dev/null 2>&1"
 fun_bar "sudo systemctl enable fail2ban >/dev/null 2>&1"
+fun_bar "sudo apt install lolcat figlet -y >/dev/null 2>&1"
+
 
 # Redefinir a exibição do terminal
 tput reset
@@ -286,10 +287,16 @@ echo -e "        \033[1;33m • \033[1;94mINSTALAÇÃO CONCLUÍDA\033[1;33m • 
 echo ""
 echo ""
 {
+    if [[ ":$PATH:" != *":/usr/games:"* ]]; then
+    export PATH=$PATH:/usr/games
+fi
+    echo 'if [[ ":$PATH:" != *":/usr/games:"* ]]; then'
+    echo '    export PATH=$PATH:/usr/games'
+    echo 'fi'
     echo "clear"
     echo 'DATE=$(date +"%d-%m-%y")'
     echo 'TIME=$(date +"%T")'
-    echo 'toilet -f smblock -F metal      "NEW-SSHPLUS 2025"'
+    echo 'figlet -f smblock "SSH-PLUS" | lolcat -f --freq=0.5 --seed=1'
     echo 'echo -e " NOME DO SERVIDOR : $HOSTNAME"'
     echo 'echo -e " SERVIDOR LIGADO À : $(uptime -p)"'
     echo 'echo -e " DATA : $DATE"'
@@ -301,7 +308,7 @@ echo ""
 source /root/.bashrc
 date=$(date "+%Y-%m-%d <> %H:%M:%S")
 echo -e "\033[1;37m $system         $date"
-toilet -f smblock -F metal     "NEW-SSHPLUS 2025"
+figlet -f smblock "SSH-PLUS" | lolcat -f --freq=0.5 --seed=1
 echo -e "\033[01;31m\033[1;31m\033[5;34;47m                INSTALAÇÃO CONCLUÍDA               \033[1;33m \033[0m\033[01;31m"
 echo -e "\033[01;31m\033[1;33mPARA INICIAR DIGITE: \033[1;32mmenu\033[0m"
 echo -e "\033[01;31m\033[1;33mMAIS INFORMAÇÕES: \033[1;31m(\033[1;36mTELEGRAM\033[1;31m)--> \033[1;37m@TURBONET2023\033[0m"

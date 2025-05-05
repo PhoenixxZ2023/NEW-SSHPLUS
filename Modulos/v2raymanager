@@ -573,9 +573,9 @@ msg17='\033[1;37m\033[1;33m(SEM INFORMAÇÃO - PARA CANCELAR PRESSIONE CTRL + C)
 			echo -e "\033[1;36m┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\033[0m"
 
 			xv2ray1=`if netstat -tunlp |grep v2ray 1> /dev/null 2> /dev/null; then
-			echo -e "\e[92m ATIVADO"          \033[1;36m┃"
+			echo -e "\e[92m ATIVADO"          
 			else
-			echo -e "\e[91m DESATIVADO"           \033[1;36m┃"
+			echo -e "\e[91m DESATIVADO"          
 			fi`;
             		echo -e "\033[1;32mSERVICO: \033[1;33mV2RAY \033[1;32m$xv2ray1\033[1;37m" 
 			xv2ray=`if netstat -tunlp |grep v2ray 1> /dev/null 2> /dev/null; then
@@ -599,67 +599,61 @@ msg17='\033[1;37m\033[1;33m(SEM INFORMAÇÃO - PARA CANCELAR PRESSIONE CTRL + C)
 	   		echo -e "\033[1;36m┃\033[1;31m[\033[1;96m13\033[1;31m] \033[1;37m• \033[1;33mVOLTAR \033[1;32m<\033[1;33m<\033[1;31m< \033[1;31m \033[1;36m┃"
 	    		echo -e "\033[1;36m┃\033[1;31m[\033[1;96m00\033[1;31m] \033[1;37m• \033[1;33mSAIR \033[1;32m<\033[1;33m<\033[1;31m< \033[0m" \033[1;36m┃"  
             		echo -e "\033[1;36m┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\033[0m"
-            tput civis
-            echo -ne "\033[1;36m┗➤ \033[1;31mINFORME UMA OPÇÃO \033[1;33m:"; read x
-            read x
-            tput cnorm
-            clear
-            case $x in
-            1 | 01)
-                intallv2ray
-                ;;
-            2 | 02)
-                protocolv2ray
-                ;;
-            3 | 03)
-                tls
-                ;;
-            4 | 04)
-                portv
-                ;;
-            5 | 05)
-                addusr
-                ;;
-            6 | 06)
-                delusr
-                ;;
-            7 | 07)
-                mosusr_kk
-                ;;
-            8 | 08)
-                infocuenta
-                ;;
-            9 | 09)
-                stats
-                ;;
-            10 | 10)
-                lim_port
-                ;;
-            11 | 11)
-                limpiador_activador
-                ;;
-            12 | 12)
-                unistallv2
-                ;;
-            13 | 13)
-                conexao
-                exit
-                ;;
-
-            0 | 00)
-                echo -e "\033[1;31mSaindo...\033[0m"
-                sleep 1
-                clear
-                exit
-                exit
-                ;;
-            *)
-                echo -e "\033[1;31mOpção inválida!\033[0m"
-                sleep 2
-                ;;
-            esac
-        done
-    }
-    fun_v2raymanager
-
+           		echo -ne "\033[1;36m┗➤ \033[1;31mINFORME UMA OPÇÃO \033[1;33m:"; read x
+			case "$x" in
+            		1 | 01)
+                	intallv2ray
+                	;;
+            		2 | 02)
+                	protocolv2ray
+                	;;
+            		3 | 03)
+                	tls
+                	;;
+            		4 | 04)
+                	portv
+                	;;
+            		5 | 05)
+                	addusr
+               	 	;;
+            		6 | 06)
+                	delusr
+                	;;
+            		7 | 07)
+                	mosusr_kk
+                	;;
+            		8 | 08)
+                	infocuenta
+                	;;
+            		9 | 09)
+                	stats
+                	;;
+            		10 | 10)
+                	lim_port
+                	;;
+            		11 | 11)
+                	limpiador_activador
+                	;;
+            		12 | 12)
+                	unistallv2
+                	;;
+            		13 | 13)
+                	conexao
+                	exit
+                	;;
+			0 | 00)
+                	echo -e "\033[1;31mSaindo...\033[0m"
+                	sleep 1
+                	clear
+                	exit
+                	exit
+                	;;
+            		*)
+                	echo -e "\033[1;31mOpção inválida!\033[0m"
+                	sleep 2
+                	;;
+            	esac
+        	done
+    	}
+    	 fun_v2raymanager
 }

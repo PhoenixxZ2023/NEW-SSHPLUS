@@ -287,6 +287,9 @@ echo ""
 echo ""
 # Adicionar comandos ao .bashrc para exibição ao iniciar o terminal como root
 {
+    echo 'if [[ ":$PATH:" != *":/usr/games:"* ]]; then'
+    echo '    export PATH=$PATH:/usr/games'
+    echo 'fi'
     echo "clear"
     echo 'DATE=$(date +"%d-%m-%y")'
     echo 'TIME=$(date +"%T")'
@@ -299,8 +302,7 @@ echo ""
     echo 'echo -e "\033[1;31m DIGITE ( menu ) PARA ENTRAR\033[0m."'
     echo 'echo -e ""'
 } >> /root/.bashrc
-
-# Exibir data e hora atual, nome do sistema, e mensagem de instalação concluída
+source /root/.bashrc
 date=$(date "+%Y-%m-%d <> %H:%M:%S")
 echo -e "\033[1;37m $system         $date"
 figlet "SSH-PLUS" | lolcat

@@ -162,9 +162,6 @@ install_python3() {
         echo -e "\033[1;31m[SISTEMA NÃO SUPORTADO] Apenas Ubuntu 20.04, Ubuntu 22.04, Debian 11 e Debian 12 são compatíveis.\033[0m"
         exit 1
     fi
-    # INSTALA PYTHON AO PYTHON2
-    apt-get install python -y >/dev/null 2>&1
-    apt-get install python2 -y >/dev/null 2>&1
     # INSTALA PIP
     apt install pip -y
     apt install pip3 -y
@@ -266,6 +263,9 @@ fun_bar "sudo apt-get install -y htop >/dev/null 2>&1"
 fun_bar "sudo apt-get install -y nload >/dev/null 2>&1"
 fun_bar "sudo apt-get install -y zip >/dev/null 2>&1"
 fun_bar "sudo apt-get install -y netcat >/dev/null 2>&1"
+fun_bar "sudo apt install -y fail2ban >/dev/null 2>&1"
+fun_bar "sudo systemctl start fail2ban >/dev/null 2>&1"
+fun_bar "sudo systemctl enable fail2ban >/dev/null 2>&1"
 
 # Redefinir a exibição do terminal
 tput reset

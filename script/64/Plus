@@ -2,6 +2,7 @@
 clear
 # Instalação silenciosa de pacotes
 sudo apt-get install lolcat -y &>/dev/null 2>&1
+sudo apt-get install iproute2 -y &>/dev/null 2>&1
 sudo apt-get install toilet -y &>/dev/null 2>&1
 sudo apt-get install curl -y &>/dev/null 2>&1
 sudo apt-get install git -y &>/dev/null 2>&1 

@@ -576,16 +576,13 @@ msg17='\033[1;37m\033[1;33m(SEM INFORMAÇÃO - PARA CANCELAR PRESSIONE CTRL + C)
 			else
     			echo -e "\e[91mDESATIVADO"
 			fi`;
-			# Extrair apenas o texto visível (sem códigos de cor)
 			xv2ray1_text=$(echo -e "$xv2ray1" | sed -r 's/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g')
-			# Calcular espaços adicionais para "ATIVADO" (7 caracteres) alcançar 10 caracteres
 			if [ ${#xv2ray1_text} -eq 7 ]; then
     			padding="   "
 			else
     			padding=""
 			fi;
-			# Exibir a linha com echo, preservando cores e alinhando a barra
-			echo -n -e "\033[1;36m┃\033[1;32mSERVICO: \033[1;33mV2RAY \033[1;32m$xv2ray1$padding\033[1;37m     \033[1;36m┃\n"
+			echo -n -e "\033[1;36m┃\033[1;32mSERVICO: \033[1;33mV2RAY \033[1;32m$xv2ray1$padding\033[1;37m                \033[1;36m┃\n"
 			xv2ray=`if command -v netstat >/dev/null 2>&1 && netstat -tunlp | grep v2ray >/dev/null 2>&1 || command -v ss >/dev/null 2>&1 && ss -tunlp | grep v2ray >/dev/null 2>&1; then
    			echo -e "\033[1;32m◉ "
 			else

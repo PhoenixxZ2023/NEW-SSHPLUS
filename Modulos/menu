@@ -470,7 +470,6 @@ case "$x" in
    ;;
    11)
    conexao
-   exit;
    ;;
    12)
    apt install curl -y && bash <(curl -s https://raw.githubusercontent.com/opiran-club/VPS-Optimizer/main/optimizer.sh --ipv4)   

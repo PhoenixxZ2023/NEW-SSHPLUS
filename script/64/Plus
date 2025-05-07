@@ -176,9 +176,9 @@ fun_bar "install_python3"
 # Redefinir a exibição do terminal
 tput reset
 # Exibir mensagem de espera com fundo azul e texto branco em negrito
-echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\E[38;5;36m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;36m┃"
-echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;18m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;18m┃"
+echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO PACOTES  \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
 echo ""
@@ -235,9 +235,9 @@ fi
 # Redefinir a exibição do terminal
 tput reset
 # Exibir mensagem de espera com fundo azul e texto branco em negrito
-echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\E[38;5;36m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;36m┃"
-echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;18m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;18m┃"
+echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 echo -e "      \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO MULTI-FERRAMENTAS \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
 echo ""
@@ -254,10 +254,11 @@ fun_bar "inst_multi-ferra"
 # Redefinir a exibição do terminal novamente
 tput reset
 # Instala ferramentas de rede
-echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\E[38;5;36m┃\E[44;1;37m         INSTALANDO PACOTES DE REDE          \E[0m\E[38;5;36m┃"
-echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;18m┃\E[44;1;37m         INSTALANDO PACOTES DE REDE          \E[0m\E[38;5;18m┃"
+echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
+inst_pack_rede() {
 fun_bar "sudo apt-get install -y lsof >/dev/null 2>&1"
 fun_bar "sudo apt-get install -y htop >/dev/null 2>&1"
 fun_bar "sudo apt-get install -y nload >/dev/null 2>&1"
@@ -267,14 +268,15 @@ fun_bar "sudo apt install -y fail2ban >/dev/null 2>&1"
 fun_bar "sudo systemctl start fail2ban >/dev/null 2>&1"
 fun_bar "sudo systemctl enable fail2ban >/dev/null 2>&1"
 fun_bar "sudo apt install lolcat figlet -y >/dev/null 2>&1"
-
+}
+fun_bar "inst_pack_rede"
 
 # Redefinir a exibição do terminal
 tput reset
 # Exibir a mensagem de finalização
-echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\E[38;5;36m┃\E[44;1;37m         FINALIZANDO INSTALAÇÃO          \E[0m\E[38;5;36m┃"
-echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;18m┃\E[44;1;37m         FINALIZANDO INSTALAÇÃO          \E[0m\E[38;5;18m┃"
+echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 echo -e "     \033[1;93mCONCLUINDO FUNÇÕES E DEFINIÇÕES! \033[0m"
 echo ""
@@ -292,11 +294,11 @@ echo ""
     echo 'DATE=$(date +"%d-%m-%y")'
     echo 'TIME=$(date +"%T")'
     echo 'toilet -f smblock -F metal      "NEW-SSHPLUS 2025"'
-    echo 'echo -e " NOME DO SERVIDOR : $HOSTNAME"'
-    echo 'echo -e " SERVIDOR LIGADO À : $(uptime -p)"'
-    echo 'echo -e " DATA : $DATE"'
-    echo 'echo -e " HORA : $TIME"'
-    echo 'echo -e " (TELEGRAM)--@TURBONET2023"'
+    echo -e "\e[1;38;5;18m NOME DO SERVIDOR : $HOSTNAME\e[0m"
+    echo -e "\e[1;38;5;18m SERVIDOR LIGADO À : $(uptime -p)\e[0m"
+    echo -e "\e[1;38;5;18m DATA : $(date +%d/%m/%Y)\e[0m"
+    echo -e "\e[1;38;5;18m HORA : $(date +%H:%M:%S)\e[0m"
+    echo -e "\e[1;38;5;18m (TELEGRAM)--@TURBONET2023\e[0m"
     echo 'echo -e "\033[1;31m DIGITE ( menu ) PARA ENTRAR\033[0m."'
     echo 'echo -e ""'
 } >> /root/.bashrc

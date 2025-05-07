@@ -294,11 +294,11 @@ echo ""
     echo 'DATE=$(date +"%d-%m-%y")'
     echo 'TIME=$(date +"%T")'
     echo 'toilet -f smblock -F metal      "NEW-SSHPLUS 2025"'
-    echo -e "\e[1;38;5;18m NOME DO SERVIDOR : $HOSTNAME\e[0m"
-    echo -e "\e[1;38;5;18m SERVIDOR LIGADO À : $(uptime -p)\e[0m"
-    echo -e "\e[1;38;5;18m DATA : $(date +%d/%m/%Y)\e[0m"
-    echo -e "\e[1;38;5;18m HORA : $(date +%H:%M:%S)\e[0m"
-    echo -e "\e[1;38;5;18m (TELEGRAM)--@TURBONET2023\e[0m"
+    echo 'echo -e "\e[1;38;5;18m NOME DO SERVIDOR : $HOSTNAME\e[0m"'
+    echo 'echo -e "\e[1;38;5;18m SERVIDOR LIGADO À : $(uptime -p)\e[0m"'
+    echo 'echo -e "\e[1;38;5;18m DATA : $(date +%d/%m/%Y)\e[0m"'
+    echo 'echo -e "\e[1;38;5;18m HORA : $(date +%H:%M:%S)\e[0m"'
+    echo 'echo -e "\e[1;38;5;18m (TELEGRAM)--@TURBONET2023\e[0m"'
     echo 'echo -e "\033[1;31m DIGITE ( menu ) PARA ENTRAR\033[0m."'
     echo 'echo -e ""'
 } >> /root/.bashrc

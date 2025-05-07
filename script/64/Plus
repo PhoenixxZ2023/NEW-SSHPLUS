@@ -288,16 +288,10 @@ echo -e "        \033[1;33m • \033[1;94mINSTALAÇÃO CONCLUÍDA\033[1;33m • 
 echo ""
 echo ""
 {
-    if [[ ":$PATH:" != *":/usr/games:"* ]]; then
-    export PATH=$PATH:/usr/games
-fi
-    echo 'if [[ ":$PATH:" != *":/usr/games:"* ]]; then'
-    echo '    export PATH=$PATH:/usr/games'
-    echo 'fi'
     echo "clear"
     echo 'DATE=$(date +"%d-%m-%y")'
     echo 'TIME=$(date +"%T")'
-    echo 'figlet -f smblock        "NEW SSHPLUS 2025" | lolcat -f --freq=0.5 --seed=1'
+    echo 'toilet -f smblock -F metal      "NEW-SSHPLUS 2025"'
     echo 'echo -e " NOME DO SERVIDOR : $HOSTNAME"'
     echo 'echo -e " SERVIDOR LIGADO À : $(uptime -p)"'
     echo 'echo -e " DATA : $DATE"'
@@ -309,7 +303,7 @@ fi
 source /root/.bashrc
 date=$(date "+%Y-%m-%d <> %H:%M:%S")
 echo -e "\033[1;37m $system         $date"
-figlet -f smblock        "NEW SSHPLUS 2025" | lolcat -f --freq=0.5 --seed=1
+toilet -f smblock -F metal     "NEW-SSHPLUS 2025"
 echo -e "\033[01;31m\033[1;31m\033[5;34;47m                INSTALAÇÃO CONCLUÍDA               \033[1;33m \033[0m\033[01;31m"
 echo -e "\033[01;31m\033[1;33mPARA INICIAR DIGITE: \033[1;32mmenu\033[0m"
 echo -e "\033[01;31m\033[1;33mMAIS INFORMAÇÕES: \033[1;31m(\033[1;36mTELEGRAM\033[1;31m)--> \033[1;37m@TURBONET2023\033[0m"

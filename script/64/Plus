@@ -284,7 +284,7 @@ tput reset
 echo ""
 cd $HOME
 echo ""
-echo -e "        \033[1;33m • \033[1;94mINSTALAÇÃO CONCLUÍDA\033[1;33m • \033[0m"
+echo -e "\033[01;31m\033[1;31m\033[5;34;47m                INSTALAÇÃO CONCLUÍDA               \033[1;33m \033[0m\033[01;31m"
 echo ""
 echo ""
 {
@@ -303,8 +303,10 @@ echo ""
 source /root/.bashrc
 date=$(date "+%Y-%m-%d <> %H:%M:%S")
 echo -e "\033[1;37m $system         $date"
+echo ""
 toilet -f smblock -F metal     "NEW-SSHPLUS 2025"
-echo -e "\033[01;31m\033[1;31m\033[5;34;47m                INSTALAÇÃO CONCLUÍDA               \033[1;33m \033[0m\033[01;31m"
+echo ""
+echo -e "\033[01;31m\033[1;31m\033[5;34;47m                               \033[1;33m \033[0m\033[01;31m"
 echo -e "\033[01;31m\033[1;33mPARA INICIAR DIGITE: \033[1;32mmenu\033[0m"
 echo -e "\033[01;31m\033[1;33mMAIS INFORMAÇÕES: \033[1;31m(\033[1;36mTELEGRAM\033[1;31m)--> \033[1;37m@TURBONET2023\033[0m"
 rm $HOME/Plus && cat /dev/null > ~/.bash_history && history -c

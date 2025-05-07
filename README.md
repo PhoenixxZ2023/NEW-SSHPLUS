@@ -68,6 +68,10 @@ Opção 1:
 clear && apt update -y && apt upgrade -y && wget -y; bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/refs/heads/main/ssh-plus)
 ````
 
+````
+clear && apt update -y && apt upgrade -y &&  bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/ssh-plus)
+````
+
 
 ## TELEGRAM: [@TURBONET2023](https://t.me/TURBONET2023)
 

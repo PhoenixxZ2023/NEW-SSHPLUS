@@ -1,57 +1,33 @@
 #!/bin/bash
 clear
-
-# Função para verificar e instalar pacotes
-install_if_missing() {
-    local pkg="$1"
-    if ! dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "ok installed"; then
-        echo "Instalando $pkg..."
-        apt-get install -y "$pkg" >/dev/null 2>&1 || {
-            echo -e "\033[1;31mErro ao instalar $pkg\033[0m"
-            exit 1
-        }
-    else
-        echo "$pkg já está instalado."
-    fi
-}
-
-# Função para instalar pacotes iniciais
-install_initial_packages() {
-    echo "Instalando pacotes iniciais..."
-    apt-get install -y lolcat iproute2 toilet curl git figlet boxes net-tools procps sysstat >/dev/null 2>&1 || {
-        echo -e "\033[1;31mErro ao instalar pacotes iniciais\033[0m"
-        exit 1
-    }
-}
-
 # Instalação silenciosa de pacotes
-install_initial_packages
+sudo apt-get install lolcat -y &>/dev/null 2>&1
+sudo apt-get install iproute2 -y &>/dev/null 2>&1
+sudo apt-get install toilet -y &>/dev/null 2>&1
+sudo apt-get install curl -y &>/dev/null 2>&1
+sudo apt-get install git -y &>/dev/null 2>&1 
+sudo apt-get install figlet boxes -y &>/dev/null 2>&1 
+sudo apt-get install net-tools -y &>/dev/null 2>&1
+sudo apt-get install procps -y >/dev/null 2>&1
+sudo apt-get install sysstat -y >/dev/null 2>&1
 
 # Verificação se o usuário é root
 cd $HOME
 if [[ "$(whoami)" != "root" ]]; then
     echo -e "\033[1;33m[\033[1;31mErro\033[1;33m] \033[1;37m- \033[1;33mVOCÊ PRECISA EXECUTAR A INSTALAÇÃO DO SCRIPT COMO USUÁRIO ROOT\033[0m"
     rm $HOME/Plus >/dev/null 2>&1
-    exit 1
+    exit 1  # Usar exit 1 para indicar erro
 fi
 
-# Função barra de progresso com limpeza robusta
+# Função barra de progresso
 fun_bar() {
     comando[0]="$1"
     comando[1]="$2"
-    # Criar arquivo temporário único usando mktemp
-    local temp_file
-    temp_file=$(mktemp "$HOME/fim.XXXXXX") || {
-        echo -e "\033[1;31mErro ao criar arquivo temporário\033[0m"
-        exit 1
-    }
-    # Armadilha para remover o arquivo temporário em caso de interrupção
-    trap 'rm -f "$temp_file" >/dev/null 2>&1' EXIT INT TERM
     (
-        # Executar comandos e criar arquivo temporário
+        [[ -e $HOME/fim ]] && rm $HOME/fim
         ${comando[0]} -y >/dev/null 2>&1
         ${comando[1]} -y >/dev/null 2>&1
-        touch "$temp_file" >/dev/null 2>&1
+        touch $HOME/fim
     ) >/dev/null 2>&1 &
     tput civis
     echo -ne    "\033[1;31m   ❪\033[1;33mAGUARDE \033[5;37m>\033[5;37m>\033[5;37m>\033[5;37m> \033[1;93m["
@@ -60,9 +36,7 @@ fun_bar() {
             echo -ne "\033[1;92m■"
             sleep 0.1s
         done
-        if [[ -e "$temp_file" ]]; then
-            rm -f "$temp_file" >/dev/null 2>&1 && break
-        fi
+        [[ -e $HOME/fim ]] && rm $HOME/fim && break
         echo -e "\033[1;93m]"
         sleep 1s
         tput cuu1
@@ -84,7 +58,7 @@ echo -e "\033[0;34m┃                                                  \033[0;3
 echo -e "\033[0;34m┃\033[1;32m• \033[1;37mINSTALAR UM CONJUNTO DE SCRIPTS COMO FERRAMENTAS\033[0;34m┃"
 echo -e "\033[0;34m┃\033[1;37m  PARA O GERENCIAMENTO DE REDE, SISTEMA E USUARIOS\033[0;34m┃"
 echo -e "\033[0;34m┃                                                  \033[0;34m┃"
-echo -e "\0330;34m┃\033[1;32m• \033[1;32mDICA! \033[1;37mULTILIZE O TEMA DARK EM SEU TERMINAL PARA \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;32m• \033[1;32mDICA! \033[1;37mULTILIZE O TEMA DARK EM SEU TERMINAL PARA \033[0;34m┃"
 echo -e "\033[0;34m┃\033[1;37m  UMA MELHOR EXPERIÊNCIA E VISUALIZACAO DO MESMO! \033[0;34m┃"
 echo -e "\033[0;34m┃                                                  \033[0;34m┃"
 echo -e "\033[0;34m┠━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┨\033[0m"
@@ -92,29 +66,29 @@ echo -e "\033[0;34m┃\033[1;37m               by:@TURBONET2023                 
 echo -e "\033[0;34m┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\033[0m"           
 echo ""
 #-----------------------------------------------------------------------------------------------------------------
-wget -O /root/install https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/refs/heads/main/script/install > /dev/null 2>&1
-chmod +x /root/install >/dev/null 2>&1
-/root/install >/dev/null 2>&1
-sleep 3s
-echo "/bin/menu" >/bin/h && chmod +x /bin/h >/dev/null 2>&1
-rm versao* >/dev/null 2>&1
-wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/versao >/dev/null 2>&1
-rm v2raymanager >/dev/null 2>&1
-wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/v2raymanager >/dev/null 2>&1
-wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/botteste.sh >/dev/null 2>&1
-chmod 777 v2raymanager >/dev/null 2>&1
-chmod 777 botteste.sh >/dev/null 2>&1
-mkdir $HOME/BOT >/dev/null 2>&1
-cd $HOME/BOT
-wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/ShellBot.sh >/dev/null 2>&1
-chmod 777 ShellBot.sh >/dev/null 2>&1
-cd >/dev/null 2>&1
-chmod 777 licence >/dev/null 2>&1
-mkdir /etc/rec >/dev/null 2>&1
-cd /etc/rec
-wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/licence >/dev/null 2>&1
-chmod 777 licence >/dev/null 2>&1
-cd >/dev/null 2>&1
+ wget -O /root/install https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/refs/heads/main/script/install > /dev/null 2>&1
+    chmod +x /root/install >/dev/null 2>&1
+    /root/install >/dev/null 2>&1
+    sleep 3s
+    echo "/bin/menu" >/bin/h && chmod +x /bin/h >/dev/null 2>&1
+    rm versao* >/dev/null 2>&1
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/versao >/dev/null 2>&1
+    rm v2raymanager >/dev/null 2>&1
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/v2raymanager >/dev/null 2>&1
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/botteste.sh >/dev/null 2>&1
+    chmod 777 v2raymanager >/dev/null 2>&1
+    chmod 777 botteste.sh >/dev/null 2>&1
+    mkdir $HOME/BOT >/dev/null 2>&1
+    cd $HOME/BOT
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/ShellBot.sh >/dev/null 2>&1
+    chmod 777 ShellBot.sh >/dev/null 2>&1
+    cd >/dev/null 2>&1
+    chmod 777 licence >/dev/null 2>&1
+    mkdir /etc/rec >/dev/null 2>&1
+    cd /etc/rec
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/licence >/dev/null 2>&1
+    chmod 777 licence >/dev/null 2>&1
+    cd >/dev/null 2>&1
 #-----------------------------------------------------------------------------------------------------------------
 echo ""
 [[ -f "$HOME/usuarios.db" ]] && {
@@ -139,6 +113,7 @@ awk -F : "$3 >= 500 { print $1 "1" }" /etc/passwd | grep -v "^nobody" > $HOME/us
 
 # Redefinir a exibição do terminal
 tput reset
+## Exibir mensagem de espera com fundo azul e texto branco em negrito
 echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
 echo -e "\E[38;5;36m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;36m┃"
 echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
@@ -164,6 +139,7 @@ fun_bar "fun_attlist"
 
 # Redefinir a exibição do terminal
 tput reset
+# Exibir mensagem de espera com fundo azul e texto branco em negrito
 echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
 echo -e "\E[38;5;18m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;18m┃"
 echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
@@ -172,39 +148,34 @@ echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO PYT
 echo ""
 echo -e "        \033[1;93mCOSTUMA DEMORAR UM POUCO!\033[0m"
 echo ""
-
 # Função para instalar Python3 baseado na versão do sistema
 install_python3() {
-    if command -v python3 >/dev/null 2>&1 && dpkg-query -W -f='${Status}' socat 2>/dev/null | grep -q "ok installed"; then
-        echo "Python3 e socat já estão instalados."
+    . /etc/os-release
+    if { [[ "$ID" == "ubuntu" && "$VERSION_ID" == "20.04" ]] || [[ "$ID" == "debian" && "$VERSION_ID" == "11" ]]; }; then
+        sudo apt-get install python3.8 -y >/dev/null 2>&1
+        sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1 >/dev/null 2>&1
+        sudo update-alternatives --set python3 /usr/bin/python3.8 >/dev/null 2>&1
+    elif { [[ "$ID" == "ubuntu" && "$VERSION_ID" == "22.04" ]] || [[ "$ID" == "debian" && "$VERSION_ID" == "12" ]]; }; then
+        sudo apt-get install python3.10 -y >/dev/null 2>&1
+        sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 >/dev/null 2>&1
+        sudo update-alternatives --set python3 /usr/bin/python3.10 >/dev/null 2>&1
     else
-        . /etc/os-release
-        if { [[ "$ID" == "ubuntu" && "$VERSION_ID" == "20.04" ]] || [[ "$ID" == "debian" && "$VERSION_ID" == "11" ]]; }; then
-            apt-get install -y python3.8 python3-pip socat >/dev/null 2>&1 || {
-                echo -e "\033[1;31mErro ao instalar Python3.8 ou socat\033[0m"
-                exit 1
-            }
-            update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1 >/dev/null 2>&1
-            update-alternatives --set python3 /usr/bin/python3.8 >/dev/null 2>&1
-        elif { [[ "$ID" == "ubuntu" && "$VERSION_ID" == "22.04" ]] || [[ "$ID" == "debian" && "$VERSION_ID" == "12" ]]; }; then
-            apt-get install -y python3.10 python3-pip socat >/dev/null 2>&1 || {
-                echo -e "\033[1;31mErro ao instalar Python3.10 ou socat\033[0m"
-                exit 1
-            }
-            update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 >/dev/null 2>&1
-            update-alternatives --set python3 /usr/bin/python3.10 >/dev/null 2>&1
-        else
-            echo -e "\033[1;31m[SISTEMA NÃO SUPORTADO] Apenas Ubuntu 20.04, Ubuntu 22.04, Debian 11 e Debian 12 são compatíveis.\033[0m"
-            exit 1
-        fi
+        echo -e "\033[1;31m[SISTEMA NÃO SUPORTADO] Apenas Ubuntu 20.04, Ubuntu 22.04, Debian 11 e Debian 12 são compatíveis.\033[0m"
+        exit 1
     fi
+    # INSTALA PIP
+    apt install pip -y
+    apt install pip3 -y
+    apt install python3-pip -y
+    # INSTALA SOCAT
+    apt install socat -y
 }
-
 # Chama a função de instalação do Python3 com barra de progresso
 fun_bar "install_python3"
 
 # Redefinir a exibição do terminal
 tput reset
+# Exibir mensagem de espera com fundo azul e texto branco em negrito
 echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
 echo -e "\E[38;5;18m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;18m┃"
 echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
@@ -263,6 +234,7 @@ fi
 
 # Redefinir a exibição do terminal
 tput reset
+# Exibir mensagem de espera com fundo azul e texto branco em negrito
 echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
 echo -e "\E[38;5;18m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;18m┃"
 echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
@@ -281,6 +253,7 @@ fun_bar "inst_multi-ferra"
 
 # Redefinir a exibição do terminal novamente
 tput reset
+# Instala ferramentas de rede
 echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
 echo -e "\E[38;5;18m┃\E[44;1;37m         INSTALANDO PACOTES DE REDE          \E[0m\E[38;5;18m┃"
 echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
@@ -300,6 +273,7 @@ fun_bar "inst_pack_rede"
 
 # Redefinir a exibição do terminal
 tput reset
+# Exibir a mensagem de finalização
 echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
 echo -e "\E[38;5;18m┃\E[44;1;37m         FINALIZANDO INSTALAÇÃO          \E[0m\E[38;5;18m┃"
 echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
@@ -318,7 +292,7 @@ echo 'DATE=$(date +"%d-%m-%y")'
 echo 'TIME=$(date +"%T")'
 echo 'toilet -f smblock -F metal      "NEW-SSHPLUS 2025"'
 echo 'echo -e "\033[01;31m\033[1;34m💻 NOME DO SERVIDOR : $HOSTNAME\033[0m"'
-echo 'echo -e "\033[01;31m\033[1;34m⚙️ SERVIDOR LIGADO À : $(uptime -p)\033[0m"'
+echo 'echo -e "\033[01;31m\033[1;34m⚙️  SERVIDOR LIGADO À : $(uptime -p)\033[0m"'
 echo 'echo -e "\033[01;31m\033[1;34m📅 DATA : $(date +%d/%m/%Y)\033[0m"'
 echo 'echo -e "\033[01;31m\033[1;34m⏰ HORA : $(date +%H:%M:%S)\033[0m"'
 echo 'echo -e "\033[01;31m\033[1;34m📲 TELEGRAM OFICIAL: @TURBONET2023\033[0m"'

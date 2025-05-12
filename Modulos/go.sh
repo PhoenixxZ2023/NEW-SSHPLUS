@@ -15,7 +15,7 @@ force=''
 check=''
 remove=''
 version=''
-vsrc_root='/tmp/v2ray'
+vsrc_root='/tmp/xray'  # Ajustado para XRay
 extract_only=''
 local=''
 local_install=''
@@ -23,15 +23,15 @@ error_if_uptodate=''
 
 cur_ver=""
 new_ver=""
-zipfile="/tmp/v2ray/v2ray.zip"
-v2ray_running=0
+zipfile="/tmp/xray/xray.zip"  # Ajustado para XRay
+xray_running=0
 
 cmd_install=""
 cmd_update=""
 software_updated=0
-key="V2Ray"
-key_lower="v2ray"
-repos="v2fly/v2ray-core"
+key="Xray"  # Ajustado para XRay
+key_lower="xray"
+repos="XTLS/Xray-core"  # Ajustado para XRay
 
 systemctl_cmd=$(command -v systemctl 2>/dev/null)
 
@@ -41,12 +41,12 @@ green="32m"    # Success message
 yellow="33m"   # Warning message
 blue="36m"     # Info message
 
-xray_set(){
-    key="Xray"
-    key_lower="xray"
-    repos="XTLS/Xray-core"
-    vsrc_root='/tmp/xray'
-    zipfile="/tmp/xray/xray.zip"
+v2ray_set(){
+    key="V2Ray"
+    key_lower="v2ray"
+    repos="v2fly/v2ray-core"
+    vsrc_root='/tmp/v2ray'
+    zipfile="/tmp/v2ray/v2ray.zip"
 }
 
 #########################
@@ -54,7 +54,7 @@ while [[ $# > 0 ]]; do
     case "$1" in
         -p|--proxy)
         proxy="-x ${2}"
-        shift # past argument
+        shift
         ;;
         -h|--help)
         help="1"
@@ -65,8 +65,8 @@ while [[ $# > 0 ]]; do
         -c|--check)
         check="1"
         ;;
-        -x|--xray)
-        xray_set
+        --v2ray)  # Alterado de --xray para --v2ray
+        v2ray_set
         ;;
         --remove)
         remove="1"
@@ -94,7 +94,7 @@ while [[ $# > 0 ]]; do
                 # unknown option
         ;;
     esac
-    shift # past argument or value
+    shift
 done
 
 ###############################
@@ -153,7 +153,6 @@ archAffix(){
         exit 1
         ;;
     esac
-
     return 0
 }
 
@@ -165,17 +164,14 @@ zipRoot() {
         NR != 1 {
             prefix_len = length(prefix);
             cur_len = length($4);
-
             for (len = prefix_len < cur_len ? prefix_len : cur_len; len >= 1; len -= 1) {
                 sub_prefix = substr(prefix, 1, len);
                 sub_cur = substr($4, 1, len);
-
                 if (sub_prefix == sub_cur) {
                     prefix = sub_prefix;
                     break;
                 }
             }
-
             if (len == 0) {
                 prefix = "";
                 nextfile;
@@ -187,7 +183,7 @@ zipRoot() {
     '
 }
 
-downloadV2Ray(){
+downloadXRay(){
     rm -rf /tmp/$key_lower
     mkdir -p /tmp/$key_lower
     local pack_name=$key_lower
@@ -199,7 +195,6 @@ downloadV2Ray(){
         colorEcho ${red} "Failed to download! Please check your network or try again."
         return 3
     fi
-    # Verificar se o arquivo ZIP é válido
     if ! unzip -t "$zipfile" >/dev/null 2>&1; then
         colorEcho ${red} "Downloaded file is not a valid ZIP. Please check your network or try again."
         return 3
@@ -212,7 +207,6 @@ installSoftware(){
     if [[ -n `command -v $component` ]]; then
         return 0
     fi
-
     getPMT
     if [[ $? -eq 1 ]]; then
         colorEcho ${red} "The system package manager tool isn't APT or YUM, please install ${component} manually."
@@ -223,7 +217,6 @@ installSoftware(){
         $cmd_update
         software_updated=1
     fi
-
     colorEcho ${blue} "Installing ${component}"
     $cmd_install $component
     if [[ $? -ne 0 ]]; then
@@ -233,7 +226,6 @@ installSoftware(){
     return 0
 }
 
-# return 1: not apt, yum, or zypper
 getPMT(){
     if [[ -n `command -v apt-get` ]];then
         cmd_install="apt-get -y -qq install"
@@ -243,7 +235,8 @@ getPMT(){
         cmd_update="yum -q makecache"
     elif [[ -n `command -v zypper` ]]; then
         cmd_install="zypper -y install"
-        cmd_update="zypper ref"
+        cmd_update="z Saleh
+zypper ref"
     else
         return 1
     fi
@@ -265,7 +258,6 @@ normalizeVersion() {
     fi
 }
 
-# 1: new V2Ray. 0: no. 2: not installed. 3: check failed. 4: don't check.
 getVersion(){
     if [[ -n "$version" ]]; then
         new_ver="$(normalizeVersion "$version")"
@@ -290,7 +282,7 @@ getVersion(){
     fi
 }
 
-stopV2ray(){
+stopXray(){
     colorEcho ${blue} "Shutting down $key service."
     if [[ -n "${systemctl_cmd}" ]] && { [[ -f "/lib/systemd/system/$key_lower.service" ]] || [[ -f "/etc/systemd/system/$key_lower.service" ]]; }; then
         if ${systemctl_cmd} is-active --quiet $key_lower; then
@@ -308,7 +300,7 @@ stopV2ray(){
     return 0
 }
 
-startV2ray(){
+startXray(){
     if [ -n "${systemctl_cmd}" ] && [[ -f "/lib/systemd/system/$key_lower.service" || -f "/etc/systemd/system/$key_lower.service" ]]; then
         ${systemctl_cmd} start $key_lower
     fi
@@ -319,16 +311,15 @@ startV2ray(){
     return 0
 }
 
-installV2Ray(){
+installXRay(){
     # Install $key binary to /usr/bin/$key_lower
     if [[ $key == "V2Ray" && `unzip -l $1|grep v2ctl` ]];then
         unzip_param="$2v2ctl"
         chmod_param="/usr/bin/$key_lower/v2ctl"
     fi
-    # Garantir que /usr/bin/$key_lower seja um diretório
     if [ -e "/usr/bin/$key_lower" ]; then
         if [ ! -d "/usr/bin/$key_lower" ]; then
-            rm -f "/usr/bin/$key_lower"  # Remove se for um arquivo
+            rm -f "/usr/bin/$key_lower"
         fi
     fi
     mkdir -p "/usr/bin/$key_lower" || {
@@ -342,7 +333,7 @@ installV2Ray(){
         return 1
     }
 
-    # Install V2Ray server config to /etc/v2ray
+    # Install XRay server config to /etc/xray
     if [ ! -f /etc/$key_lower/config.json ]; then
         local port="$(($RANDOM + 10000))"
         local uuid="$(cat '/proc/sys/kernel/random/uuid')"
@@ -399,13 +390,6 @@ EOF
 
 installInitScript(){
     if [[ -e /.dockerenv ]]; then
-        if [[ $key_lower == "v2ray" ]];then
-            if [[ ${new_ver} =~ "v4" ]];then
-                sed -i "s/run -c/-config/g" /root/run.sh
-            else
-                sed -i "s/-config/run -c/g" /root/run.sh
-            fi
-        fi
         return
     fi
     if [[ ! -f "/etc/systemd/system/$key_lower.service" && ! -f "/lib/systemd/system/$key_lower.service" ]]; then
@@ -428,35 +412,18 @@ WantedBy=multi-user.target
 EOF
         systemctl enable $key_lower.service
     fi
-    if [[ $key_lower == "v2ray" ]];then
-        local modify_service=0
-        local check_run="`cat /etc/systemd/system/$key_lower.service|grep ExecStart|grep run`"
-        if [[ ${new_ver} =~ "v4" ]];then
-            if [[ $check_run ]];then
-                modify_service=1
-                sed -i "s?^ExecStart.*?ExecStart=/usr/bin/$key_lower/$key_lower -config /etc/$key_lower/config.json?g" /etc/systemd/system/$key_lower.service
-            fi
-        elif [[ -z $check_run ]];then
-            modify_service=1
-            sed -i "s?^ExecStart.*?ExecStart=/usr/bin/$key_lower/$key_lower run -c /etc/$key_lower/config.json?g" /etc/systemd/system/$key_lower.service
-        fi
-        if [[ $modify_service == 1 ]];then
-            systemctl daemon-reload
-            systemctl restart $key_lower
-        fi
-    fi
 }
 
 Help(){
   cat - 1>& 2 << EOF
-./go.sh [-h] [-c] [--remove] [-p proxy] [-f] [--version vx.y.z] [-l file] [-x]
+./go.sh [-h] [-c] [--remove] [-p proxy] [-f] [--version vx.y.z] [-l file] [--v2ray]
   -h, --help            Show help
   -p, --proxy           To download through a proxy server, use -p socks5://127.0.0.1:1080 or -p http://127.0.0.1:3128 etc
   -f, --force           Force install
       --version         Install a particular version, use --version v3.15
   -l, --local           Install from a local file
-      --remove          Remove installed V2Ray/Xray
-  -x, --xray            Xray mod
+      --remove          Remove installed XRay/V2Ray
+      --v2ray           Install V2Ray instead of XRay
   -c, --check           Check for update
 EOF
 }
@@ -464,7 +431,7 @@ EOF
 remove(){
     if [[ -n "${systemctl_cmd}" ]] && [[ -f "/etc/systemd/system/$key_lower.service" ]];then
         if pgrep "$key_lower" > /dev/null ; then
-            stopV2ray
+            stopXray
         fi
         systemctl disable $key_lower.service
         rm -rf "/usr/bin/$key_lower" "/etc/systemd/system/$key_lower.service"
@@ -478,7 +445,7 @@ remove(){
         fi
     elif [[ -n "${systemctl_cmd}" ]] && [[ -f "/lib/systemd/system/$key_lower.service" ]];then
         if pgrep "$key_lower" > /dev/null ; then
-            stopV2ray
+            stopXray
         fi
         systemctl disable $key_lower.service
         rm -rf "/usr/bin/$key_lower" "/lib/systemd/system/$key_lower.service"
@@ -513,7 +480,6 @@ checkUpdate(){
 }
 
 main(){
-    #helping information
     [[ "$help" == "1" ]] && Help && return
     [[ "$check" == "1" ]] && checkUpdate && return
     [[ "$remove" == "1" ]] && remove && return
@@ -521,14 +487,12 @@ main(){
     local arch=$(uname -m)
     archAffix
 
-    # extract local file
     if [[ $local_install -eq 1 ]]; then
-        colorEcho ${yellow} "Installing $key via local file. Please make sure the file is a valid $key package, as we are not able to determine that."
+        colorEcho ${yellow} "Installing $key via local file. Please make sure the file is a valid $key package."
         new_ver=local
         rm -rf /tmp/$key_lower
         zipfile="$local"
     else
-        # download via network and extract
         installSoftware "curl" || return $?
         getVersion
         retval="$?"
@@ -542,7 +506,7 @@ main(){
             return 3
         else
             colorEcho ${blue} "Installing $key ${new_ver} on ${arch}"
-            downloadV2Ray || return $?
+            downloadXRay || return $?
         fi
     fi
 
@@ -551,7 +515,6 @@ main(){
 
     if [ -n "${extract_only}" ]; then
         colorEcho ${blue} "Extracting $key package to ${vsrc_root}."
-
         if unzip -o "${zipfile}" -d ${vsrc_root}; then
             colorEcho ${green} "$key extracted to ${vsrc_root%/}${ziproot:+/${ziproot%/}}, and exiting..."
             return 0
@@ -562,14 +525,14 @@ main(){
     fi
 
     if pgrep "$key_lower" > /dev/null ; then
-        v2ray_running=1
-        stopV2ray
+        xray_running=1
+        stopXray
     fi
-    installV2Ray "${zipfile}" "${ziproot}" || return $?
+    installXRay "${zipfile}" "${ziproot}" || return $?
     installInitScript "${zipfile}" "${ziproot}" || return $?
-    if [[ ${v2ray_running} -eq 1 ]];then
+    if [[ ${xray_running} -eq 1 ]];then
         colorEcho ${blue} "Restarting $key service."
-        startV2ray
+        startXray
     fi
     colorEcho ${green} "$key ${new_ver} is installed."
     rm -rf /tmp/$key_lower

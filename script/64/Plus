@@ -186,6 +186,7 @@ echo -e " \033[1;93mALGUNS PACOTES SÃO EXTREMAMENTE NECESSÁRIOS!\033[0m"
 echo ""
 
 # Função para instalar pacotes necessários
+inst_pct() {
 _pacotes=("bc" "screen" "nano" "unzip" "lsof" "netstat" "net-tools" "dos2unix" "nload" "jq" "curl" "figlet" "python3" "python-pip" "python" "at")
         for _prog in ${_pacotes[@]}; do
             apt install $_prog -y

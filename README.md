@@ -58,7 +58,6 @@ sudo -i
 bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/senharoot/main/senharoot.sh)
 ````
 
-♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️♦️
 
 ### 3. LINKS PARA INSTALAÇÃO DO SCRIPT SSHPLUS
 

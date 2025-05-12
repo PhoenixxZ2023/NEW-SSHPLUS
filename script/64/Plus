@@ -199,29 +199,40 @@ _pacotes=("bc" "screen" "nano" "unzip" "lsof" "netstat" "net-tools" "dos2unix" "
   # Instalando checkuser multi-apps by @UlekBR
       wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
       chmod +x /bin/checkuser
-    }
-  # Configurar regras do firewall
-  sudo firewall-cmd --zone=public --permanent --add-port=80/tcp
-  sudo firewall-cmd --zone=public --permanent --add-port=81/tcp
-  sudo firewall-cmd --zone=public --permanent --add-port=443/tcp
-  sudo firewall-cmd --zone=public --permanent --add-port=2053/tcp
-  sudo firewall-cmd --zone=public --permanent --add-port=1194/tcp
-  sudo firewall-cmd --zone=public --permanent --add-port=8080/tcp
-  sudo firewall-cmd --zone=public --permanent --add-port=8989/tcp
-  sudo firewall-cmd --zone=public --permanent --add-port=5454/tcp
-  sudo firewall-cmd --zone=public --permanent --add-port=8888/tcp
-  sudo firewall-cmd --zone=public --permanent --add-port=7300/udp
-  sudo firewall-cmd --reload
 }
 fun_bar 'inst_pct'
-# Configurar regras no UFW, se estiver instalado
-if [[ -f "/usr/sbin/ufw" ]]; then
-  ufw allow 443/tcp
-  ufw allow 80/tcp
-  ufw allow 3128/tcp
-  ufw allow 8799/tcp
-  ufw allow 8080/tcp
-  echo "Configurações do UFW aplicadas."
+
+# Verificar firewall ativo
+if systemctl is-active --quiet firewalld && command -v firewall-cmd &>/dev/null; then
+  FIREWALL="firewalld"
+elif command -v ufw &>/dev/null && ufw status >/dev/null 2>&1; then
+  FIREWALL="ufw"
+else
+  echo "Nenhum firewall ativo (firewalld ou ufw)."
+  exit 1
+fi
+
+echo "Configurando $FIREWALL..."
+
+# Configurar firewalld
+if [ "$FIREWALL" = "firewalld" ]; then
+  portas_firewalld=(80 81 443 2053 1194 8080 8443 5454 8888)
+  for porta in "${portas_firewalld[@]}"; do
+    sudo firewall-cmd --zone=public --permanent --add-port="${porta}/tcp"
+  done
+  sudo firewall-cmd --zone=public --permanent --add-port=7300/udp
+  sudo firewall-cmd --reload
+  echo "Regras do firewalld configuradas."
+  sudo firewall-cmd --list-all --zone=public
+
+# Configurar ufw
+elif [ "$FIREWALL" = "ufw" ]; then
+  portas_ufw=(80 443 2053 5454 8443 8799 8080 1194)
+  for porta in "${portas_ufw[@]}"; do
+    sudo ufw allow "${porta}/tcp"
+  done
+  echo "Regras do ufw configuradas."
+  sudo ufw status
 fi
 
 # Redefinir a exibição do terminal novamente

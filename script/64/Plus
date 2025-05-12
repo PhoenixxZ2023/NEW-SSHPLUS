@@ -191,17 +191,15 @@ _pacotes=("bc" "screen" "nano" "unzip" "lsof" "netstat" "net-tools" "dos2unix" "
             apt install $_prog -y
         done
   # Instalando o Speedtest-CLI
-    echo -e "\e[1;32mINSTALANDO SPEEDTEST-CLI...\e[0m"
-    pip3 install speedtest-cli || {
-        echo -e "\e[1;31mFALHA AO INSTALAR SPEEDTEST-CLI\e[0m"
-        exit 1
+    pip3 install speedtest-cli
+        
   # instalando rustyproxy by @UlekBR
-  bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
+      bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
 
   # Instalando checkuser multi-apps by @UlekBR
-  wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
-  chmod +x /bin/checkuser
-}
+      wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
+      chmod +x /bin/checkuser
+    }
   # Configurar regras do firewall
   sudo firewall-cmd --zone=public --permanent --add-port=80/tcp
   sudo firewall-cmd --zone=public --permanent --add-port=81/tcp

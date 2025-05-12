@@ -294,7 +294,7 @@ echo 'toilet -f smblock -F metal      "NEW-SSHPLUS 2025"' >>/root/.bashrc
 echo 'echo -e "\033[01;31m\033[1;34m💻 NOME DO SERVIDOR : $HOSTNAME\033[0m"' >>/root/.bashrc
 echo 'echo -e "\033[01;31m\033[1;34m⚙️  SERVIDOR LIGADO À : $(uptime -p)\033[0m"' >>/root/.bashrc
 echo 'echo -e "\033[01;31m\033[1;34m📅 DATA : $(date +%d/%m/%Y)\033[0m"' >>/root/.bashrc
-echo 'echo -e "\033[01;31m\033[1;34m⏰ HORA : $(date +%H:%M:%S)\033[0m"'
+echo 'echo -e "\033[01;31m\033[1;34m⏰ HORA : $(date +%H:%M:%S)\033[0m"' >>/root/.bashrc
 echo 'echo -e "\033[01;31m\033[1;34m📲 TELEGRAM OFICIAL: @TURBONET2023\033[0m"' >>/root/.bashrc
 echo 'echo -e "\033[01;31m\033[1;34m📝 DIGITE ( menu ) PARA ENTRAR\033[0m"' >>/root/.bashrc
 echo 'echo -e ""' >>/root/.bashrc

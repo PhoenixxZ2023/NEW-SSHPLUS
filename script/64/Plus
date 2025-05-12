@@ -186,27 +186,22 @@ echo -e " \033[1;93mALGUNS PACOTES SÃO EXTREMAMENTE NECESSÁRIOS!\033[0m"
 echo ""
 
 # Função para instalar pacotes necessários
-inst_pct() {
-  if [[ $EUID -ne 0 ]]; then
-    echo "Este script precisa ser executado como root."
-    exit 1
-  fi
-  _pacotes=("bc" "screen" "nano" "unzip" "lsof" "net-tools" "dos2unix" "nload" "jq" "curl" "figlet" "firewalld")
-  for _prog in "${_pacotes[@]}"; do
-    if ! dpkg -l | grep -q "^ii  $_prog "; then
-      echo "Instalando pacote: $_prog"
-      apt install -y $_prog
-    else
-      echo "Pacote já instalado: $_prog"
-    fi
-  done
+_pacotes=("bc" "screen" "nano" "unzip" "lsof" "netstat" "net-tools" "dos2unix" "nload" "jq" "curl" "figlet" "python3" "python-pip" "python" "at")
+        for _prog in ${_pacotes[@]}; do
+            apt install $_prog -y
+        done
   # Instalando o Speedtest-CLI
     echo -e "\e[1;32mINSTALANDO SPEEDTEST-CLI...\e[0m"
     pip3 install speedtest-cli || {
         echo -e "\e[1;31mFALHA AO INSTALAR SPEEDTEST-CLI\e[0m"
         exit 1
-    }
+  # instalando rustyproxy by @UlekBR
+  bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
 
+  # Instalando checkuser multi-apps by @UlekBR
+  wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
+  chmod +x /bin/checkuser
+}
   # Configurar regras do firewall
   sudo firewall-cmd --zone=public --permanent --add-port=80/tcp
   sudo firewall-cmd --zone=public --permanent --add-port=81/tcp
@@ -221,7 +216,6 @@ inst_pct() {
   sudo firewall-cmd --reload
 }
 fun_bar 'inst_pct'
-
 # Configurar regras no UFW, se estiver instalado
 if [[ -f "/usr/sbin/ufw" ]]; then
   ufw allow 443/tcp
@@ -231,25 +225,6 @@ if [[ -f "/usr/sbin/ufw" ]]; then
   ufw allow 8080/tcp
   echo "Configurações do UFW aplicadas."
 fi
-
-# Redefinir a exibição do terminal
-tput reset
-# Exibir mensagem de espera com fundo azul e texto branco em negrito
-echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\E[38;5;18m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;18m┃"
-echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
-echo ""
-echo -e "      \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO MULTI-FERRAMENTAS \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
-echo ""
-inst_multi-ferra() {
-# instalando rustyproxy by @UlekBR
-bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
-
-# Instalando checkuser multi-apps by @UlekBR
-wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
-chmod +x /bin/checkuser
-}
-fun_bar "inst_multi-ferra"
 
 # Redefinir a exibição do terminal novamente
 tput reset

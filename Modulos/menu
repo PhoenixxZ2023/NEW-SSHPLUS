@@ -36,7 +36,6 @@ comando[0]="$1"
 comando[1]="$2"
  (
 [[ -e $HOME/fim ]] && rm $HOME/fim
-[[ ! -d /etc/SSHPlus ]] && rm -rf /bin/menu
 ${comando[0]} > /dev/null 2>&1
 ${comando[1]} > /dev/null 2>&1
 touch $HOME/fim
@@ -261,7 +260,7 @@ swap1=$(printf '%-5s' "$(free -h | grep -i swap | awk {'print $2'})")
 swap2=$(printf '%-5s' "$(free -h | grep -i swap | awk {'print $4'})")
 swap3=$(printf '%-5s' "$(free -h | grep -i swap | awk {'print $3'})")
 clear
-echo -e "\033[1;37mSEU IP 👉 \033[38;5;82m$IP              \033 \033[1;37mMODO TURBO ⚡\033 \033[1;37mATIVADO 🚀"
+echo -e "\033[1;37mSEU IP 👉 \033[38;5;82m$IP              \033 \033[1;37mMODO TURBO⚡\033 \033[1;37mATIVADO 🚀"
 echo -e "\033[1;36m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\033[0m"
 echo -e "\033[1;36m┃\E[46;1;37m                   TURBONET SCRIPT-SSHPLUS                \E[0m\033[1;36m┃" 
 echo -e "\033[1;36m┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\033[0m"
@@ -387,7 +386,7 @@ swap1=$(printf '%-5s' "$(free -h | grep -i swap | awk {'print $2'})")
 swap2=$(printf '%-5s' "$(free -h | grep -i swap | awk {'print $4'})")
 swap3=$(printf '%-5s' "$(free -h | grep -i swap | awk {'print $3'})")
 clear
-echo -e "\033[1;37mSEU IP 👉 \033[38;5;82m$IP              \033 \033[1;37mMODO TURBO ⚡\033 \033[1;37mATIVADO 🚀"
+echo -e "\033[1;37mSEU IP 👉 \033[38;5;82m$IP              \033 \033[1;37mMODO TURBO⚡\033 \033[1;37mATIVADO 🚀"
 echo -e "\033[1;36m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\033[0m"
 echo -e "\033[1;36m┃\E[46;1;97m                   TURBONET SCRIPT-SSHPLUS                \E[0m\033[1;36m┃"
 echo -e "\033[1;36m┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\033[0m"

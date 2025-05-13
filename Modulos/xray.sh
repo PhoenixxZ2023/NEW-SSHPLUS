@@ -78,7 +78,7 @@ help(){
 
 removeV2Ray() {
     #卸载V2ray脚本
-    bash <(curl -L -s "$GO_SH_URL") --remove >/dev/null 2>&1
+    bash "$GO_SH_URL" --remove >/dev/null 2>&1
     rm -rf /etc/v2ray >/dev/null 2>&1
     rm -rf /var/log/v2ray >/dev/null 2>&1
 
@@ -120,105 +120,19 @@ removeV2Ray() {
 }
 
 closeSELinux() {
-    #禁用SELinux
-    if [ -s /etc/selinux/config ] && grep 'SELINUX=enforcing' /etc/selinux/config; then
+    # Desativar SELinux
+    if [ -s /etc/selinux/config ] && grep -q 'SELINUX=enforcing' /etc/selinux/config; then
         sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
-        setenforce 0
+        setenforce 0 2>/dev/null
     fi
-    # Verificar se o SELinux foi desativado
-    if command -v getenforce >/dev/null && [ "$(getenforce)" = "Enforcing" ]; then
-        colorEcho ${YELLOW} "SELinux is still enforcing. Forcing disable."
-        setenforce 0
-        if [ $? -ne 0 ]; then
-            colorEcho ${RED} "Failed to disable SELinux. This may cause permission issues."
-        fi
-    fi
-}
-
-checkSys() {
-    #检查是否为Root
-    [ $(id -u) != "0" ] && { colorEcho ${RED} "Error: You must be root to run this script"; exit 1; }
-
-    if [[ `command -v apt-get` ]];then
-        PACKAGE_MANAGER='apt-get'
-    elif [[ `command -v dnf` ]];then
-        PACKAGE_MANAGER='dnf'
-    elif [[ `command -v yum` ]];then
-        PACKAGE_MANAGER='yum'
-    else
-        colorEcho $RED "Not support OS!"
-        exit 1
-    fi
-}
-
-installDependent(){
-    if [[ ${PACKAGE_MANAGER} == 'dnf' || ${PACKAGE_MANAGER} == 'yum' ]];then
-        ${PACKAGE_MANAGER} install socat crontabs bash-completion which unzip -y
-    else
-        ${PACKAGE_MANAGER} update
-        ${PACKAGE_MANAGER} install socat cron bash-completion ntpdate unzip python3-pip -y
-    fi
-
-    #install python3 & pip
-    if ! command -v python3 >/dev/null 2>&1 || ! command -v pip3 >/dev/null 2>&1; then
-        colorEcho ${BLUE} "Installing Python3 and pip..."
-        source <(curl -sL https://python3.netlify.app/install.sh)
-        if ! command -v pip3 >/dev/null 2>&1; then
-            colorEcho ${RED} "Failed to install pip3. Please install Python3 and pip3 manually."
-            exit 1
-        fi
-    fi
-}
-
-updateProject() {
-    # Verificar se o pip está instalado
-    [[ ! $(type pip3 2>/dev/null) ]] && colorEcho $RED "pip3 not installed!" && exit 1
-
-    # Limpar resquícios de instalações anteriores do V2Ray/XRay
-    if [[ ${INSTALL_WAY} == 0 ]]; then
-        colorEcho ${BLUE} "Cleaning up previous V2Ray/XRay installations..."
-        rm -rf /usr/bin/v2ray /usr/bin/xray /usr/local/bin/v2ray /usr/local/bin/xray >/dev/null 2>&1
-    fi
-
-    # Instalar ou atualizar v2ray_util
-    pip3 install -U v2ray_util
-
-    # Verificar se a instalação do v2ray_util foi bem-sucedida
-    if ! pip3 show v2ray_util >/dev/null 2>&1; then
-        colorEcho ${RED} "Failed to install v2ray_util. Please check your pip3 installation and try again."
-        exit 1
-    fi
-
-    if [[ -e $UTIL_PATH ]];then
-        [[ -z $(cat $UTIL_PATH|grep lang) ]] && echo "lang=en" >> $UTIL_PATH
-    else
-        mkdir -p /etc/v2ray_util
-        curl $UTIL_CFG > $UTIL_PATH
-    fi
-
-    [[ $CHINESE == 1 ]] && sed -i "s/lang=en/lang=zh/g" $UTIL_PATH
-
-    rm -f /usr/local/bin/v2ray >/dev/null 2>&1
-    ln -s $(which v2ray-util) /usr/local/bin/v2ray
-    rm -f /usr/local/bin/xray >/dev/null 2>&1
-    ln -s $(which v2ray-util) /usr/local/bin/xray
-
-    #移除旧的v2ray bash_completion脚本
-    [[ -e /etc/bash_completion.d/v2ray.bassiccess!"
-}
-
-closeSELinux() {
-    #禁用SELinux
-    if [ -s /etc/selinux/config ] && grep 'SELINUX=enforcing' /etc/selinux/config; then
-        sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
-        setenforce 0
-    fi
-    # Verificar se o SELinux foi desativado
-    if command -v getenforce >/dev/null && [ "$(getenforce)" = "Enforcing" ]; then
-        colorEcho ${YELLOW} "SELinux is still enforcing. Forcing disable."
-        setenforce 0
-        if [ $? -ne 0 ]; then
-            colorEcho ${RED} "Failed to disable SELinux. This may cause permission issues."
+    # Verificar se o SELinux ainda está ativo
+    if command -v getenforce >/dev/null 2>&1; then
+        if [ "$(getenforce)" = "Enforcing" ]; then
+            colorEcho ${YELLOW} "SELinux is still enforcing. Forcing disable."
+            setenforce 0 2>/dev/null
+            if [ $? -ne 0 ]; then
+                colorEcho ${RED} "Failed to disable SELinux. This may cause permission issues."
+            fi
         fi
     fi
 }

@@ -2,12 +2,6 @@
 
 # This file is accessible as https://multi.netlify.app/go.sh
 
-# If not specify, default meaning of return value:
-# 0: Success
-# 1: System error
-# 2: Application error
-# 3: Network error
-
 # CLI arguments
 proxy=''
 help=''
@@ -15,7 +9,7 @@ force=''
 check=''
 remove=''
 version=''
-vsrc_root='/tmp/xray'  # Ajustado para XRay
+vsrc_root='/tmp/xray'
 extract_only=''
 local=''
 local_install=''
@@ -23,23 +17,23 @@ error_if_uptodate=''
 
 cur_ver=""
 new_ver=""
-zipfile="/tmp/xray/xray.zip"  # Ajustado para XRay
+zipfile="/tmp/xray/xray.zip"
 xray_running=0
 
 cmd_install=""
 cmd_update=""
 software_updated=0
-key="Xray"  # Ajustado para XRay
+key="Xray"
 key_lower="xray"
-repos="XTLS/Xray-core"  # Ajustado para XRay
+repos="XTLS/Xray-core"
 
 systemctl_cmd=$(command -v systemctl 2>/dev/null)
 
 #######color code########
-red="31m"      # Error message
-green="32m"    # Success message
-yellow="33m"   # Warning message
-blue="36m"     # Info message
+red="31m"
+green="32m"
+yellow="33m"
+blue="36m"
 
 v2ray_set(){
     key="V2Ray"
@@ -65,7 +59,7 @@ while [[ $# > 0 ]]; do
         -c|--check)
         check="1"
         ;;
-        --v2ray)  # Alterado de --xray para --v2ray
+        --v2ray)
         v2ray_set
         ;;
         --remove)
@@ -235,8 +229,7 @@ getPMT(){
         cmd_update="yum -q makecache"
     elif [[ -n `command -v zypper` ]]; then
         cmd_install="zypper -y install"
-        cmd_update="z Saleh
-zypper ref"
+        cmd_update="zypper ref"
     else
         return 1
     fi
@@ -303,10 +296,10 @@ stopXray(){
 startXray(){
     if [ -n "${systemctl_cmd}" ] && [[ -f "/lib/systemd/system/$key_lower.service" || -f "/etc/systemd/system/$key_lower.service" ]]; then
         ${systemctl_cmd} start $key_lower
-    fi
-    if [[ $? -ne 0 ]]; then
-        colorEcho ${yellow} "Failed to start $key service."
-        return 2
+        if [[ $? -ne 0 ]]; then
+            colorEcho ${yellow} "Failed to start $key service."
+            return 2
+        fi
     fi
     return 0
 }
@@ -342,16 +335,19 @@ installXRay(){
             cat > /etc/$key_lower/config.json <<EOF
 {
   "inbounds": [{
-    "port": 10086,
-    "protocol": "vmess",
+    "port": $port,
+    "protocol": "vless",
     "settings": {
       "clients": [
         {
-          "id": "23ad6b10-8d1a-40f7-8ad0-e3e35cd38297",
-          "level": 1,
-          "alterId": 64
+          "id": "$uuid",
+          "level": 1
         }
-      ]
+      ],
+      "decryption": "none"
+    },
+    "streamSettings": {
+      "network": "tcp"
     }
   }],
   "outbounds": [{
@@ -373,7 +369,6 @@ installXRay(){
   }
 }
 EOF
-            sed -i "s/10086/${port}/g; s/23ad6b10-8d1a-40f7-8ad0-e3e35cd38297/${uuid}/g;" /etc/$key_lower/config.json
         else
             unzip -pq "$1" "$2vpoint_vmess_freedom.json" | \
             sed -e "s/10086/${port}/g; s/23ad6b10-8d1a-40f7-8ad0-e3e35cd38297/${uuid}/g;" - > \
@@ -383,8 +378,8 @@ EOF
             }
         fi
 
-        colorEcho ${blue} "port:${port}"
-        colorEcho ${blue} "uuid:${uuid}"
+        colorEcho ${blue} "port:$port"
+        colorEcho ${blue} "uuid:$uuid"
     fi
 }
 
@@ -410,6 +405,7 @@ Restart=on-failure
 [Install]
 WantedBy=multi-user.target
 EOF
+        systemctl daemon-reload
         systemctl enable $key_lower.service
     fi
 }

@@ -9,7 +9,6 @@ ln -fs /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime >/dev/null 2>&1
 dpkg-reconfigure --frontend noninteractive tzdata >/dev/null 2>&1
 [[ ! -d /etc/SSHPlus ]] && mkdir /etc/SSHPlus
 [[ ! -d /etc/SSHPlus/v2ray ]] && mkdir /etc/SSHPlus/v2ray
-[[ ! -d /etc/SSHPlus/xray ]] && mkdir /etc/SSHPlus/xray
 [[ ! -d /etc/SSHPlus/senha ]] && mkdir /etc/SSHPlus/senha
 [[ ! -e /etc/SSHPlus/Exp ]] && touch /etc/SSHPlus/Exp
 [[ ! -d /etc/SSHPlus/userteste ]] && mkdir /etc/SSHPlus/userteste
@@ -29,10 +28,13 @@ echo "PasswordAuthentication yes" >>/etc/ssh/sshd_config
 _dir1='/bin'
 _dir2='/etc/SSHPlus'
 rm $_dir2/ShellBot.sh $_dir2/cabecalho $_dir2/open.py $_dir2/proxy.py $_dir2/wsproxy.py >/dev/null 2>&1
-_mdls=("addhost" "ajuda" "alterarlimite" "alterarsenha" "apache2menu" "tcptweaker.sh" "checkers" "checkmanager" "utili" "multi" "check" "chuser" "limit" "rps_cpu" "attscript" "Autobackup" "backup_mail.sh" "badvpn" "banner" "bashtop" "ddos" "blocksite" "blockt" "blockuser" "bot" "botssh" "cabecalho" "conexao" "criarteste" "criarusuario" "delhost" "delscript" "detalhes" "droplimiter" "expcleaner" "fr" "infousers" "inst-botteste" "initcheck" "instsqd" "limiter" "mainproxy" "menu" "menub" "menuudp" "mudardata" "mtuning" "multi" "onlineapp" "openvpn.sh" "open.py" "otimizar" "painelv2ray" "prissh" "prnet.sh" "proxydt" "proxy.py" "reiniciarservicos" "reiniciarsistema" "remover" "rustyproxy" "security" "senharoot" "ShellBot.sh" "slowdns" "slow_dns" "speedtest" "sshmonitor" "suspenderusuario.sh" "swapmemory" "trafegototal" "trojan-go" "uexpired" "userbackup" "velocity" "verifatt" "verifbot" "v2raymanager" "v2ray" "xray.sh" "xraymanager" "webmin.sh" "websocket.sh" "wsproxy.py" "pkill.sh")
+_mdls=("addhost" "ajuda" "alterarlimite" "alterarsenha" "apache2menu" "tcptweaker.sh" "checkers" "checkmanager" "utili" "multi" "check" "chuser" "limit" "rps_cpu" "attscript" "Autobackup" "badvpn" "banner" "bashtop" "ddos" "blocksite" "blockt" "blockuser" "bot" "botssh" "cabecalho" "conexao" "criarteste" "criarusuario" "delhost" "delscript" "detalhes" "droplimiter" "expcleaner" "fr" "infousers" "inst-botteste" "initcheck" "instsqd" "limiter" "mainproxy" "menu" "menub" "menuudp" "mudardata" "mtuning" "multi" "onlineapp" "openvpn.sh" "open.py" "otimizar" "painelv2ray" "prissh" "prnet.sh" "proxydt" "proxy.py" "reiniciarservicos" "reiniciarsistema" "remover" "rustyproxy" "security" "senharoot" "ShellBot.sh" "slowdns" "slow_dns" "speedtest" "sshmonitor" "suspenderusuario.sh" "swapmemory" "trafegototal" "trojan-go" "uexpired" "userbackup" "velocity" "verifatt" "verifbot" "v2raymanager" "v2ray" "xray.sh" "webmin.sh" "websocket.sh" "wsproxy.py" "pkill.sh")
 for _arq in ${_mdls[@]}; do
 	[[ -e $_dir1/$_arq ]] && rm $_dir1/$_arq >/dev/null 2>&1
-	wget -c -P $_dir1 https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Modulos/$_arq
+	if [ -f "$_dir1/$_arq" ]; then
+		rm -f "$_dir1/$_arq"
+	fi
+	wget -c -O "$_dir1/$_arq" https://raw.githubusercontent.com/root719/TMY-SSH-PLUS-V3/main/Modulos/$_arq
 	chmod +x $_dir1/$_arq
 done
 mv $_dir1/cabecalho $_dir1/bot $_dir1/open.py $_dir1/proxy.py $_dir1/wsproxy.py $_dir2
@@ -68,12 +70,11 @@ clear
 crontab -r >/dev/null 2>&1
 (
 	crontab -l 2>/dev/null
-	echo "@daily /bin/verifatt"
 	echo "@reboot /etc/autostart"
 	echo "* * * * * /etc/autostart"
-	echo "0 */6 * * * /bin/uexpired"
+	echo "0 */12 * * * /bin/uexpired"
 ) | crontab -
-echo "$_lvk" | sed -n '1 p' | cut -d' ' -f2 >/bin/versao && cat /bin/versao >/home/sshplus
+echo "$_lvk" >/bin/versao && cat /bin/versao > /home/sshplus
 wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/jq-linux64 >/dev/null 2>&1
 chmod +x jq-linux64 && mv jq-linux64 $(which jq)
 service cron restart >/dev/null 2>&1

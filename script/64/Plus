@@ -191,8 +191,7 @@ _pacotes=("bc" "screen" "nano" "unzip" "lsof" "netstat" "net-tools" "dos2unix" "
         for _prog in ${_pacotes[@]}; do
             apt install $_prog -y
         done
-  # Instalando o Speedtest-CLI
-    pip3 install speedtest-cli
+            pip3 install speedtest-cli
         
   # instalando rustyproxy by @UlekBR
       bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
@@ -203,6 +202,8 @@ _pacotes=("bc" "screen" "nano" "unzip" "lsof" "netstat" "net-tools" "dos2unix" "
 }
 fun_bar 'inst_pct'
 
+# Redefinir a exibição do terminal novamente
+tput reset
 # Verificar firewall ativo
 if systemctl is-active --quiet firewalld && command -v firewall-cmd &>/dev/null; then
   FIREWALL="firewalld"

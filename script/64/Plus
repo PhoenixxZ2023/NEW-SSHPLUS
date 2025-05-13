@@ -187,11 +187,25 @@ echo ""
 
 # Função para instalar pacotes necessários
 inst_pct() {
-_pacotes=("bc" "screen" "nano" "unzip" "lsof" "netstat" "net-tools" "dos2unix" "nload" "jq" "curl" "figlet" "python3" "python-pip" "python" "at")
-        for _prog in ${_pacotes[@]}; do
-            apt install $_prog -y
-        done
-            pip3 install speedtest-cli
+    _pacotes=("bc" "screen" "nano" "unzip" "lsof" "netstat" "net-tools" "dos2unix" "nload" "jq" "curl" "figlet" "at")
+
+    for _prog in "${_pacotes[@]}"; do
+        echo -ne "\033[1;34mINSTALANDO:\033[1;37m $_prog...\033[0m"
+        apt-get install -y -qq $_prog &>/dev/null
+        if [[ $? -eq 0 ]]; then
+            echo -e " \033[1;32m[OK]\033[0m"
+        else
+            echo -e " \033[1;31m[ERRO]\033[0m"
+        fi
+    done
+
+    echo -e "\033[1;34mATUALIZANDO PIP3...\033[0m"
+    python3 -m pip install --upgrade pip &>/dev/null
+
+    echo -e "\033[1;34mINSTALANDO: speedtest-cli...\033[0m"
+    pip3 install speedtest-cli &>/dev/null && \
+    echo -e "\033[1;32mSPEEDTEST-CLI INSTALADO COM SUCESSO!\033[0m" || \
+    echo -e "\033[1;31mFALHA AO INSTALAR SPEEDTEST-CLI.\033[0m"
         
   # instalando rustyproxy by @UlekBR
       bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)

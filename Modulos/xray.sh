@@ -1,6 +1,5 @@
 #!/bin/bash
-# Script para instalar XRay com suporte opcional ao V2Ray
-# Modificado para usar v2ray_util em vez de xray_util
+# Script para instalar XRay ou V2Ray
 # @TURBONET2023
 
 # Função para exibir mensagens coloridas
@@ -22,9 +21,6 @@ while [[ $# -gt 0 ]]; do
             V2RAY_MODE=1
             colorEcho ${BLUE} "Modo V2Ray ativado"
             ;;
-        --remove)
-            REMOVE=1
-            ;;
         *)
             colorEcho ${RED} "Parâmetro desconhecido: $1"
             exit 1
@@ -33,129 +29,53 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-# Definir variáveis com base no modo
+# Definir variáveis
 if [[ $V2RAY_MODE == 1 ]]; then
     KEY="v2ray"
+    BIN_PATH="/usr/bin/v2ray"
     CONFIG_PATH="/etc/v2ray"
     LOG_PATH="/var/log/v2ray"
+    DOWNLOAD_URL="https://github.com/v2fly/v2ray-core/releases/latest/download/v2ray-linux-64.zip"
 else
     KEY="xray"
+    BIN_PATH="/usr/bin/xray"
     CONFIG_PATH="/etc/xray"
     LOG_PATH="/var/log/xray"
+    DOWNLOAD_URL="https://github.com/XTLS/Xray-core/releases/download/v25.4.30/Xray-linux-64.zip"
 fi
 
-# Função para verificar e instalar dependências
+# Função para instalar dependências
 installDependencies() {
-    colorEcho ${BLUE} "Atualizando pacotes..."
+    colorEcho ${BLUE} "Instalando dependências..."
     apt-get update
-    apt-get install -y bash-completion cron socat ntpdate wget
-    if ! pip --version >/dev/null 2>&1; then
-        apt-get install -y python3-pip
-    fi
+    apt-get install -y wget unzip coreutils
 }
 
-# Função para sincronizar horário
-syncTime() {
-    colorEcho ${BLUE} "Sincronizando horário..."
-    ntpdate pool.ntp.org
-    if [[ $? -eq 0 ]]; then
-        colorEcho ${GREEN} "Sincronização de horário bem-sucedida"
-        date
-    else
-        colorEcho ${RED} "Falha na sincronização de horário"
-        exit 1
-    fi
-}
-
-# Função para limpar instalações anteriores
-cleanInstall() {
-    colorEcho ${BLUE} "Limpando instalações anteriores..."
-    systemctl stop ${KEY} >/dev/null 2>&1
-    systemctl disable ${KEY} >/dev/null 2>&1
-    rm -rf /usr/bin/${KEY} /usr/local/bin/${KEY} ${CONFIG_PATH} ${LOG_PATH}
-    rm -f /etc/systemd/system/${KEY}.service
-    systemctl daemon-reload >/dev/null 2>&1
-}
-
-# Função para instalar v2ray_util
-updateProject() {
-    colorEcho ${BLUE} "Instalando v2ray_util..."
-    pip install -U v2ray_util
-    if ! pip show v2ray_util >/dev/null 2>&1; then
-        colorEcho ${RED} "Falha ao instalar v2ray_util. Verifique sua instalação do pip e tente novamente."
-        exit 1
-    fi
-    ln -sf $(which v2ray) /usr/local/bin/xray
-}
-
-# Função para instalar o XRay/V2Ray
+# Função para baixar e instalar o binário
 installCore() {
-    colorEcho ${BLUE} "Instalando ${KEY^}..."
-    GO_SH_URL="https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/go.sh"
+    colorEcho ${BLUE} "Baixando ${KEY^}..."
+    mkdir -p ${BIN_PATH} ${CONFIG_PATH} ${LOG_PATH}
+    wget -O /tmp/${KEY}.zip "${DOWNLOAD_URL}"
+    if [[ $? -ne 0 ]]; then
+        colorEcho ${RED} "Falha ao baixar ${KEY^}."
+        exit 1
+    fi
+    unzip /tmp/${KEY}.zip -d ${BIN_PATH}
     if [[ $V2RAY_MODE == 1 ]]; then
-        bash <(wget -qO- ${GO_SH_URL}) --v2ray
+        mv ${BIN_PATH}/v2ray ${BIN_PATH}/${KEY}
+        mv ${BIN_PATH}/v2ctl ${BIN_PATH}/${KEY}-ctl
     else
-        bash <(wget -qO- ${GO_SH_URL}) --xray
+        mv ${BIN_PATH}/xray ${BIN_PATH}/${KEY}
     fi
-    if [[ ! -f /usr/bin/${KEY}/${KEY} ]]; then
-        colorEcho ${RED} "Falha ao instalar ${KEY^}. Verifique o script go.sh."
-        exit 1
-    fi
-}
-
-# Função para configurar o serviço
-setupService() {
-    colorEcho ${BLUE} "Configurando serviço ${KEY}..."
-    cat <<EOF >/etc/systemd/system/${KEY}.service
-[Unit]
-Description=${KEY^} Service
-After=network.target
-[Service]
-Type=simple
-ExecStart=/usr/bin/${KEY}/${KEY} -config ${CONFIG_PATH}/config.json
-Restart=on-failure
-[Install]
-WantedBy=multi-user.target
-EOF
-    systemctl daemon-reload
-    systemctl enable ${KEY}
-}
-
-# Função para configurar o XRay/V2Ray
-configureCore() {
-    colorEcho ${BLUE} "Configurando ${KEY^}..."
-    mkdir -p ${CONFIG_PATH} ${LOG_PATH}
-    v2ray new
-    if [[ ! -f ${CONFIG_PATH}/config.json ]]; then
-        colorEcho ${RED} "Falha ao criar configuração inicial."
-        exit 1
-    fi
-    systemctl start ${KEY}
-    colorEcho ${GREEN} "${KEY^} configurado com sucesso!"
-    v2ray info
-}
-
-# Função para remover o XRay/V2Ray
-removeCore() {
-    colorEcho ${BLUE} "Removendo ${KEY^}..."
-    cleanInstall
-    pip uninstall -y v2ray_util >/dev/null 2>&1
-    colorEcho ${GREEN} "${KEY^} removido com sucesso!"
-    exit 0
+    chmod +x ${BIN_PATH}/${KEY}
+    rm -f /tmp/${KEY}.zip
+    colorEcho ${GREEN} "${KEY^} instalado com sucesso!"
 }
 
 # Função principal
 main() {
-    if [[ $REMOVE == 1 ]]; then
-        removeCore
-    fi
     installDependencies
-    syncTime
-    cleanInstall
-    updateProject
     installCore
-    setupService
-    configureCore
 }
 
 main

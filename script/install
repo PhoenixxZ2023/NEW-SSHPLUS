@@ -9,6 +9,7 @@ ln -fs /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime >/dev/null 2>&1
 dpkg-reconfigure --frontend noninteractive tzdata >/dev/null 2>&1
 [[ ! -d /etc/SSHPlus ]] && mkdir /etc/SSHPlus
 [[ ! -d /etc/SSHPlus/v2ray ]] && mkdir /etc/SSHPlus/v2ray
+[[ ! -d /etc/SSHPlus/xray ]] && mkdir /etc/SSHPlus/xray
 [[ ! -d /etc/SSHPlus/senha ]] && mkdir /etc/SSHPlus/senha
 [[ ! -e /etc/SSHPlus/Exp ]] && touch /etc/SSHPlus/Exp
 [[ ! -d /etc/SSHPlus/userteste ]] && mkdir /etc/SSHPlus/userteste

@@ -102,11 +102,7 @@ selection_fun() {
 
 # Função para instalar XRay/V2Ray
 install_core() {
-    if [[ $V2RAY_MODE == 1 ]]; then
-        source <(curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/v2ray)
-    else
-        source <(curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/xray.sh)
-    fi
+    source <(curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/xray)
     echo -e "${GREEN}${KEY^^} INSTALADO COM SUCESSO ✅!${SCOLOR}"
     [[ ! -e ${REG_PATH} ]] && touch ${REG_PATH}
     sort ${REG_PATH} | uniq >${REG_PATH}tmp
@@ -157,11 +153,7 @@ stats_core() {
 
 # Função para desinstalar XRay/V2Ray
 uninstall_core() {
-    if [[ $V2RAY_MODE == 1 ]]; then
-        source <(curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/v2ray) --remove >/dev/null 2>&1
-    else
-        source <(curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/xray.sh) --remove >/dev/null 2>&1
-    fi
+    source <(curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/xray) --remove >/dev/null 2>&1
     rm -rf ${REG_PATH} >/dev/null 2>&1
     rm -rf ${BACKUP_PATH} >/dev/null 2>&1
     echo -e "\n${GREEN}${KEY^^} REMOVIDO COM SUCESSO!${SCOLOR}"
@@ -543,7 +535,7 @@ fun_xraymanager() {
             10) limit_port ;;
             11) clean_expired ;;
             12) uninstall_core ;;
-            13) conexao ;; # Função 'conexao' não definida no script original
+            13) conexao ;;
             0 | 00)
                 echo -e "\033[1;31mSaindo...\033[0m"
                 sleep 1
@@ -558,5 +550,4 @@ fun_xraymanager() {
     done
 }
 
-# Iniciar o gerenciador
 fun_xraymanager

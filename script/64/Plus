@@ -73,9 +73,12 @@ echo ""
     echo "/bin/menu" >/bin/h && chmod +x /bin/h >/dev/null 2>&1
     rm versao* >/dev/null 2>&1
     wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/versao >/dev/null 2>&1
+    rm xraymanager >/dev/null 2>&1
+    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/xraymanager >/dev/null 2>&1
     rm v2raymanager >/dev/null 2>&1
     wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/v2raymanager >/dev/null 2>&1
     wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/botteste.sh >/dev/null 2>&1
+    chmod 777 xraymanager >/dev/null 2>&1
     chmod 777 v2raymanager >/dev/null 2>&1
     chmod 777 botteste.sh >/dev/null 2>&1
     mkdir $HOME/BOT >/dev/null 2>&1

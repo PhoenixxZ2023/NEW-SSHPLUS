@@ -34,7 +34,7 @@ for _arq in ${_mdls[@]}; do
 	if [ -f "$_dir1/$_arq" ]; then
 		rm -f "$_dir1/$_arq"
 	fi
-	wget -c -O "$_dir1/$_arq" https://raw.githubusercontent.com/root719/TMY-SSH-PLUS-V3/main/Modulos/$_arq
+	wget -c -O "$_dir1/$_arq" https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/$_arq
 	chmod +x $_dir1/$_arq
 done
 mv $_dir1/cabecalho $_dir1/bot $_dir1/open.py $_dir1/proxy.py $_dir1/wsproxy.py $_dir2

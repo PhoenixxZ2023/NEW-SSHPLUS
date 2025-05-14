@@ -24,7 +24,7 @@ BASH_COMPLETION_SHELL="$BASE_SOURCE_PATH/v2ray"
 CLEAN_IPTABLES_SHELL="$BASE_SOURCE_PATH/v2ray_util/global_setting/clean_iptables.sh"
 
 # URL do script go.sh modificado (ajustado para XRay)
-XRAY_INSTALL_URL="https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/go.sh"
+XRAY_INSTALL_URL="https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/go1.sh"
 
 # Cancelar aliases no CentOS
 [[ -f /etc/redhat-release && -z $(echo $SHELL|grep zsh) ]] && unalias -a

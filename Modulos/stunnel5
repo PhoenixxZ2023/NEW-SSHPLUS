@@ -1,0 +1,427 @@
+#!/bin/bash
+
+# Verificando se o usuário é root
+if [[ $EUID -ne 0 ]]; then
+    echo "Este script precisa ser executado como root. Use sudo."
+    exit 1
+fi
+
+# Função para verificar o sistema operacional
+check_os() {
+    if [[ -f /etc/os-release ]]; then
+        . /etc/os-release
+        OS=$NAME
+        VER=$VERSION_ID
+    else
+        echo "Não foi possível detectar o sistema operacional."
+        exit 1
+    fi
+
+    if [[ "$OS" =~ "Ubuntu" && $(echo "$VER" | cut -d'.' -f1) -ge 20 ]] || \
+       [[ "$OS" =~ "Debian" && $(echo "$VER" | cut -d'.' -f1) -ge 11 ]]; then
+        echo "Sistema compatível detectado: $OS $VER"
+    else
+        echo "Este script suporta apenas Ubuntu 20.04+ ou Debian 11+."
+        exit 1
+    fi
+}
+
+# Função para verificar se o stunnel5 está instalado
+check_stunnel_installed() {
+    if [[ -f /usr/local/bin/stunnel && -f /etc/systemd/system/stunnel5.service ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Função para instalar dependências
+install_dependencies() {
+    echo "Atualizando pacotes e instalando dependências..."
+    apt-get update -y
+    apt-get install -y git build-essential libssl-dev autoconf automake libtool m4 autoconf-archive pkg-config net-tools
+    if [[ $? -ne 0 ]]; then
+        echo "Erro ao instalar dependências. Verifique sua conexão ou repositórios."
+        exit 1
+    fi
+    # Reinstalando ferramentas para garantir configuração correta
+    apt-get install --reinstall -y autoconf automake libtool m4 autoconf-archive pkg-config net-tools
+    if [[ $? -ne 0 ]]; then
+        echo "Erro ao reinstalar dependências. Verifique sua conexão ou repositórios."
+        exit 1
+    fi
+}
+
+# Função para baixar e compilar o stunnel5 do GitHub
+install_stunnel_from_github() {
+    echo "Clonando o repositório oficial do stunnel..."
+    rm -rf /tmp/stunnel # Limpando qualquer diretório anterior
+    git clone https://github.com/mtrojnar/stunnel.git /tmp/stunnel
+    cd /tmp/stunnel
+
+    # Escolhendo a versão
+    STUNNEL_VERSION="stunnel-5.74"
+    echo "Selecionando a versão $STUNNEL_VERSION..."
+    git checkout tags/$STUNNEL_VERSION
+    if [[ $? -ne 0 ]]; then
+        echo "Erro: Versão $STUNNEL_VERSION não encontrada. Verifique as tags disponíveis em https://github.com/mtrojnar/stunnel/tags"
+        exit 1
+    fi
+
+    echo "Gerando macros com aclocal..."
+    aclocal
+    if [[ $? -ne 0 ]]; then
+        echo "Erro ao executar aclocal. Verificando versões das ferramentas..."
+        aclocal --version
+        autoconf --version
+        automake --version
+        libtool --version
+        m4 --version
+        exit 1
+    fi
+
+    echo "Gerando script configure com autoreconf..."
+    autoreconf -fi --verbose
+    if [[ $? -ne 0 ]]; then
+        echo "Erro ao executar autoreconf. Verificando versões das ferramentas..."
+        autoconf --version
+        automake --version
+        libtool --version
+        m4 --version
+        echo "Tente executar 'aclocal && autoreconf -fi' manualmente no diretório /tmp/stunnel e compartilhe a saída."
+        exit 1
+    fi
+
+    echo "Compilando o stunnel5..."
+    ./configure
+    make
+    if [[ $? -ne 0 ]]; then
+        echo "Erro ao compilar o stunnel5. Verifique as dependências ou o código-fonte."
+        exit 1
+    fi
+
+    echo "Instalando o stunnel5..."
+    make install
+    if [[ $? -ne 0 ]]; then
+        echo "Erro ao instalar o stunnel5."
+        exit 1
+    fi
+
+    # Limpando arquivos temporários
+    cd /tmp
+    rm -rf /tmp/stunnel
+}
+
+# Função para verificar se a porta está livre
+check_port() {
+    local port=$1
+    if netstat -tuln | grep -q ":$port " || ss -tuln | grep -q ":$port "; then
+        echo "Erro: A porta $port já está em uso por outro serviço."
+        echo "Serviços usando a porta $port:"
+        netstat -tulnp | grep ":$port " || ss -tulnp | grep ":$port "
+        echo "Escolha outra porta ou pare o serviço que está usando a porta $port."
+        return 1
+    fi
+    return 0
+}
+
+# Função para configurar a porta
+configure_port() {
+    echo "Configuração da porta do stunnel5"
+    while true; do
+        echo "A porta padrão é 443. Deseja usar a porta padrão? (s/n)"
+        read -r use_default
+
+        if [[ "$use_default" =~ ^[Ss]$ ]]; then
+            PORT=443
+        else
+            echo "Digite a porta desejada (1-65535):"
+            read -r PORT
+            if [[ ! "$PORT" =~ ^[0-9]+$ || "$PORT" -lt 1 || "$PORT" -gt 65535 ]]; then
+                echo "Porta inválida. Escolha um número entre 1 e 65535."
+                continue
+            fi
+        fi
+
+        # Verificar se a porta está livre
+        if check_port "$PORT"; then
+            break
+        else
+            echo "Por favor, escolha outra porta."
+        fi
+    done
+}
+
+# Função para criar configuração básica do stunnel5
+configure_stunnel() {
+    echo "Criando configuração básica do stunnel5..."
+    mkdir -p /usr/local/etc/stunnel
+    cat > /usr/local/etc/stunnel/stunnel.conf <<EOF
+; Configuração básica do stunnel5
+pid = /usr/local/var/run/stunnel.pid
+cert = /usr/local/etc/stunnel/stunnel.pem
+client = no
+
+[ssl]
+accept = $PORT
+connect = 127.0.0.1:22
+EOF
+
+    # Gerando certificado autoassinado
+    echo "Gerando certificado autoassinado..."
+    openssl req -new -x509 -days 365 -nodes -out /usr/local/etc/stunnel/stunnel.pem -keyout /usr/local/etc/stunnel/stunnel.pem -subj "/C=US/ST=State/L=City/O=Organization/OU=Unit/CN=localhost"
+    if [[ $? -ne 0 ]]; then
+        echo "Erro ao gerar o certificado autoassinado."
+        exit 1
+    fi
+
+    # Ajustando permissões
+    chmod 600 /usr/local/etc/stunnel/stunnel.pem
+}
+
+# Função para criar serviço systemd
+create_systemd_service() {
+    echo "Criando serviço systemd para o stunnel5..."
+    # Criando diretório do PID com permissões corretas
+    mkdir -p /usr/local/var/run/
+    chmod 755 /usr/local/var/run/
+    chown root:root /usr/local/var/run/
+    if [[ ! -d /usr/local/var/run/ ]]; then
+        echo "Erro: Não foi possível criar o diretório /usr/local/var/run/."
+        exit 1
+    fi
+
+    cat > /etc/systemd/system/stunnel5.service <<EOF
+[Unit]
+Description=stunnel5 TLS Tunneling Service
+After=network.target
+
+[Service]
+Type=forking
+ExecStart=/usr/local/bin/stunnel /usr/local/etc/stunnel/stunnel.conf
+PIDFile=/usr/local/var/run/stunnel.pid
+Restart=always
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    # Ativando e iniciando o serviço
+    echo "Ativando e iniciando o stunnel5..."
+    systemctl daemon-reload
+    systemctl enable stunnel5
+    systemctl start stunnel5
+    if [[ $? -eq 0 ]]; then
+        echo "stunnel5 iniciado com sucesso na porta $PORT!"
+    else
+        echo "Erro ao iniciar o stunnel5. Verificando detalhes..."
+        systemctl status stunnel5.service
+        journalctl -xeu stunnel5.service | tail -n 20
+        echo "Verifique a configuração em /usr/local/etc/stunnel/stunnel.conf e tente iniciar manualmente com '/usr/local/bin/stunnel /usr/local/etc/stunnel/stunnel.conf'."
+        exit 1
+    fi
+}
+
+# Função para instalar o script como comando 'stunnel5'
+install_stunnel5_command() {
+    echo "Instalando o comando 'stunnel5' para acessar o menu..."
+    cp "$0" /usr/local/bin/stunnel5
+    chmod +x /usr/local/bin/stunnel5
+    if [[ $? -eq 0 ]]; then
+        echo "Comando 'stunnel5' instalado com sucesso!"
+        # Verificar se o comando é executável e correto
+        if [[ -x /usr/local/bin/stunnel5 && $(head -n 1 /usr/local/bin/stunnel5) == "#!/bin/bash" ]]; then
+            echo "Verificação: O comando 'stunnel5' está executável e é o script correto."
+        else
+            echo "Erro: O comando 'stunnel5' não está configurado corretamente."
+            exit 1
+        fi
+    else
+        echo "Erro ao instalar o comando 'stunnel5'. Verifique as permissões."
+        exit 1
+    fi
+}
+
+# Função para desinstalar o stunnel5
+uninstall_stunnel() {
+    echo "Iniciando a desinstalação do stunnel5..."
+    
+    # Parar e desativar o serviço
+    if systemctl is-active --quiet stunnel5; then
+        echo "Parando o serviço stunnel5..."
+        systemctl stop stunnel5
+    fi
+    if systemctl is-enabled --quiet stunnel5; then
+        echo "Desativando o serviço stunnel5..."
+        systemctl disable stunnel5
+    fi
+
+    # Remover o arquivo do serviço
+    if [[ -f /etc/systemd/system/stunnel5.service ]]; then
+        echo "Removendo o arquivo do serviço systemd..."
+        rm /etc/systemd/system/stunnel5.service
+        systemctl daemon-reload
+        systemctl reset-failed
+    fi
+
+    # Remover o binário do stunnel
+    if [[ -f /usr/local/bin/stunnel ]]; then
+        echo "Removendo o binário do stunnel..."
+        rm /usr/local/bin/stunnel
+    fi
+
+    # Remover o comando stunnel5
+    if [[ -f /usr/local/bin/stunnel5 ]]; then
+        echo "Removendo o comando stunnel5..."
+        rm /usr/local/bin/stunnel5
+    fi
+
+    # Remover arquivos de configuração
+    if [[ -d /usr/local/etc/stunnel ]]; then
+        echo "Removendo arquivos de configuração..."
+        rm -rf /usr/local/etc/stunnel
+    fi
+
+    # Remover diretório PID
+    if [[ -f /usr/local/var/run/stunnel.pid ]]; then
+        echo "Removendo arquivo PID..."
+        rm /usr/local/var/run/stunnel.pid
+    fi
+    if [[ -d /usr/local/var/run ]]; then
+        echo "Removendo diretório PID (se vazio)..."
+        rmdir /usr/local/var/run 2>/dev/null
+    fi
+
+    # Remover arquivos adicionais
+    echo "Removendo arquivos adicionais (manpages, bibliotecas)..."
+    rm -rf /usr/local/lib/stunnel 2>/dev/null
+    rm -rf /usr/local/share/stunnel 2>/dev/null
+    rm -rf /usr/local/man/man8/stunnel* 2>/dev/null
+
+    # Verificar se a desinstalação foi bem-sucedida
+    if [[ ! -f /usr/local/bin/stunnel && ! -f /usr/local/bin/stunnel5 && ! -f /etc/systemd/system/stunnel5.service && ! -d /usr/local/etc/stunnel ]]; then
+        echo "stunnel5 desinstalado com sucesso!"
+    else
+        echo "Aviso: Alguns arquivos podem não ter sido removidos. Verifique manualmente."
+    fi
+}
+
+# Função para alterar a porta do stunnel
+change_stunnel_port() {
+    configure_port
+    echo "Atualizando a porta no arquivo de configuração..."
+    sed -i "s/accept = .*/accept = $PORT/" /usr/local/etc/stunnel/stunnel.conf
+    if [[ $? -eq 0 ]]; then
+        systemctl restart stunnel5
+        echo "Porta alterada para $PORT e stunnel5 reiniciado!"
+    else
+        echo "Erro ao alterar a porta. Verifique o arquivo de configuração."
+        exit 1
+    fi
+}
+
+# Função para exibir o menu interativo
+show_menu() {
+    while true; do
+        clear
+        echo "=== Gerenciamento do stunnel5 ==="
+        echo "1. Verificar status do stunnel5"
+        echo "2. Iniciar stunnel5"
+        echo "3. Parar stunnel5"
+        echo "4. Reiniciar stunnel5"
+        echo "5. Alterar porta do stunnel5"
+        echo "6. Instalar/Reinstalar stunnel5"
+        echo "7. Desinstalar stunnel5"
+        echo "0. Sair"
+        read -p "Escolha uma opção: " option
+
+        case $option in
+            1)
+                systemctl status stunnel5
+                read -p "Pressione Enter para continuar..."
+                ;;
+            2)
+                systemctl start stunnel5
+                echo "stunnel5 iniciado!"
+                read -p "Pressione Enter para continuar..."
+                ;;
+            3)
+                systemctl stop stunnel5
+                echo "stunnel5 parado!"
+                read -p "Pressione Enter para continuar..."
+                ;;
+            4)
+                systemctl restart stunnel5
+                echo "stunnel5 reiniciado!"
+                read -p "Pressione Enter para continuar..."
+                ;;
+            5)
+                if check_stunnel_installed; then
+                    change_stunnel_port
+                else
+                    echo "stunnel5 não está instalado. Instale primeiro (opção 6)."
+                fi
+                read -p "Pressione Enter para continuar..."
+                ;;
+            6)
+                check_os
+                install_dependencies
+                install_stunnel_from_github
+                configure_port
+                configure_stunnel
+                create_systemd_service
+                install_stunnel5_command
+                echo "Instalação concluída! Digite 'stunnel5' para acessar o menu de gerenciamento."
+                read -p "Pressione Enter para continuar..."
+                ;;
+            7)
+                if check_stunnel_installed; then
+                    uninstall_stunnel
+                    echo "Após a desinstalação, o comando 'stunnel5' não estará mais disponível."
+                    read -p "Pressione Enter para sair..."
+                    exit 0
+                else
+                    echo "stunnel5 não está instalado."
+                    read -p "Pressione Enter para continuar..."
+                fi
+                ;;
+            0)
+                echo "Saindo..."
+                exit 0
+                ;;
+            *)
+                echo "Opção inválida!"
+                read -p "Pressione Enter para continuar..."
+                ;;
+        esac
+    done
+}
+
+# Função principal
+main() {
+    if check_stunnel_installed; then
+        # Se já instalado, abre diretamente o menu
+        show_menu
+    else
+        # Se não instalado, realiza a instalação completa
+        check_os
+        install_dependencies
+        install_stunnel_from_github
+        configure_port
+        configure_stunnel
+        create_systemd_service
+        install_stunnel5_command
+        echo "Instalação concluída! Digite 'stunnel5' para acessar o menu de gerenciamento."
+        # Verificar se o comando stunnel5 está disponível
+        if [[ -x /usr/local/bin/stunnel5 ]]; then
+            echo "Comando 'stunnel5' está pronto para uso."
+        else
+            echo "Erro: O comando 'stunnel5' não foi instalado corretamente."
+            exit 1
+        fi
+    fi
+}
+
+# Executando o script
+main

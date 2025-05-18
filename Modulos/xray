@@ -2,8 +2,8 @@
 # EDIT: @TURBONET2023, adaptado para XRay por Grok
 # github: https://github.com/PhoenixxZ2023/NEW-SSHPLUS
 
-# Horário de tarefas agendadas (0~23, horário de Pequim)
-BEIJING_UPDATE_TIME=3
+# Horário de tarefas agendadas (0~23, horário de São Paulo, Brasil)
+SAO_PAULO_UPDATE_TIME=3
 
 # Caminho inicial do script
 BEGIN_PATH=$(pwd)
@@ -209,9 +209,16 @@ updateProject() {
 
 timeSync() {
     if [[ ${INSTALL_WAY} == 0 ]]; then
-        colorEcho ${BLUE} "Sincronizando horário..."
+        colorEcho ${BLUE} "Sincronizando horário para São Paulo, Brasil..."
+        # Configurar fuso horário
+        timedatectl set-timezone America/Sao_Paulo
+        if [[ $? -ne 0 ]]; then
+            colorEcho ${YELLOW} "Falha ao configurar fuso horário. Configurando manualmente..."
+            ln -sf /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime
+        fi
+        # Sincronizar horário
         if [[ `command -v ntpdate` ]]; then
-            ntpdate pool.ntp.org
+            ntpdate a.st1.ntp.br
         elif [[ `command -v chronyc` ]]; then
             chronyc -a makestep
         fi
@@ -219,7 +226,14 @@ timeSync() {
             colorEcho ${GREEN} "Sincronização bem-sucedida"
             colorEcho ${GREEN} "Agora: `date -R`"
         else
-            colorEcho ${YELLOW} "Falha na sincronização. Pode causar problemas de rede."
+            colorEcho ${YELLOW} "Falha na sincronização. Tentando servidor alternativo..."
+            ntpdate b.st1.ntp.br
+            if [[ $? -eq 0 ]]; then
+                colorEcho ${GREEN} "Sincronização bem-sucedida com servidor alternativo"
+                colorEcho ${GREEN} "Agora: `date -R`"
+            else
+                colorEcho ${RED} "Falha na sincronização com servidores NTP. Verifique a rede."
+            fi
         fi
     fi
 }
@@ -243,6 +257,56 @@ installFinish() {
         echo -e "\n\033[1;32mXRAY INSTALADO COM SUCESSO!\033[0m"
         xray info
         echo -e "Use o comando 'xray' para gerenciar o XRay\n"
+    fi
+}
+
+installXRay(){
+    mkdir -p /etc/xray /var/log/xray && \
+    unzip -oj "$1" "$2xray" "$2geoip.dat" "$2geosite.dat" -d /usr/bin/xray && \
+    chmod +x /usr/bin/xray/xray || {
+        colorEcho ${red} "Falha ao copiar binários e recursos do XRay."
+        return 1
+    }
+
+    if [ ! -f /etc/xray/config.json ]; then
+        local port="$(($RANDOM + 10000))"
+        local uuid="$(cat '/proc/sys/kernel/random/uuid')"
+        cat > /etc/xray/config.json <<EOF
+{
+  "inbounds": [{
+    "port": ${port},
+    "protocol": "vmess",
+    "settings": {
+      "clients": [
+        {
+          "id": "${uuid}",
+          "level": 1,
+          "alterId": 64
+        }
+      ]
+    }
+  }],
+  "outbounds": [{
+    "protocol": "freedom",
+    "settings": {}
+  },{
+    "protocol": "blackhole",
+    "settings": {},
+    "tag": "blocked"
+  }],
+  "routing": {
+    "rules": [
+      {
+        "type": "field",
+        "ip": ["geoip:private"],
+        "outboundTag": "blocked"
+      }
+    ]
+  }
+}
+EOF
+        colorEcho ${blue} "Porta: ${port}"
+        colorEcho ${blue} "UUID: ${uuid}"
     fi
 }
 

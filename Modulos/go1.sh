@@ -309,15 +309,18 @@ installXRay(){
 {
   "inbounds": [{
     "port": ${port},
-    "protocol": "vmess",
+    "protocol": "vless",
     "settings": {
       "clients": [
         {
           "id": "${uuid}",
-          "level": 1,
-          "alterId": 64
+          "level": 0
         }
-      ]
+      ],
+      "decryption": "none"
+    },
+    "streamSettings": {
+      "network": "tcp"
     }
   }],
   "outbounds": [{
@@ -372,7 +375,7 @@ EOF
 
 Help(){
     cat - 1>& 2 << EOF
-./go.sh [-h] [-c] [--remove] [-p proxy] [-f] [--version vx.y.z] [-l file]
+./go1.sh [-h] [-c] [--remove] [-p proxy] [-f] [--version vx.y.z] [-l file]
   -h, --help            Mostrar ajuda
   -p, --proxy           Baixar via proxy, ex.: -p socks5://127.0.0.1:1080
   -f, --force           Forçar instalação

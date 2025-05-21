@@ -15,13 +15,12 @@ try:
     LISTENING_PORT = int(sys.argv[1])
 except:
     LISTENING_PORT = 80
-UDP_PORT = 7300  # Porta fixa para UDP
 BUFLEN = 4096 * 2
 TIMEOUT = 60
 MSG = ''
 COR = '<font color="null">'
 FTAG = '</font>'
-DEFAULT_HOST = "127.0.0.1:3478"  # Destino padrão para UDP (ex.: STUN para jogos/chamadas)
+DEFAULT_HOST = "127.0.0.1:3478"  # Destino padrão para UDP/TCP (ex.: STUN)
 RESPONSE = b"HTTP/1.1 101 Switching Protocols\r\n" \
            b"Upgrade: websocket\r\n" \
            b"Connection: Upgrade\r\n" \
@@ -37,6 +36,7 @@ class Server(threading.Thread):
         self.threadsLock = threading.Lock()
         self.logLock = threading.Lock()
         self.udp_targets = {}  # Mapeia cliente (addr) para destino UDP (host, port)
+        self.udp_servers = {}  # Mapeia portas UDP para instâncias de UDPServer
 
     def run(self):
         self.soc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -80,20 +80,27 @@ class Server(threading.Thread):
             threads = list(self.threads)
             for c in threads:
                 c.close()
+            # Fechar todos os servidores UDP
+            for udp_server in self.udp_servers.values():
+                udp_server.close()
 
 class UDPServer(threading.Thread):
     def __init__(self, host, port, tcp_server):
         threading.Thread.__init__(self)
         self.running = False
         self.host = host
-        self.port = port  # Porta 7300
-        self.tcp_server = tcp_server  # Referência ao servidor TCP para acessar udp_targets
+        self.port = port  # Porta UDP do destino
+        self.tcp_server = tcp_server
         self.logLock = threading.Lock()
 
     def run(self):
         self.soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.soc.bind((self.host, self.port))
+        try:
+            self.soc.bind((self.host, self.port))
+        except Exception as e:
+            self.printLog(f"Erro ao vincular porta {self.port}: {str(e)}")
+            return
         self.running = True
 
         try:
@@ -113,7 +120,7 @@ class UDPServer(threading.Thread):
 
     def handle_udp_data(self, data, client_addr):
         try:
-            # Obter destino do cliente (definido via TCP ou padrão)
+            # Obter destino do cliente
             if client_addr in self.tcp_server.udp_targets:
                 host, port = self.tcp_server.udp_targets[client_addr]
             else:
@@ -124,7 +131,7 @@ class UDPServer(threading.Thread):
 
             self.printLog(f"UDP Proxy: {client_addr} -> {host}:{port}")
 
-            # Enviar pacote UDP bruto ao destino
+            # Enviar pacote UDP ao destino
             target_soc = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             target_soc.sendto(data, (host, port))
 
@@ -212,6 +219,14 @@ class ConnectionHandler(threading.Thread):
                     port = int(hostPort.decode()[i+1:]) if i != -1 else 3478
                     self.server.udp_targets[self.client_addr] = (host, port)
 
+                    # Iniciar UDPServer para a porta do destino, se necessário
+                    with self.server.threadsLock:
+                        if port not in self.server.udp_servers:
+                            udp_server = UDPServer(LISTENING_ADDR, port, self.server)
+                            udp_server.start()
+                            self.server.udp_servers[port] = udp_server
+                            self.server.printLog(f"Iniciando UDPServer na porta {port}")
+
                     if method == 'CONNECT':
                         self.method_CONNECT(hostPort.decode())
                     else:
@@ -224,6 +239,14 @@ class ConnectionHandler(threading.Thread):
                     host = hostPort.decode()[:i] if i != -1 else hostPort.decode()
                     port = int(hostPort.decode()[i+1:]) if i != -1 else 3478
                     self.server.udp_targets[self.client_addr] = (host, port)
+
+                    # Iniciar UDPServer para a porta do destino, se necessário
+                    with self.server.threadsLock:
+                        if port not in self.server.udp_servers:
+                            udp_server = UDPServer(LISTENING_ADDR, port, self.server)
+                            udp_server.start()
+                            self.server.udp_servers[port] = udp_server
+                            self.server.printLog(f"Iniciando UDPServer na porta {port}")
 
                     if method == 'CONNECT':
                         self.method_CONNECT(hostPort.decode())
@@ -375,9 +398,9 @@ class ConnectionHandler(threading.Thread):
                 break
 
 def print_usage():
-    print('Use: proxy.py -p <port>')
-    print('       proxy.py -b <ip> -p <porta>')
-    print('       proxy.py -b 0.0.0.0 -p 80')
+    print('Uso: proxy.py -p <porta_tcp>')
+    print('       proxy.py -b <ip> -p <porta_tcp>')
+    print('Exemplo: proxy.py -b 0.0.0.0 -p 80')
 
 def parse_args(argv):
     global LISTENING_ADDR, LISTENING_PORT
@@ -399,16 +422,11 @@ def main(host=LISTENING_ADDR, port=LISTENING_PORT):
     print("\033[0;34m━"*8, "\033[1;32m PROXY WEBSOCKET & UDP", "\033[0;34m━"*8)
     print("\033[1;33mIP:\033[1;32m " + LISTENING_ADDR)
     print("\033[1;33mPORTA TCP:\033[1;32m " + str(LISTENING_PORT))
-    print("\033[1;33mPORTA UDP:\033[1;32m " + str(UDP_PORT))
     print("\033[0;34m━"*10, "\033[1;32m VPSMANAGER", "\033[0;34m━\033[1;37m"*11)
     
     # Iniciar servidor TCP
     tcp_server = Server(LISTENING_ADDR, LISTENING_PORT)
     tcp_server.start()
-
-    # Iniciar servidor UDP na porta 7300
-    udp_server = UDPServer(LISTENING_ADDR, UDP_PORT, tcp_server)
-    udp_server.start()
 
     while True:
         try:
@@ -416,7 +434,6 @@ def main(host=LISTENING_ADDR, port=LISTENING_PORT):
         except KeyboardInterrupt:
             print('Parando...')
             tcp_server.close()
-            udp_server.close()
             break
 
 if __name__ == '__main__':

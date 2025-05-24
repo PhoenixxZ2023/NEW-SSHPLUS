@@ -35,9 +35,9 @@ fix_ssl_claro() {
     cp stunnel.pem stunnel.pem.bak
     rm -f stunnel.conf stunnel.pem
     # Baixar arquivos
-    wget -q https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Install/cert -O cert.pem
-    wget -q https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Install/key -O key.pem
-    wget -q https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Install/stunnel -O stunnel.conf
+    wget -q https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/cert -O cert.pem
+    wget -q https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/key -O key.pem
+    wget -q https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/stunnel -O stunnel.conf
     if [[ $? -ne 0 ]]; then
         echo -e "\033[1;31mErro ao baixar arquivos do SSL CLARO. Restaurando configuração original.\033[0m"
         mv stunnel.conf.bak stunnel.conf
@@ -46,7 +46,7 @@ fix_ssl_claro() {
         return 1
     fi
     # Ajustar permissões
-    chmod 600 cert.pem key.pem stunnel.conf
+    chmod 777 cert.pem key.pem stunnel.conf
     # Combinar certificados
     cat cert.pem key.pem > stunnel.pem
     rm -f cert.pem key.pem
@@ -79,7 +79,7 @@ inst_ssl5() {
     # Verificar se stunnel5 está ativo
     if ss -tlnp | grep 'stunnel' >/dev/null 2>&1; then
         # Extrair porta (adaptado do trecho fornecido)
-        [[ $(ss -tlnp | grep 'stunnel' | wc -l) != '0' ]] && sslt=$(ss -tlnp | grep 'stunnel' | awk '{print $4}' | awk -F ":" '{print $NF}' | head -1) || sslt="\033[1;31mINDISPONÍVEL"
+        [[ $(ss -tlnp | grep 'stunnel5' | wc -l) != '0' ]] && sslt=$(ss -tlnp | grep 'stunnel5' | awk '{print $4}' | awk -F ":" '{print $NF}' | head -1) || sslt="\033[1;31mINDISPONÍVEL"
         clear
         echo -e "\E[44;1;37m              GERENCIAR SSL TUNNEL 5               \E[0m"
         echo -e "\n\033[1;33mPORTAS\033[1;37m: \033[1;32m$sslt"

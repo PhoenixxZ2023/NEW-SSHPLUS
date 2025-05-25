@@ -210,12 +210,6 @@ inst_pct() {
     echo -e "\033[1;32mSPEEDTEST-CLI INSTALADO COM SUCESSO!\033[0m" || \
     echo -e "\033[1;31mFALHA AO INSTALAR SPEEDTEST-CLI.\033[0m"
         
-  # instalando rustyproxy by @UlekBR
-      bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
-
-  # Instalando checkuser multi-apps by @UlekBR
-      wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
-      chmod +x /bin/checkuser
 }
 fun_bar 'inst_pct'
 
@@ -271,6 +265,13 @@ fun_bar "sudo apt install -y fail2ban >/dev/null 2>&1"
 fun_bar "sudo systemctl start fail2ban >/dev/null 2>&1"
 fun_bar "sudo systemctl enable fail2ban >/dev/null 2>&1"
 fun_bar "sudo apt install lolcat figlet -y >/dev/null 2>&1"
+
+# instalando rustyproxy by @UlekBR
+bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
+
+# Instalando checkuser multi-apps by @UlekBR
+wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
+chmod +x /bin/checkuser
 }
 fun_bar "inst_pack_rede"
 

@@ -447,13 +447,13 @@ fun_xraymanager() {
     while true; do
         clear
         echo -e "\033[1;36m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\033[0m"
-        echo -e "\033[1;36m┃\E[46;1;97m            GERENCIADOR XRAY            \E[0m\033[1;36m┃"
+        echo -e "\033[1;36m┃\E[46;1;97m            GERENCIADOR XRAY             \E[0m\033[1;36m┃"
         echo -e "\033[1;36m┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\033[0m"
         xray_status=$(if netstat -tunlp | grep xray >/dev/null 2>&1; then echo -e "\e[92m ATIVADO"; else echo -e "\e[91m DESATIVADO"; fi)
-        echo -e "\033[1;36m┃\033[1;32mSERVIÇO: \033[1;33mXRAY \033[1;32m$xray_status\033[1;37m               \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;32mSERVIÇO: \033[1;33mXRAY \033[1;32m$xray_status\033[1;37m                \033[1;36m┃"
         xray_icon=$(if netstat -tunlp | grep xray >/dev/null 2>&1; then echo -e "\033[1;32m◉ "; else echo -e "\033[1;31m○ "; fi)
         echo -e "\033[1;36m┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\033[0m"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;96m01\033[1;31m] \033[1;37m• \033[1;33mINSTALAR XRAY $xray_icon                 \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;96m01\033[1;31m] \033[1;37m• \033[1;33mINSTALAR XRAY $xray_icon                  \033[1;36m┃"
         echo -e "\033[1;36m┃\033[1;31m[\033[1;96m02\033[1;31m] \033[1;37m• \033[1;33mALTERAR PROTOCOLO                 \033[1;36m┃"
         echo -e "\033[1;36m┃\033[1;31m[\033[1;96m03\033[1;31m] \033[1;37m• \033[1;33mATIVAR TLS                        \033[1;36m┃"
         echo -e "\033[1;36m┃\033[1;31m[\033[1;96m04\033[1;31m] \033[1;37m• \033[1;33mEDITAR PORTA XRAY                 \033[1;36m┃"
@@ -463,7 +463,7 @@ fun_xraymanager() {
         echo -e "\033[1;36m┃\033[1;31m[\033[1;96m08\033[1;31m] \033[1;37m• \033[1;33mINFORMAÇÕES DA CONTA              \033[1;36m┃"
         echo -e "\033[1;36m┃\033[1;31m[\033[1;96m09\033[1;31m] \033[1;37m• \033[1;33mESTATÍSTICAS DE CONSUMO           \033[1;36m┃"
         echo -e "\033[1;36m┃\033[1;31m[\033[1;96m10\033[1;31m] \033[1;37m• \033[1;33mLIMITADOR POR CONSUMO             \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;96m11\033[1;31m] \033[1;37m• \033[1;33mREMOVER EXPIRADOS $statgen  \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;96m11\033[1;31m] \033[1;37m• \033[1;33mREMOVER EXPIRADOS $statgen \033[1;36m┃"
         echo -e "\033[1;36m┃\033[1;31m[\033[1;96m12\033[1;31m] \033[1;37m• \033[1;33mDESINSTALAR XRAY                  \033[1;36m┃"
         echo -e "\033[1;36m┃\033[1;31m[\033[1;96m13\033[1;31m] \033[1;37m• \033[1;33mVOLTAR \033[1;32m<\033[1;33m<\033[1;31m<                        \033[1;36m┃"
         echo -e "\033[1;36m┃\033[1;31m[\033[1;96m00\033[1;31m] \033[1;37m• \033[1;33mSAIR \033[1;32m<\033[1;33m<\033[1;31m<                          \033[1;36m┃"

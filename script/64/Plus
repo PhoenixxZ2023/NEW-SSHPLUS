@@ -173,7 +173,6 @@ install_python3() {
     # INSTALA SOCAT
     apt install socat -y
 }
-# Chama a função de instalação do Python3 com barra de progresso
 fun_bar "install_python3"
 
 # Redefinir a exibição do terminal
@@ -265,7 +264,17 @@ fun_bar "sudo apt install -y fail2ban >/dev/null 2>&1"
 fun_bar "sudo systemctl start fail2ban >/dev/null 2>&1"
 fun_bar "sudo systemctl enable fail2ban >/dev/null 2>&1"
 fun_bar "sudo apt install lolcat figlet -y >/dev/null 2>&1"
+}
+fun_bar "inst_pack_rede"
 
+super_proxy() {
+# Redefinir a exibição do terminal novamente
+tput reset
+# Instala ferramentas de rede
+echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;18m┃\E[44;1;37m         INSTALANDO MULTI-PROXY          \E[0m\E[38;5;18m┃"
+echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
 # instalando rustyproxy by @UlekBR
 bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
 
@@ -273,7 +282,7 @@ bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/
 wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
 chmod +x /bin/checkuser
 }
-fun_bar "inst_pack_rede"
+fun_bar super_proxy
 
 # Redefinir a exibição do terminal
 tput reset
@@ -288,7 +297,7 @@ clear
 echo ""
 cd $HOME
 echo ""
-echo -e "\033[1;34;43m • 🚀 INSTALAÇÃO CONCLUÍDA! BEM-VINDO AO NEW SSHPLUS 🎉 • \033[0m"
+echo -e "\033[1;31;44m • 🚀 INSTALAÇÃO CONCLUÍDA! BEM-VINDO AO NEW SSHPLUS 🎉 • \033[0m"
 echo ""
 cd $HOME
 echo "clear" >>/root/.bashrc

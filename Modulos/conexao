@@ -773,7 +773,7 @@ EOF
             echo -e "\033[1;31mRetornando...\033[0m"
             sleep 3
             clear
-            inst_ssl5
+            fun_conexao
         }
     else
         clear
@@ -794,7 +794,7 @@ EOF
             echo -e "\033[1;31mRetornando...\033[0m"
             sleep 3
             clear
-            inst_ssl5
+            fun_conexao
         else
             echo ""
             echo -e "\033[1;31mOpcao invalida !\033[0m"

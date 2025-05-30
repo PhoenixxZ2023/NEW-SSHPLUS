@@ -762,9 +762,10 @@ fun_drop() {
 }
 
 monitor_ssh() {
+    # [[ PARTE INICIAL DA FUNÇÃO - SEM ALTERAÇÕES ]]
     if [[ "${callback_query_from_id[$id]}" == "$id_admin" ]]; then
         database="/root/usuarios.db"
-        cad_onli=/tmp/$(echo $RANDOM)
+        cad_onli=/tmp/$(echo $RANDOM)_cad_onli_msg # Arquivo para mensagens no chat
         local info_on
         info_on='=×=×=×=×=×=×=×=×=×=×=×=×=×=\n'
         info_on+='<b>MONITOR USUARIOS ONLINES</b>\n'
@@ -774,97 +775,211 @@ monitor_ssh() {
         ShellBot.sendMessage --chat_id ${callback_query_message_chat_id[$id]} \
             --text "$(echo -e $info_on)" \
             --parse_mode html
-        fun_online() {
-            local info2
-            for user in $(cat /etc/passwd | awk -F : '$3 >= 1000 {print $1}' | grep -v nobody); do
-                [[ "$(grep -w $user $database)" != "0" ]] && lim="$(grep -w $user $database | cut -d' ' -f2)" || lim=0
-                [[ $(netstat -nltp | grep 'dropbear' | wc -l) != '0' ]] && drop="$(fun_drop | grep "$user" | wc -l)" || drop=0
-                [[ -e /etc/openvpn/openvpn-status.log ]] && ovp="$(cat /etc/openvpn/openvpn-status.log | grep -E ,"$user", | wc -l)" || ovp=0
-                sqd="$(ps -u $user | grep sshd | wc -l)"
-                _cont=$(($drop + $ovp))
-                conex=$(($_cont + $sqd))
-                [[ $conex -gt '0' ]] && {
-                    timerr="$(ps -o etime $(ps -u $user | grep sshd | awk 'NR==1 {print $1}') | awk 'NR==2 {print $1}')"
+
+        # Subfunção para gerar dados para as mensagens no chat (semelhante ao original)
+        fun_online_para_mensagem() {
+            local info2="" # Acumulador para as linhas da mensagem
+            for user_msg in $(cat /etc/passwd | awk -F : '$3 >= 1000 {print $1}' | grep -v nobody); do
+                local lim_msg="$(grep -w "$user_msg" "$database" | cut -d' ' -f2)"
+                [[ -z "$lim_msg" ]] && lim_msg=0
+                local drop_msg=0
+                [[ $(netstat -nltp 2>/dev/null | grep 'dropbear' | wc -l) != '0' ]] && drop_msg="$(fun_drop | grep "$user_msg" | wc -l)"
+                local ovp_msg=0
+                [[ -e /etc/openvpn/openvpn-status.log ]] && ovp_msg="$(grep -E ",$user_msg," /etc/openvpn/openvpn-status.log | wc -l)"
+                local sqd_msg="$(ps -u "$user_msg" 2>/dev/null | grep sshd | wc -l)"
+                local conex_msg=$(($drop_msg + $ovp_msg + $sqd_msg))
+
+                if [[ $conex_msg -gt 0 ]]; then
+                    local timerr_msg="$(ps -o etime= $(ps -u "$user_msg" 2>/dev/null | grep sshd | awk 'NR==1 {print $1}') 2>/dev/null | awk 'NR==1 {print $1}')"
+                    [[ -z "$timerr_msg" ]] && timerr_msg="N/A"
                     info2+="===========================\n"
-                    info2+="🟢 $user       $conex/$lim       ⏳$timerr\n"
-                }
+                    info2+="🟢 $user_msg       $conex_msg/$lim_msg       ⏳$timerr_msg\n"
+                fi
             done
             echo -e "$info2"
         }
-        fun_online >$cad_onli
-        [[ $(cat $cad_onli | wc -w) != '0' ]] && {
+        fun_online_para_mensagem > "$cad_onli"
+
+        # [[ ENVIO DAS MENSAGENS EM BLOCOS - SEM ALTERAÇÕES ]]
+        if [[ $(cat "$cad_onli" | wc -w) != '0' ]]; then
             while :; do
                 ShellBot.sendMessage --chat_id ${callback_query_message_chat_id[$id]} \
-                    --text "$(while read linha; do echo $linha; done < <(sed '1,30!d' $cad_onli))" \
+                    --text "$(while read linha; do echo "$linha"; done < <(sed '1,30!d' "$cad_onli"))" \
                     --parse_mode html
-                sed -i 1,30d $cad_onli
-                [[ "$(cat $cad_onli | wc -l)" = '0' ]] && {
-                    rm $cad_onli
+                sed -i 1,30d "$cad_onli"
+                [[ "$(cat "$cad_onli" | wc -l)" = '0' ]] && {
+                    rm "$cad_onli"
                     break
                 }
             done
-        } || {
+        else
             ShellBot.answerCallbackQuery --callback_query_id ${callback_query_id[$id]} \
-                --text "Nenhum usuario online" \
+                --text "Nenhum usuario online para mensagens no chat" \
                 --parse_mode html
-            return 0
-        }
-    elif [[ "$(grep -wc "${callback_query_from_username}" $ativos)" != '0' ]]; then
-        [[ "$(grep -wc ${callback_query_from_username} $suspensos)" != '0' ]] && {
+            # Não retorna aqui, pois ainda pode gerar o arquivo TXT
+        fi
+        # [[ FIM DO ENVIO DAS MENSAGENS EM BLOCOS ]]
+
+        # +++ INÍCIO DA MODIFICAÇÃO: GERAR E ENVIAR ARQUIVO .TXT +++
+        local arquivo_txt="/tmp/online_users_$(date +%Y%m%d_%H%M%S).txt"
+        echo "RELATÓRIO DE USUÁRIOS ONLINE" > "$arquivo_txt"
+        echo "" >> "$arquivo_txt"
+        echo "USUÁRIO          ATIVAS/LIMITE  TEMPO ONLINE" >> "$arquivo_txt"
+        echo "---------------------------------------------" >> "$arquivo_txt"
+        
+        local users_found_for_txt=0
+        for user in $(cat /etc/passwd | awk -F : '$3 >= 1000 {print $1}' | grep -v nobody); do
+            local lim="$(grep -w "$user" "$database" | cut -d' ' -f2)"
+            [[ -z "$lim" ]] && lim=0 # Define 0 se não houver limite especificado
+            
+            local drop=0
+            # Verifica se dropbear está rodando e coleta dados (silencia erros se netstat falhar)
+            [[ $(netstat -nltp 2>/dev/null | grep 'dropbear' | wc -l) != '0' ]] && drop="$(fun_drop | grep "$user" | wc -l)"
+            
+            local ovp=0
+            [[ -e /etc/openvpn/openvpn-status.log ]] && ovp="$(grep -E ",$user," /etc/openvpn/openvpn-status.log | wc -l)"
+            
+            # Coleta conexões sshd (silencia erros se ps falhar)
+            local sqd="$(ps -u "$user" 2>/dev/null | grep sshd | wc -l)"
+            
+            local conex=$(($drop + $ovp + $sqd))
+
+            if [[ $conex -gt 0 ]]; then
+                users_found_for_txt=1
+                # Tenta obter o tempo de conexão (silencia erros)
+                local timerr="$(ps -o etime= $(ps -u "$user" 2>/dev/null | grep sshd | awk 'NR==1 {print $1}') 2>/dev/null | awk 'NR==1 {print $1}')"
+                [[ -z "$timerr" ]] && timerr="N/A" # Define N/A se o tempo não puder ser obtido
+
+                echo "$(printf '%-15s  %-12s  %s\n' "$user" "$conex/$lim" "$timerr")" >> "$arquivo_txt"
+            fi
+        done
+
+        if [[ $users_found_for_txt -eq 1 ]]; then
+            ShellBot.sendDocument --chat_id ${callback_query_message_chat_id[$id]} \
+                --document "@$arquivo_txt" \
+                --caption "Segue o relatório de usuários online em formato .txt."
+        else
+            # Envia uma mensagem se nenhum usuário online foi encontrado para o TXT
+            ShellBot.sendMessage --chat_id ${callback_query_message_chat_id[$id]} \
+                --text "Nenhum usuário online encontrado para gerar o arquivo .txt." \
+                --parse_mode html
+        fi
+        rm "$arquivo_txt" # Remove o arquivo temporário
+        # +++ FIM DA MODIFICAÇÃO +++
+
+    elif [[ "$(grep -wc "${callback_query_from_username}" "$ativos")" != '0' ]]; then
+        # [[ PARTE DO REVENDEDOR - SEMELHANTE AO ADMIN, AJUSTAR SE NECESSÁRIO ]]
+        # [[ A lógica para revendedor seguiria a mesma estrutura: ]]
+        # [[ 1. Manter envio de mensagens em blocos (se já existia ou for desejado) ]]
+        # [[ 2. Adicionar a geração e envio do arquivo .TXT ]]
+
+        [[ "$(grep -wc "${callback_query_from_username}" "$suspensos")" != '0' ]] && {
             ShellBot.answerCallbackQuery --callback_query_id ${callback_query_id[$id]} \
                 --text "⚠️ VC ESTA SUSPENSO! CONTATE O ADMINISTRADOR"
             return 0
         }
-        [[ $(ls /etc/bot/revenda/${callback_query_from_username}/usuarios | wc -l) == '0' ]] && {
+        [[ $(ls "/etc/bot/revenda/${callback_query_from_username}/usuarios" 2>/dev/null | wc -l) == '0' ]] && {
             ShellBot.answerCallbackQuery --callback_query_id ${callback_query_id[$id]} \
                 --text "VC AINDA NAO CRIOU USUARIO!"
-            return 0
+            return 0 # Modificado para return 0 para consistência, mas ainda indica erro ao usuário
         }
+
         database="/root/usuarios.db"
-        cad_onli=/tmp/$(echo $RANDOM)
-        local info_on
-        info_on='=×=×=×=×=×=×=×=×=×=×=×=×=×=\n'
-        info_on+='<b>MONITOR USUARIOS ONLINES</b>\n'
-        info_on+='=×=×=×=×=×=×=×=×=×=×=×=×=×=\n\n'
-        info_on+='⚠️ Exibe no formato abaixo:\n\n'
-        info_on+='<code>USUÁRIO  ONLINE/LIMITE  TEMPO\n</code>'
+        cad_onli=/tmp/$(echo $RANDOM)_cad_onli_msg_rev # Arquivo para mensagens no chat
+        local info_on_rev
+        info_on_rev='=×=×=×=×=×=×=×=×=×=×=×=×=×=\n'
+        info_on_rev+='<b>MONITOR USUARIOS ONLINES (REVENDEDOR)</b>\n'
+        info_on_rev+='=×=×=×=×=×=×=×=×=×=×=×=×=×=\n\n'
+        info_on_rev+='⚠️ Exibe no formato abaixo:\n\n'
+        info_on_rev+='<code>USUÁRIO  ONLINE/LIMITE  TEMPO\n</code>'
         ShellBot.sendMessage --chat_id ${callback_query_message_chat_id[$id]} \
-            --text "$(echo -e $info_on)" \
+            --text "$(echo -e "$info_on_rev")" \
             --parse_mode html
-        fun_online() {
-            local info2
-            for user in $(ls /etc/bot/revenda/${callback_query_from_username}/usuarios); do
-                [[ "$(grep -w $user $database)" != "0" ]] && lim="$(grep -w $user $database | cut -d' ' -f2)" || lim=0
-                [[ $(netstat -nltp | grep 'dropbear' | wc -l) != '0' ]] && drop="$(fun_drop | grep "$user" | wc -l)" || drop=0
-                [[ -e /etc/openvpn/openvpn-status.log ]] && ovp="$(cat /etc/openvpn/openvpn-status.log | grep -E ,"$user", | wc -l)" || ovp=0
-                sqd="$(ps -u $user | grep sshd | wc -l)"
-                conex=$(($sqd + $ovp + $drop))
-                [[ $conex -gt '0' ]] && {
-                    timerr="$(ps -o etime $(ps -u $user | grep sshd | awk 'NR==1 {print $1}') | awk 'NR==2 {print $1}')"
-                    info2+="------------------------------\n"
-                    info2+="👤$user       $conex/$lim       ⏳$timerr\n"
-                }
+
+        fun_online_rev_para_mensagem() {
+            local info2_rev=""
+            for user_rev_msg in $(ls "/etc/bot/revenda/${callback_query_from_username}/usuarios" 2>/dev/null); do
+                local lim_rev_msg="$(grep -w "$user_rev_msg" "$database" | cut -d' ' -f2)"
+                [[ -z "$lim_rev_msg" ]] && lim_rev_msg=0
+                local drop_rev_msg=0
+                [[ $(netstat -nltp 2>/dev/null | grep 'dropbear' | wc -l) != '0' ]] && drop_rev_msg="$(fun_drop | grep "$user_rev_msg" | wc -l)"
+                local ovp_rev_msg=0
+                [[ -e /etc/openvpn/openvpn-status.log ]] && ovp_rev_msg="$(grep -E ",$user_rev_msg," /etc/openvpn/openvpn-status.log | wc -l)"
+                local sqd_rev_msg="$(ps -u "$user_rev_msg" 2>/dev/null | grep sshd | wc -l)"
+                local conex_rev_msg=$(($sqd_rev_msg + $ovp_rev_msg + $drop_rev_msg))
+
+                if [[ $conex_rev_msg -gt 0 ]]; then
+                    local timerr_rev_msg="$(ps -o etime= $(ps -u "$user_rev_msg" 2>/dev/null | grep sshd | awk 'NR==1 {print $1}') 2>/dev/null | awk 'NR==1 {print $1}')"
+                    [[ -z "$timerr_rev_msg" ]] && timerr_rev_msg="N/A"
+                    info2_rev+="------------------------------\n"
+                    info2_rev+="👤$user_rev_msg       $conex_rev_msg/$lim_rev_msg       ⏳$timerr_rev_msg\n"
+                fi
             done
-            echo -e "$info2"
+            echo -e "$info2_rev"
         }
-        fun_online >$cad_onli
-        [[ $(cat $cad_onli | wc -w) != '0' ]] && {
+        fun_online_rev_para_mensagem > "$cad_onli"
+
+        if [[ $(cat "$cad_onli" | wc -w) != '0' ]]; then
             while :; do
                 ShellBot.sendMessage --chat_id ${callback_query_message_chat_id[$id]} \
-                    --text "<code>$(while read linha; do echo $linha; done < <(sed '1,30!d' $cad_onli))</code>" \
+                    --text "<code>$(while read linha; do echo "$linha"; done < <(sed '1,30!d' "$cad_onli"))</code>" \
                     --parse_mode html
-                sed -i 1,30d $cad_onli
-                [[ "$(cat $cad_onli | wc -l)" = '0' ]] && {
-                    rm $cad_onli
+                sed -i 1,30d "$cad_onli"
+                [[ "$(cat "$cad_onli" | wc -l)" = '0' ]] && {
+                    rm "$cad_onli"
                     break
                 }
             done
-        } || {
-            ShellBot.sendMessage --chat_id ${callback_query_message_chat_id[$id]} \
-                --text "Nenhum usuario online" \
+        else
+            # Mensagem original era um answerCallbackQuery. Mantendo consistência, mas poderia ser sendMessage.
+             ShellBot.sendMessage --chat_id ${callback_query_message_chat_id[$id]} \
+                --text "Nenhum usuario online para mensagens no chat (Revendedor)." \
                 --parse_mode html
-            return 0
-        }
+            # Não retorna aqui, pois ainda pode gerar o arquivo TXT
+        fi
+
+        # +++ INÍCIO DA MODIFICAÇÃO PARA REVENDEDOR: GERAR E ENVIAR ARQUIVO .TXT +++
+        local arquivo_txt_rev="/tmp/online_users_rev_${callback_query_from_username}_$(date +%Y%m%d_%H%M%S).txt"
+        echo "RELATÓRIO DE USUÁRIOS ONLINE (REVENDEDOR: ${callback_query_from_username})" > "$arquivo_txt_rev"
+        echo "" >> "$arquivo_txt_rev"
+        echo "USUÁRIO          ATIVAS/LIMITE  TEMPO ONLINE" >> "$arquivo_txt_rev"
+        echo "---------------------------------------------" >> "$arquivo_txt_rev"
+
+        local users_found_for_txt_rev=0
+        for user_rev in $(ls "/etc/bot/revenda/${callback_query_from_username}/usuarios" 2>/dev/null); do
+            local lim_rev="$(grep -w "$user_rev" "$database" | cut -d' ' -f2)"
+            [[ -z "$lim_rev" ]] && lim_rev=0
+            
+            local drop_rev=0
+            [[ $(netstat -nltp 2>/dev/null | grep 'dropbear' | wc -l) != '0' ]] && drop_rev="$(fun_drop | grep "$user_rev" | wc -l)"
+            
+            local ovp_rev=0
+            [[ -e /etc/openvpn/openvpn-status.log ]] && ovp_rev="$(grep -E ",$user_rev," /etc/openvpn/openvpn-status.log | wc -l)"
+            
+            local sqd_rev="$(ps -u "$user_rev" 2>/dev/null | grep sshd | wc -l)"
+            local conex_rev=$(($sqd_rev + $ovp_rev + $drop_rev))
+
+            if [[ $conex_rev -gt 0 ]]; then
+                users_found_for_txt_rev=1
+                local timerr_rev="$(ps -o etime= $(ps -u "$user_rev" 2>/dev/null | grep sshd | awk 'NR==1 {print $1}') 2>/dev/null | awk 'NR==1 {print $1}')"
+                [[ -z "$timerr_rev" ]] && timerr_rev="N/A"
+
+                echo "$(printf '%-15s  %-12s  %s\n' "$user_rev" "$conex_rev/$lim_rev" "$timerr_rev")" >> "$arquivo_txt_rev"
+            fi
+        done
+
+        if [[ $users_found_for_txt_rev -eq 1 ]]; then
+            ShellBot.sendDocument --chat_id ${callback_query_message_chat_id[$id]} \
+                --document "@$arquivo_txt_rev" \
+                --caption "Segue o relatório de usuários online (Revendedor) em formato .txt."
+        else
+            ShellBot.sendMessage --chat_id ${callback_query_message_chat_id[$id]} \
+                --text "Nenhum usuário online encontrado para gerar o arquivo .txt (Revendedor)." \
+                --parse_mode html
+        fi
+        rm "$arquivo_txt_rev" # Remove o arquivo temporário
+        # +++ FIM DA MODIFICAÇÃO PARA REVENDEDOR +++
+
     else
         ShellBot.answerCallbackQuery --callback_query_id ${callback_query_id[$id]} \
             --text "$(echo -e 🚫 ACESSO NEGADO 🚫)"

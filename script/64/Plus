@@ -126,19 +126,12 @@ echo ""
 echo -e "  \033[1;93mATUALIZAÇÕES COSTUMAM DEMORAR UM POUCO!\033[0m"
 echo ""
 
-# Definir a função de atualização do sistema
 fun_attlist() {
-    # Criar diretório oculto, se não existir
-    if [[ ! -d /usr/share/.plus ]]; then
-        mkdir /usr/share/.plus
-    fi
-
-    # Registrar a data da atualização
-    echo "crz: $(date)" > /usr/share/.plus/.plus
-}
-
-# Executar a função de atualização do sistema com barra de progresso
-fun_bar "fun_attlist"
+        apt-get update -y
+        [[ ! -d /usr/share/.plus ]] && mkdir /usr/share/.plus
+        echo "crz: $(date)" >/usr/share/.plus/.plus
+    }
+    fun_bar 'fun_attlist'
 
 # Redefinir a exibição do terminal
 tput reset

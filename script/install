@@ -70,9 +70,10 @@ clear
 crontab -r >/dev/null 2>&1
 (
 	crontab -l 2>/dev/null
+	echo "@daily /bin/verifatt"
 	echo "@reboot /etc/autostart"
 	echo "* * * * * /etc/autostart"
-	echo "0 */12 * * * /bin/uexpired"
+	echo "0 */6 * * * /bin/uexpired"
 ) | crontab -
 echo "$_lvk" >/bin/versao && cat /bin/versao > /home/sshplus
 wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/jq-linux64 >/dev/null 2>&1

@@ -111,9 +111,9 @@ awk -F : "$3 >= 500 { print $1 "1" }" /etc/passwd | grep -v "^nobody" > $HOME/us
 # Redefinir a exibição do terminal
 tput reset
 ## Exibir mensagem de espera com fundo azul e texto branco em negrito
-echo -e "\E[38;5;36m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\E[38;5;36m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;36m┃"
-echo -e "\E[38;5;36m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\033[0;34m┃\E[44;1;37m               AGUARDE A INSTALAÇÃO               \E[0m\033[0;34m┃"
+echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;37m] \033[1;97mATUALIZANDO SISTEMA \033[1;37m[\033[1;31m⚠️ \033[1;91m]\033[0m"
 echo ""
@@ -130,9 +130,9 @@ fun_attlist() {
 # Redefinir a exibição do terminal
 tput reset
 # Exibir mensagem de espera com fundo azul e texto branco em negrito
-echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\E[38;5;18m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;18m┃"
-echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\033[0;34m┃\E[44;1;37m               AGUARDE A INSTALAÇÃO               \E[0m\033[0;34m┃"
+echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO PYTHON \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
 echo ""
@@ -165,9 +165,9 @@ fun_bar "install_python3"
 # Redefinir a exibição do terminal
 tput reset
 # Exibir mensagem de espera com fundo azul e texto branco em negrito
-echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\E[38;5;18m┃\E[44;1;37m            AGUARDE A INSTALAÇÃO               \E[0m\E[38;5;18m┃"
-echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\033[0;34m┃\E[44;1;37m              AGUARDE A INSTALAÇÃO               \E[0m\033[0;34m┃"
+echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO PACOTES  \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
 echo ""
@@ -237,9 +237,9 @@ fi
 # Redefinir a exibição do terminal novamente
 tput reset
 # Instala ferramentas de rede
-echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\E[38;5;18m┃\E[44;1;37m         INSTALANDO PACOTES DE REDE          \E[0m\E[38;5;18m┃"
-echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\033[0;34m┃\E[44;1;37m         INSTALANDO PACOTES DE REDE          \E[0m\033[0;34m┃"
+echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 inst_pack_rede() {
 fun_bar "sudo apt-get install -y lsof >/dev/null 2>&1"
@@ -258,9 +258,9 @@ super_proxy() {
 # Redefinir a exibição do terminal novamente
 tput reset
 # Instala ferramentas de rede
-echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\E[38;5;18m┃\E[44;1;37m         INSTALANDO MULTI-PROXY          \E[0m\E[38;5;18m┃"
-echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\033[0;34m┃\E[44;1;37m           INSTALANDO MULTI-PROXY             \E[0m\033[0;34m┃"
+echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 # instalando rustyproxy by @UlekBR
 bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
@@ -274,28 +274,29 @@ fun_bar super_proxy
 # Redefinir a exibição do terminal
 tput reset
 # Exibir a mensagem de finalização
-echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\E[38;5;18m┃\E[44;1;37m         FINALIZANDO INSTALAÇÃO          \E[0m\E[38;5;18m┃"
-echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\033[0;34m┃\E[44;1;37m           FINALIZANDO INSTALAÇÃO               \E[0m\033[0;34m┃"
+echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 echo -e "     \033[1;93mCONCLUINDO FUNÇÕES E DEFINIÇÕES! \033[0m"
 echo ""
 clear
 echo ""
 cd $HOME
-echo ""
-echo -e "\033[1;31;44m • 🚀 INSTALAÇÃO CONCLUÍDA! BEM-VINDO AO NEW SSHPLUS 🎉 • \033[0m"
+echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\033[0;34m┃\E[44;1;37m •   🚀 INSTALAÇÃO CONCLUÍDA! BEM-VINDO AO NEW SSHPLUS 🎉 •   \E[0m\033[0;34m┃"
+echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 cd $HOME
 echo "clear" >>/root/.bashrc
 echo 'DATE=$(date +"%d-%m-%y")' >>/root/.bashrc
 echo 'TIME=$(date +"%T")' >>/root/.bashrc
 echo 'toilet -f smblock -F metal       "NEW  SSHPLUS  2025"' >>/root/.bashrc
-echo 'echo -e "\033[01;31m\033[1;36m💻 NOME DO SERVIDOR : $HOSTNAME\033[0m"' >>/root/.bashrc
-echo 'echo -e "\033[01;31m\033[1;36m⚙️  SERVIDOR LIGADO À : $(uptime -p)\033[0m"' >>/root/.bashrc
-echo 'echo -e "\033[01;31m\033[1;36m📅 DATA : $(date +%d/%m/%Y)\033[0m"' >>/root/.bashrc
-echo 'echo -e "\033[01;31m\033[1;36m⏰ HORA : $(date +%H:%M:%S)\033[0m"' >>/root/.bashrc
-echo 'echo -e "\033[01;31m\033[1;36m📲 TELEGRAM OFICIAL: @TURBONET2023\033[0m"' >>/root/.bashrc
+echo 'echo -e "\033[01;31m\033[1;34m💻 NOME DO SERVIDOR : $HOSTNAME\033[0m"' >>/root/.bashrc
+echo 'echo -e "\033[01;31m\033[1;34m⚙️  SERVIDOR LIGADO À : $(uptime -p)\033[0m"' >>/root/.bashrc
+echo 'echo -e "\033[01;31m\033[1;34m📅 DATA : $(date +%d/%m/%Y)\033[0m"' >>/root/.bashrc
+echo 'echo -e "\033[01;31m\033[1;34m⏰ HORA : $(date +%H:%M:%S)\033[0m"' >>/root/.bashrc
+echo 'echo -e "\033[01;31m\033[1;34m📲 TELEGRAM OFICIAL: @TURBONET2023\033[0m"' >>/root/.bashrc
 echo 'echo -e "\033[01;31m\033[1;31m📝 DIGITE ( menu ) PARA ENTRAR\033[0m"' >>/root/.bashrc
 echo 'echo -e ""' >>/root/.bashrc
 date=$(date "+%Y-%m-%d <> %H:%M:%S")

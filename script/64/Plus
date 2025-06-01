@@ -284,7 +284,7 @@ clear
 echo ""
 cd $HOME
 echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\033[0;34m┃\E[44;1;37m •   🚀 INSTALAÇÃO CONCLUÍDA! BEM-VINDO AO NEW SSHPLUS 🎉 •   \E[0m\033[0;34m┃"
+echo -e "\033[0;34m┃\E[44;1;37m• 🚀 INSTALAÇÃO CONCLUÍDA! BEM-VINDO AO NEW SSHPLUS 🎉 • \E[0m\033[0;34m┃"
 echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 cd $HOME

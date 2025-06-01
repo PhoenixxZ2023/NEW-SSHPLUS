@@ -86,12 +86,6 @@ echo ""
     wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/ShellBot.sh >/dev/null 2>&1
     chmod 777 ShellBot.sh >/dev/null 2>&1
     cd >/dev/null 2>&1
-    chmod 777 licence >/dev/null 2>&1
-    mkdir /etc/rec >/dev/null 2>&1
-    cd /etc/rec
-    wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/licence >/dev/null 2>&1
-    chmod 777 licence >/dev/null 2>&1
-    cd >/dev/null 2>&1
 #-----------------------------------------------------------------------------------------------------------------
 echo ""
 [[ -f "$HOME/usuarios.db" ]] && {

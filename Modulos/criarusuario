@@ -247,8 +247,13 @@ fun_edithost() {
         fun_edithost
     fi
 }
-tput setaf 7;tput setab 4;tput bold;printf '%30s%s%-15s\n' "CRIAR USUÁRIO SSH";tput sgr0
-echo -ne "\033[1;32m🗣️ USUÁRIO:\033[1;37m ";read username
+clear
+echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\033[0;34m┃\E[44;1;37m            CIAR USUARIO SSH             \E[0m\033[0;34m┃"
+echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+tput sgr0
+echo ""
+echo -ne "\033[1;32m🗣️  USUÁRIO:\033[1;37m ";read username
 [[ -z $username ]] && {
 	echo -e "\n${cor1}usuário vazio ou invalido!${scor}\n"
 	exit 1
@@ -332,9 +337,10 @@ echo -ne "\033[1;32m📲 LIMITE DE CONEXÕES:\033[1;37m ";read sshlimiter
                 }
             }
             clear
-		#echo -e "\033[1;32m 📝NOME: \033[1;37m$nomee"
-		echo -e "\E[44;1;37m======🦸DADOS DE ACESSO🦸‍♀️======\E[0m"
-		echo -e "\033[1;32m 🗣️USUARIO: \033[1;37m$username"
+		echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+		echo -e "\033[0;34m┃\E[44;1;37m            CONTA SSH CRIADA             \E[0m\033[0;34m┃"
+		echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m""
+		echo -e "\033[1;32m 🗣️ USUARIO: \033[1;37m$username"
 		echo -e "\033[1;32m 🔑SENHA: \033[1;37m$password"
 		echo -e "\033[1;32m ⌛EXPIRA EM: \033[1;37m$gui"
 		echo -e "\033[1;32m 📲LIMITE DE CONEXÃO: \033[1;37m$sshlimiter"

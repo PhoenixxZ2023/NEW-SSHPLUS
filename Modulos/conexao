@@ -642,20 +642,6 @@ inst_ssl5() {
         return 0
     }
 
-    # Função para exibir barra de progresso
-    fun_bar() {
-        local command=$1
-        local duration=2
-        echo -ne "\033[1;32m["
-        while [[ $duration -gt 0 ]]; do
-            echo -ne "="
-            sleep 0.5
-            duration=$((duration - 1))
-        done
-        echo -ne "]\033[0m\n"
-        eval "$command" >/dev/null 2>&1
-    }
-
     # Função para compilar stunnel5
     compile_stunnel5() {
         apt-get update -y
@@ -1565,11 +1551,11 @@ exit 0' >$RCLOCAL
 		[[ $(screen -list | grep -wc 'security') != '0' ]] && var_sks4="\033[1;32m◉" || var_sks4="\033[1;31m○"
 		[[ $(screen -list | grep -wc 'proxydt') != '0' ]] && var_sks6="\033[1;32m◉" || var_sks6="\033[1;31m○"
 		[[ $(screen -list | grep -wc 'openpy') != '0' ]] && sksop="\033[1;32m◉" || sksop="\033[1;31m○"
-		echo -e "\033[01;31m┃\033[0m\033[1;31m[\033[1;36m01\033[1;31m] \033[1;37m• \033[1;33mPROXY-SOCKS SSH $var_sks1 \033[0m        \033[01;31m┃\033[0m"
+		echo -e "\033[01;31m┃\033[0m\033[1;31m[\033[1;36m01\033[1;31m] \033[1;37m• \033[1;33mPROXY SOCKS SSH $var_sks1 \033[0m        \033[01;31m┃\033[0m"
 		echo -e "\033[01;31m┃\033[0m\033[1;31m[\033[1;36m02\033[1;31m] \033[1;37m• \033[1;33mWEBSOCKET $var_sks2 \033[0m              \033[01;31m┃\033[0m"
 		echo -e "\033[01;31m┃\033[0m\033[1;31m[\033[1;36m03\033[1;31m] \033[1;37m• \033[1;33mWEBSOCKET SECURITY $var_sks3 \033[0m     \033[01;31m┃\033[0m"
-		echo -e "\033[01;31m┃\033[0m\033[1;31m[\033[1;36m04\033[1;31m] \033[1;37m• \033[1;33mWEBSOCKET SECURITY-V2.0 $var_sks4 \033[0m\033[01;31m┃\033[0m"
-		echo -e "\033[01;31m┃\033[0m\033[1;31m[\033[1;36m05\033[1;31m] \033[1;37m• \033[1;33mPROXY DTUNNEL-MOD-V2.0 $var_sks6 \033[0m \033[01;31m┃\033[0m"
+		echo -e "\033[01;31m┃\033[0m\033[1;31m[\033[1;36m04\033[1;31m] \033[1;37m• \033[1;33mWEBSOCKET SECURITY V2 $var_sks4 \033[0m  \033[01;31m┃\033[0m"
+		echo -e "\033[01;31m┃\033[0m\033[1;31m[\033[1;36m05\033[1;31m] \033[1;37m• \033[1;33mPROXY DTUNNEL MOD $var_sks6    \033[0m   \033[01;31m┃\033[0m"
 		echo -e "\033[01;31m┃\033[0m\033[1;31m[\033[1;36m06\033[1;31m] \033[1;37m• \033[1;33mSOCKS OPENVPN $sksop \033[0m          \033[01;31m┃\033[0m"
 		echo -e "\033[01;31m┃\033[0m\033[1;31m[\033[1;36m07\033[1;31m] \033[1;37m• \033[1;33mABRIR PORTA\033[0m               \033[01;31m┃\033[0m"
 		echo -e "\033[01;31m┃\033[0m\033[1;31m[\033[1;36m08\033[1;31m] \033[1;37m• \033[1;33mALTERAR STATUS SOCKS SSH\033[0m  \033[01;31m┃\033[0m"
@@ -2349,7 +2335,7 @@ echo -e "\033[01;31m┣━━━━━━━━━━━━━━━━━━━
 				sts0="\033[1;31m○ "
 			}
                         [[ "$(netstat -tlpn | grep 'proxydt' | wc -l)" != '0' ]] && {
-				echo -e "\033[01;31m┃\033[1;32mSERVICO: \033[1;33mPROXY DTUNNEL-MOD-V2.0 \033[1;32mPORTA: \033[1;37m$(netstat -nplt | grep 'proxydt' | awk {'print $4'} | cut -d: -f2 | xargs)"
+				echo -e "\033[01;31m┃\033[1;32mSERVICO: \033[1;33mPROXY DTUNNEL MOD \033[1;32mPORTA: \033[1;37m$(netstat -nplt | grep 'proxydt' | awk {'print $4'} | cut -d: -f2 | xargs)"
 				sts4="\033[1;32m◉ "
 			} || {
 				sts4="\033[1;31m○ "
@@ -2372,11 +2358,11 @@ echo -e "\033[01;31m┣━━━━━━━━━━━━━━━━━━━
 			} || {
 				sts2="\033[1;31m○ "
 			}
-                        [[ "$(netstat -tlpn | grep 'proxy' | wc -l)" != '0' ]] && {
+                        [[ "$(netstat -tlpn | grep 'proxy10000000' | wc -l)" != '0' ]] && {
 				echo -e "\033[01;31m┃\033[1;32mSERVICO: \033[1;33mPROXY DTUNNEL \033[1;32mPORTA: \033[1;37m$(netstat -nplt | grep 'proxy' | awk {'print $4'} | cut -d: -f2 | xargs)"
-				sts11="\033[1;32m◉ "
+				sts110000="\033[1;32m◉ "
 			} || {
-				sts11="\033[1;31m○ "
+				sts110000="\033[1;31m○ "
 			}
 			[[ "$(netstat -tunlp | grep 'v2ray' | wc -l)" != '0' ]] && {
 				xv2ray="\033[1;32m◉ "

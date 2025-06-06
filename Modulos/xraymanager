@@ -439,7 +439,7 @@ selection_fun() {
     echo $selection
 }
 
-PID_GEN=$(ps x|grep -v grep|grep "limv2ray")
+PID_GEN=$(ps x|grep -v grep|grep "limxray")
     [[ ! $PID_GEN ]] && PID_GEN="\e[91m○  " || PID_GEN="\e[92m◉  "
     statgen="$(echo $PID_GEN)"
     #SPR & 

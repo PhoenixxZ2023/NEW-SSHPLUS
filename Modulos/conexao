@@ -630,11 +630,14 @@ fun_drop() {
 	}
 
 inst_ssl5() {
-    # Função para verificar portas
+    # --- Funções Auxiliares (baseadas no segundo script, mais robusto) ---
+
+    # Função para verificar se a porta está em uso
     verif_ptrs() {
         local port=$1
         if ss -tuln | grep -q ":$port "; then
-            echo -e "\033[1;31mPorta $port já está em uso!"
+            echo -e "\n\033[1;31mErro: A porta $port já está em uso!"
+            echo -e "\033[1;33mServiço utilizando a porta:\033[0m"
             ss -tulnp | grep ":$port "
             sleep 3
             return 1
@@ -642,42 +645,89 @@ inst_ssl5() {
         return 0
     }
 
-    # Função para compilar stunnel5
+    # Função para instalar dependências necessárias
+    install_dependencies() {
+        echo -e "\n\033[1;32mAtualizando pacotes e instalando dependências...\033[0m"
+        apt-get update -y > /dev/null 2>&1
+        apt-get install -y git build-essential libssl-dev autoconf automake libtool m4 autoconf-archive pkg-config > /dev/null 2>&1
+        if [[ $? -ne 0 ]]; then
+            echo -e "\033[1;31mErro fatal ao instalar dependências. Abortando.\033[0m"
+            exit 1
+        fi
+    }
+
+    # Função para baixar e compilar o stunnel5 a partir do código-fonte
     compile_stunnel5() {
-        apt-get update -y
-        apt-get install -y git build-essential libssl-dev autoconf automake libtool m4 autoconf-archive pkg-config
+        echo -e "\033[1;32mClonando e compilando o stunnel 5.74...\033[0m"
         rm -rf /tmp/stunnel
-        git clone https://github.com/mtrojnar/stunnel.git /tmp/stunnel
-        cd /tmp/stunnel
-        git checkout tags/stunnel-5.74
-        aclocal
-        autoreconf -fi
-        ./configure
-        make
-        make install
-        cd /tmp
+        git clone https://github.com/mtrojnar/stunnel.git /tmp/stunnel > /dev/null 2>&1
+        cd /tmp/stunnel || exit 1
+        
+        git checkout tags/stunnel-5.74 > /dev/null 2>&1
+        if [[ $? -ne 0 ]]; then
+            echo -e "\033[1;31mErro: Não foi possível encontrar a tag da versão 5.74 do stunnel.\033[0m"
+            exit 1
+        fi
+
+        aclocal > /dev/null 2>&1
+        autoreconf -fi > /dev/null 2>&1
+        ./configure > /dev/null 2>&1
+        make > /dev/null 2>&1
+        make install > /dev/null 2>&1
+        
+        cd / # Retorna para o diretório raiz
         rm -rf /tmp/stunnel
+        echo -e "\033[1;32mCompilação e instalação concluídas.\033[0m"
     }
 
-    # Função para configurar stunnel5
+    # Função para criar o arquivo de configuração do stunnel
+    # Aceita dois argumentos: a porta de escuta ($1) e a porta de destino ($2)
     ssl_conf() {
+        local accept_port=$1
+        local connect_port=$2
         mkdir -p /usr/local/etc/stunnel
-        echo -e "cert = /usr/local/etc/stunnel/stunnel.pem\nclient = no\nsocket = a:SO_REUSEADDR=1\nsocket = l:TCP_NODELAY=1\nsocket = r:TCP_NODELAY=1\n\n[stunnel]\nconnect = 127.0.0.1:${portssl}\naccept = ${porta}" >/usr/local/etc/stunnel/stunnel.conf
+        
+        # Cria o arquivo de configuração
+        cat > /usr/local/etc/stunnel/stunnel.conf <<EOF
+# Certificado e chave gerados localmente para maior segurança
+cert = /usr/local/etc/stunnel/stunnel.pem
+client = no
+pid = /usr/local/var/run/stunnel.pid
+
+# Opções de socket para melhor desempenho
+socket = a:SO_REUSEADDR=1
+socket = l:TCP_NODELAY=1
+socket = r:TCP_NODELAY=1
+
+[stunnel]
+accept = ${accept_port}
+connect = 127.0.0.1:${connect_port}
+EOF
+        echo -e "\033[1;32mArquivo de configuração criado.\033[0m"
     }
 
-    # Função para criar certificado
+    # Função para gerar um certificado SSL autoassinado seguro
     ssl_certif() {
-        openssl genrsa -out /usr/local/etc/stunnel/key.pem 2048 >/dev/null 2>&1
-        ( echo EC; echo EC; echo EC; echo EC; echo EC; echo EC; echo EC ) | openssl req -new -x509 -key /usr/local/etc/stunnel/key.pem -out /usr/local/etc/stunnel/cert.pem -days 1050 >/dev/null 2>&1
-        cat /usr/local/etc/stunnel/cert.pem /usr/local/etc/stunnel/key.pem >/usr/local/etc/stunnel/stunnel.pem
-        rm /usr/local/etc/stunnel/key.pem /usr/local/etc/stunnel/cert.pem >/dev/null 2>&1
+        echo -e "\033[1;32mGerando certificado SSL autoassinado...\033[0m"
+        # Gera um certificado e chave combinados em um único arquivo .pem
+        openssl req -new -x509 -days 3650 -nodes \
+            -out /usr/local/etc/stunnel/stunnel.pem \
+            -keyout /usr/local/etc/stunnel/stunnel.pem \
+            -subj "/C=BR/ST=SaoPaulo/L=SaoPaulo/O=Private/OU=IT/CN=localhost" > /dev/null 2>&1
+        
+        # Define permissões restritas para o arquivo do certificado
+        chmod 600 /usr/local/etc/stunnel/stunnel.pem
+        echo -e "\033[1;32mCertificado gerado com sucesso.\033[0m"
     }
 
-    # Função para criar e iniciar serviço
+    # Função para criar, habilitar e iniciar o serviço systemd
     fun_finssl() {
-        mkdir -p /usr/local/var/run
-        chmod 777 /usr/local/var/run
-        cat >/etc/systemd/system/stunnel5.service <<EOF
+        echo -e "\033[1;32mConfigurando o serviço systemd...\033[0m"
+        mkdir -p /usr/local/var/run/
+        chmod 755 /usr/local/var/run/
+        chown root:root /usr/local/var/run/
+
+        cat > /etc/systemd/system/stunnel5.service <<EOF
 [Unit]
 Description=stunnel5 TLS Tunneling Service
 After=network.target
@@ -693,161 +743,154 @@ TimeoutStartSec=300
 WantedBy=multi-user.target
 EOF
         systemctl daemon-reload
-        systemctl enable stunnel5
+        systemctl enable stunnel5 > /dev/null 2>&1
         systemctl restart stunnel5
+        echo -e "\033[1;32mServiço stunnel5 iniciado e habilitado.\033[0m"
     }
 
-    if ss -tlnp | grep 'stunnel' >/dev/null 2>&1; then
-        [[ $(ss -tlnp | grep 'stunnel5' | wc -l) != '0' ]] && sslt=$(ss -tlnp | grep 'stunnel5' | awk '{print $4}' | awk -F ":" '{print $2}' | xargs) || sslt="\033[1;31mINDISPONIVEL"
-        echo -e "\E[44;1;37m              GERENCIAR SSL STUNNEL5               \E[0m"
-        echo -e "\n\033[1;33mPORTAS\033[1;37m: \033[1;32m$sslt"
-        echo ""
-        echo -e "\033[1;31m[\033[1;36m1\033[1;31m] \033[1;37m• \033[1;33mALTERAR PORTA SSL TUNNEL 5\033[0m"
-        echo -e "\033[1;31m[\033[1;36m2\033[1;31m] \033[1;37m• \033[1;33mREMOVER SSL TUNNEL 5\033[0m"
-        echo -e "\033[1;31m[\033[1;36m0\033[1;31m] \033[1;37m• \033[1;33mVOLTAR\033[0m"
-        echo ""
-        echo -ne "\033[1;32mOQUE DESEJA FAZER \033[1;33m?\033[1;37m "
-        read resposta
-        echo ""
-        [[ "$resposta" = '1' ]] && {
-            echo -ne "\033[1;32mQUAL PORTA DESEJA ULTILIZAR \033[1;33m?\033[1;37m "
-            read porta
-            echo ""
-            [[ -z "$porta" ]] && {
-                echo ""
-                echo -e "\033[1;31mPorta invalida!"
-                sleep 2
-                clear
-                inst_ssl5
-            }
-            verif_ptrs $porta
-            echo -e "\033[1;32mALTERANDO PORTA SSL STUNNEL5!"
-            var2=$(grep 'accept' /usr/local/etc/stunnel/stunnel.conf | awk '{print $NF}')
-            sed -i "s/\b$var2\b/$porta/g" /usr/local/etc/stunnel/stunnel.conf >/dev/null 2>&1
-            echo ""
-            fun_bar 'sleep 2'
-            echo ""
-            echo -e "\033[1;32mREINICIANDO SSL STUNNEL5!\n"
-            fun_bar 'systemctl restart stunnel5' 'systemctl restart stunnel5'
-            echo ""
-            ss -tlnp | grep 'stunnel' >/dev/null && echo -e "\033[1;32mPORTA ALTERADA COM SUCESSO !" || echo -e "\033[1;31mERRO INESPERADO!"
-            sleep 3.5
-            clear
-            inst_ssl5
-        }
-        [[ "$resposta" = '2' ]] && {
-            echo -e "\033[1;32mREMOVENDO O  SSL TUNNEL 5 !\033[0m"
-            del_ssl() {
-                systemctl stop stunnel5
-                systemctl disable stunnel5
-                rm -rf /etc/systemd/system/stunnel5.service
-                systemctl daemon-reload
-                rm -rf /usr/local/bin/stunnel /usr/local/bin/stunnel5
-                rm -rf /usr/local/etc/stunnel
-                rm -rf /usr/local/var/run/stunnel.pid
-                rmdir /usr/local/var/run 2>/dev/null
-                rm -rf /usr/local/lib/stunnel /usr/local/share/stunnel /usr/local/man/man8/stunnel*
-            }
-            echo ""
-            fun_bar 'del_ssl'
-            echo ""
-            echo -e "\033[1;32mSSL TUNNEL 5 REMOVIDO COM SUCESSO!\033[0m"
-            sleep 3
-            inst_ssl5
-        }
-        [[ "$resposta" = '0' ]] && {
-            echo -e "\033[1;31mRetornando...\033[0m"
-            sleep 3
-            clear
-            fun_conexao
-        }
-    else
+    # Função completa para desinstalar o stunnel5
+    del_ssl() {
+        echo -e "\033[1;32mParando e desabilitando o serviço...\033[0m"
+        systemctl stop stunnel5 > /dev/null 2>&1
+        systemctl disable stunnel5 > /dev/null 2>&1
+        
+        echo -e "\033[1;32mRemovendo arquivos...\033[0m"
+        rm -f /etc/systemd/system/stunnel5.service
+        systemctl daemon-reload
+        systemctl reset-failed
+        
+        rm -rf /usr/local/bin/stunnel
+        rm -rf /usr/local/etc/stunnel
+        rm -f /usr/local/var/run/stunnel.pid
+        rmdir /usr/local/var/run 2>/dev/null
+        rm -rf /usr/local/lib/stunnel 2>/dev/null
+        rm -rf /usr/local/share/stunnel 2>/dev/null
+        rm -rf /usr/local/man/man8/stunnel* 2>/dev/null
+    }
+
+    # Verifica se o stunnel já está instalado para exibir o menu correto
+    if command -v stunnel >/dev/null 2>&1 && [[ -f /etc/systemd/system/stunnel5.service ]]; then
+        # Menu de Gerenciamento (se já instalado)
+        sslt=$(ss -tlnp | grep 'stunnel' | awk '{print $4}' | awk -F ":" '{print $NF}' | xargs)
+        [[ -z "$sslt" ]] && sslt="\033[1;31mINDISPONÍVEL"
+
         clear
-        echo -e "\E[44;1;37m              INSTALAR SSL TUNNEL 5               \E[0m"
+        echo -e "\E[44;1;37m          GERENCIAR SSL STUNNEL5          \E[0m"
+        echo -e "\n\033[1;33mPORTAS EM USO\033[1;37m: \033[1;32m$sslt\033[0m"
         echo ""
-        echo -e "\033[1;31m[\033[1;36m1\033[1;31m] \033[1;37m• \033[1;33mINSTALAR SSL TUNNEL PADRÃO\033[0m"
-        echo -e "\033[1;31m[\033[1;36m2\033[1;31m] \033[1;37m• \033[1;33mINSTALAR SSL TUNNEL WEBSOCKET\033[0m"
-        echo -e "\033[1;31m[\033[1;36m0\033[1;31m] \033[1;37m• \033[1;33mVOLTAR\033[0m"
+        echo -e "\033[1;31m[\033[1;36m1\033[1;31m] \033[1;37m• \033[1;33mALTERAR PORTA DO STUNNEL\033[0m"
+        echo -e "\033[1;31m[\033[1;36m2\033[1;31m] \033[1;37m• \033[1;33mREMOVER O STUNNEL 5\033[0m"
+        echo -e "\033[1;31m[\033[1;36m0\033[1;31m] \033[1;37m• \033[1;33mSAIR\033[0m"
         echo ""
-        echo -ne "\033[1;32mOQUE DESEJA FAZER \033[1;33m?\033[1;37m "
-        read resposta
+        echo -ne "\033[1;32mO QUE DESEJA FAZER\033[1;33m? \033[1;37m"
+        read -r resposta
+
+        case "$resposta" in
+            '1')
+                echo ""
+                read -p "$(echo -e '\033[1;32mQual a nova porta que deseja utilizar? \033[1;37m')" porta
+                if [[ -z "$porta" || ! "$porta" =~ ^[0-9]+$ ]]; then
+                    echo -e "\n\033[1;31mPorta inválida!\033[0m"
+                    sleep 2
+                    inst_ssl5
+                    return
+                fi
+                
+                verif_ptrs "$porta" || { inst_ssl5; return; }
+
+                echo -e "\n\033[1;32mALTERANDO PORTA DO STUNNEL5...\033[0m"
+                sed -i "s/accept = .*/accept = $porta/" /usr/local/etc/stunnel/stunnel.conf
+                sleep 1
+                echo -e "\033[1;32mREINICIANDO O SERVIÇO...\033[0m"
+                systemctl restart stunnel5
+                sleep 2
+                
+                if ss -tlnp | grep -q ":$porta.*stunnel"; then
+                    echo -e "\n\033[1;32mPORTA ALTERADA COM SUCESSO!\033[0m"
+                else
+                    echo -e "\n\033[1;31mERRO INESPERADO AO ALTERAR A PORTA!\033[0m"
+                fi
+                sleep 3
+                inst_ssl5
+                ;;
+            '2')
+                echo -e "\n\033[1;32mREMOVENDO O SSL TUNNEL 5...\033[0m"
+                del_ssl
+                echo -e "\n\033[1;32mSSL TUNNEL 5 REMOVIDO COM SUCESSO!\033[0m"
+                sleep 3
+                inst_ssl5
+                ;;
+            '0')
+                echo -e "\n\033[1;31mSaindo...\033[0m"
+                sleep 1
+                clear
+                exit 0
+                ;;
+            *)
+                inst_ssl5
+                ;;
+        esac
+    else
+        # Menu de Instalação (se não estiver instalado)
+        clear
+        echo -e "\E[44;1;37m          INSTALAR SSL TUNNEL 5           \E[0m"
         echo ""
-        if [[ "$resposta" = '1' ]]; then
-            portssl='22'
-        elif [[ "$resposta" = '2' ]]; then
-            portssl='80'
-        elif [[ "$resposta" = '0' ]]; then
-            echo -e "\033[1;31mRetornando...\033[0m"
-            sleep 3
+        echo -e "\033[1;31m[\033[1;36m1\033[1;31m] \033[1;37m• \033[1;33mSSL PADRÃO (para SSH, porta 22)\033[0m"
+        echo -e "\033[1;31m[\033[1;36m2\033[1;31m] \033[1;37m• \033[1;33mSSL WEBSOCKET (para HTTP, porta 80)\033[0m"
+        echo -e "\033[1;31m[\033[1;36m0\033[1;31m] \033[1;37m• \033[1;33mSAIR\033[0m"
+        echo ""
+        echo -ne "\033[1;32mQUAL O MODO DE CONEXÃO DESEJADO\033[1;33m? \033[1;37m"
+        read -r resposta
+
+        case "$resposta" in
+            '1') portssl='22' ;;
+            '2') portssl='80' ;;
+            '0') 
+                echo -e "\n\033[1;31mSaindo...\033[0m"; sleep 1; clear; exit 0 ;;
+            *)
+                echo -e "\n\033[1;31mOpção inválida!\033[0m"; sleep 1; inst_ssl5; return ;;
+        esac
+
+        clear
+        echo -e "\E[44;1;37m          INSTALADOR SSL TUNNEL 5         \E[0m"
+        echo -e "\n\033[1;33mVocê está prestes a compilar e instalar o stunnel 5.\033[0m"
+        echo ""
+        echo -ne "\033[1;32mDeseja continuar \033[1;31m? \033[1;33m[s/n]: \033[1;37m"
+        read -r continuar
+        
+        if [[ "$continuar" =~ ^[Ss]$ ]]; then
+            echo -e "\n\033[1;33mDEFINA UMA PORTA PARA O STUNNEL ESCUTAR\033[0m"
+            read -p "$(echo -e '\033[1;32mQual porta deseja utilizar? \033[1;37m')" -e -i 443 porta
+            
+            if [[ -z "$porta" || ! "$porta" =~ ^[0-9]+$ ]]; then
+                echo -e "\n\033[1;31mPorta inválida!\033[0m"; sleep 2; inst_ssl5; return
+            fi
+
+            verif_ptrs "$porta" || { inst_ssl5; return; }
+            
             clear
-            fun_conexao
+            echo -e "\033[1;32m--- INICIANDO INSTALAÇÃO ---\033[0m"
+            install_dependencies
+            compile_stunnel5
+            ssl_conf "$porta" "$portssl"
+            ssl_certif
+            fun_finssl
+            
+            echo -e "\n\033[1;32m--- INSTALAÇÃO CONCLUÍDA ---\033[0m"
+            if ss -tlnp | grep -q ":$porta.*stunnel"; then
+                echo -e "\033[1;32mSSL TUNNEL 5 instalado com sucesso na porta \033[1;33m$porta\033[0m"
+            else
+                echo -e "\033[1;31mO serviço foi instalado, mas não foi possível verificar a porta. Cheque o status com 'systemctl status stunnel5'.\033[0m"
+            fi
+            sleep 4
+            inst_ssl5
         else
-            echo ""
-            echo -e "\033[1;31mOpcao invalida !\033[0m"
-            sleep 1
+            echo -e "\n\033[1;31mInstalação cancelada. Retornando...\033[0m"
+            sleep 2
             inst_ssl5
         fi
-        clear
-        echo -e "\E[44;1;37m           INSTALADOR SSL TUNNEL 5             \E[0m"
-        echo -e "\n\033[1;33mVC ESTA PRESTES A INSTALAR O SSL TUNNEL 5 !\033[0m"
-        echo ""
-        echo -ne "\033[1;32mDESEJA CONTINUAR \033[1;31m? \033[1;33m[s/n]:\033[1;37m "
-        read resposta
-        [[ "$resposta" = 's' ]] && {
-            echo -e "\n\033[1;33mDEFINA UMA PORTA PARA O SSL TUNNEL 5 !\033[0m"
-            echo ""
-            read -p "$(echo -e "\033[1;32mQUAL PORTA DESEJA UTILIZAR? \033[1;37m")" -e -i 443 porta
-            [[ -z "$porta" ]] && {
-                echo ""
-                echo -e "\033[1;31mPorta invalida!"
-                sleep 3
-                clear
-                inst_ssl5
-            }
-            verif_ptrs $porta
-            echo -e "\n\033[1;32mINSTALANDO O SSL TUNNEL 5 !\033[1;33m"
-            echo ""
-            fun_bar 'compile_stunnel5'
-            echo -e "\n\033[1;32mCONFIGURANDO O SSL TUNNEL 5 !\033[0m"
-            echo ""
-            fun_bar 'ssl_conf'
-            echo -e "\n\033[1;32mCRIANDO CERTIFICADO !\033[0m"
-            echo ""
-            fun_bar 'ssl_certif'
-            echo -e "\n\033[1;32mINICIANDO O SSL TUNNEL 5 !\033[0m"
-            echo ""
-            fun_bar 'fun_finssl' 'systemctl restart stunnel5'
-            echo -e "\n\033[1;32mSSL TUNNEL 5 INSTALADO COM SUCESSO !\033[1;31m PORTA: \033[1;33m$porta\033[0m"
-            sleep 1
-            clear
-            echo -e "Corrigindo SSL CLARO"
-            cd /usr/local/etc/stunnel/
-            rm -rf stunnel.conf
-            rm -rf stunnel.pem
-            wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Install/cert
-            wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Install/key
-            wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Install/stunnel
-            mv cert cert.pem
-            mv key key.pem
-            mv stunnel stunnel.conf
-            chmod 777 cert.pem
-            chmod 777 key.pem
-            chmod 777 stunnel.conf
-            systemctl restart stunnel5
-            cd $HOME
-            clear
-            echo -e "Corrigido"
-            sleep 2
-            inst_ssl5
-        } || {
-            echo -e "\n\033[1;31mRetornando...\033[0m"
-            sleep 2
-            clear
-            inst_ssl5
-        }
     fi
 }
-
 
         ws_ssl() {
 		rm -rf /root/*   && wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/refs/heads/main/Modulos/ws_ssl_auto.sh && chmod +x ws_ssl_auto.sh && ./ws_ssl_auto.sh

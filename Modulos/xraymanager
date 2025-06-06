@@ -76,7 +76,7 @@ intall_xray() {
 
 protocol_xray() {
     echo -e "\E[44;1;37m            EDITAR PROTOCOLO XRAY             \E[0m"
-    echo -e "\033[1;37m• \033[1;33mESCOLHA A OPÇÃO 3 E COLOQUE SEU DOMÍNIO OU HOST. EX: T3MMA.COM\033[1;31m"
+    echo -e "\033[1;37m• \033[1;33mESCOLHA A OPÇÃO 3 E COLOQUE SEU DOMÍNIO OU HOST. EX: turbonetvpn.com\033[1;31m"
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     xray stream
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"

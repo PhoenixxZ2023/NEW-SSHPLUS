@@ -2366,7 +2366,7 @@ echo -e "\033[01;31m┣━━━━━━━━━━━━━━━━━━━
 			}
                         [[ "$(netstat -tlpn | grep 'security' | wc -l)" != '0' ]] && {
                                 porta_security=$(netstat -nplt | grep -w 'security' | awk '{split($4,a,":"); print a[length(a)]}')
-                                echo -e "\033[01;31m┃\033[1;32mSERVICO: \033[1;33mWEBSOCKET SECURITY-V2.0 \033[1;32mPORTA: \033[1;37m$porta_security"
+                                echo -e "\033[01;31m┃\033[1;32mSERVICO: \033[1;33mWEBSOCKET SECURITY V2.0 \033[1;32mPORTA: \033[1;37m$porta_security"
                                 sts4="\033[1;32m◉ "
                         } || {
                                 sts4="\033[1;31m○ "

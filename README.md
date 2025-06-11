@@ -51,11 +51,15 @@ Para entrar como usuário root, execute o comando abaixo:
 ````
 sudo -i
 ````
+OU
+````
+sudo su root
+````
 
 ### 2. SCRIPT PARA ALTERAR SENHA E USUÁRIO ROOT
 
 ````
-bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/senharoot/main/senharoot.sh)
+wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/root && bash root
 ````
 
 

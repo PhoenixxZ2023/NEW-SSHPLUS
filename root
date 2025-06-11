@@ -1,17 +1,28 @@
 #!/bin/bash
-echo "Este Script habilitara ROOT en OC"
-echo "Iniciando"
+
+# Define o código de cor Ciano e o código para Resetar a cor
+CIANO='\033[0;36m'
+RESET='\033[0m'
+
+# Usa o -e no echo para interpretar os códigos de escape e as cores
+echo -e "${CIANO}⚙️ **ESTE SCRIPT HABILITARÁ O ROOT** ⚙️${RESET}"
+echo -e "${CIANO}🚀 **INICIANDO** 🚀${RESET}"
+
 sed -i '/PasswordAuthentication/d' /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
 sed -i '/PermitRootLogin/d' /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
+
 echo '
 Port 22
 PermitRootLogin yes
 PubkeyAuthentication yes
 PasswordAuthentication yes
 ' >> /etc/ssh/sshd_config.d/60-cloudimg-settings.conf
+
 service ssh restart
 service sshd restart
-echo "AGREGUE PASSWORD"
+
+echo -e "${CIANO}🔑 **ADICIONE A SENHA** 🔑${RESET}"
 passwd root
-echo "Listo!! 😸"
+
+echo -e "${CIANO}✅ **PRONTO!!** ✅${RESET}"
 rm root

@@ -202,9 +202,17 @@ inst_pct() {
 }
 fun_bar 'inst_pct'
 
-# Redefinir a exibição do terminal novamente
+# Redefinir a exibição do terminal
 tput reset
+# Exibir mensagem de espera com fundo azul e texto branco em negrito
+echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\033[0;34m┃\E[44;1;37m              CONFIGURAÇOES FIREWALL               \E[0m\033[0;34m┃"
+echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
+echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mMODIFICAÇÕES REDE FIREWALL  \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
+echo ""
 # Verificar firewall ativo
+install_firewall(){
 if systemctl is-active --quiet firewalld && command -v firewall-cmd &>/dev/null; then
   FIREWALL="firewalld"
 elif command -v ufw &>/dev/null && ufw status >/dev/null 2>&1; then
@@ -237,6 +245,21 @@ elif [ "$FIREWALL" = "ufw" ]; then
   sudo ufw status
 fi
 
+# Limpar todas las reglas existentes
+iptables -F
+
+# Permitir todo el trafico de entrada y salidas
+iptables -P INPUT ACCEPT
+iptables -P OUTPUT ACCEPT
+
+# Guardar las reglas aplicas y reinciar el servicio
+iptables-save > /etc/iptables/rules.v4
+
+echo "Todas las reglas fueron abiertas Exitosamente."
+rm firewall
+}
+fun_bar "install_firewall"
+
 # Redefinir a exibição do terminal novamente
 tput reset
 # Instala ferramentas de rede
@@ -257,7 +280,6 @@ fun_bar "sudo apt install lolcat figlet -y >/dev/null 2>&1"
 }
 fun_bar "inst_pack_rede"
 
-super_proxy() {
 # Redefinir a exibição do terminal novamente
 tput reset
 # Instala ferramentas de rede
@@ -265,6 +287,7 @@ echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━�
 echo -e "\033[0;34m┃\E[44;1;37m           INSTALANDO MULTI-PROXY             \E[0m\033[0;34m┃"
 echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
+super_proxy() {
 # instalando rustyproxy by @UlekBR
 bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
 
@@ -272,7 +295,7 @@ bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/
 wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
 chmod +x /bin/checkuser
 }
-fun_bar super_proxy
+fun_bar "super_proxy"
 
 # Redefinir a exibição do terminal
 tput reset

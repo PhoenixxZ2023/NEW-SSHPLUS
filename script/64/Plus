@@ -283,9 +283,9 @@ fun_bar "inst_pack_rede"
 # Redefinir a exibição do terminal novamente
 tput reset
 # Instala ferramentas de rede
-echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
 echo -e "\033[0;34m┃\E[44;1;37m           INSTALANDO MULTI-PROXY             \E[0m\033[0;34m┃"
-echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 super_proxy() {
 # instalando rustyproxy by @UlekBR

@@ -831,7 +831,7 @@ EOF
     else
         # Menu de Instalação
         clear
-        echo -e "\E[44;1;37m          INSTALAR SSL TUNNEL 5           \E[0m"
+        echo -e "\E[44;1;37m          INSTALAR SSL STUNNEL5           \E[0m"
         echo ""
         echo -e "\033[1;31m[\033[1;36m1\033[1;31m] \033[1;37m• \033[1;33mSSL PADRÃO (para SSH, porta 22)\033[0m"
         echo -e "\033[1;31m[\033[1;36m2\033[1;31m] \033[1;37m• \033[1;33mSSL WEBSOCKET (para HTTP, porta 80)\033[0m"
@@ -2376,7 +2376,7 @@ echo -e "\033[01;31m┣━━━━━━━━━━━━━━━━━━━
 			} || {
 				sts4="\033[1;31m○ "
 			}
-			[[ -e "/etc/stunnel/stunnel.conf" ]] && {
+			[[ -e "/etc/stunnel/stunnel.conf100000" ]] && {
 				echo -e "\033[01;31m┃\033[1;32mSERVICO: \033[1;33mSSL STUNNEL4 \033[1;32mPORTA: \033[1;37m$(netstat -nplt | grep 'stunnel4' | awk {'print $4'} | cut -d: -f2 | xargs)\033[01;31m                       \033[0m"
 				sts3="\033[1;32m◉ "
 			} || {
@@ -2443,7 +2443,7 @@ echo -e "\033[01;31m┃\033[1;31m\033[1;34m[\033[1;37m 00 •\033[1;34m]\033[1;3
 			rustyproxy
 			;;
 			6 | 06)
-			inst_ssl
+			inst_ssl10000000
 			;;
 			7 | 07)
 			inst_ssl5

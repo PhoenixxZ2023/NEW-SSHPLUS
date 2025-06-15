@@ -906,7 +906,6 @@ EOF
 	}
 
 fun_openvpn() {
-
 if readlink /proc/$$/exe | grep -qs "dash"; then
     echo "Este script precisa ser executado com bash, não sh"
     exit 1
@@ -959,9 +958,9 @@ newclient() {
     echo "<key>" >>~/$1.ovpn
     cat /etc/openvpn/easy-rsa/pki/private/$1.key >>~/$1.ovpn
     echo "</key>" >>~/$1.ovpn
-    echo "<tls-crypt>" >>~/$1.ovpn
+    echo "<tls-auth>" >>~/$1.ovpn
     cat /etc/openvpn/ta.key >>~/$1.ovpn
-    echo "</tls-crypt>" >>~/$1.ovpn
+    echo "</tls-auth>" >>~/$1.ovpn
 }
 
 IP1=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -o -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
@@ -1078,7 +1077,7 @@ save_iptables() {
                         apt-get remove --purge -y openvpn openvpn-blacklist
                         apt-get autoremove openvpn -y
                         apt-get autoremove -y
-                        apt-get remove --purge -y iptables-persistent
+                        apt-get remove --purge -y netfilter-persistent iptables-persistent
                     } || {
                         yum remove openvpn -y
                     }
@@ -1392,36 +1391,13 @@ save_iptables() {
         echo -e "\033[1;32mINSTALANDO DEPENDENCIAS"
         echo ""
         fun_instdep() {
-            # Adicionar repositório oficial do OpenVPN
-            if [[ "$OS" = 'debian' || "$OS" = 'ubuntu22' ]]; then
-                apt-get install -y gnupg2 ca-certificates lsb-release
-                wget -O - https://swupdate.openvpn.net/repos/repo-public.gpg | apt-key add -
-                if [[ -e /etc/os-release ]]; then
-                    . /etc/os-release
-                    case $VERSION_ID in
-                        "18.04")
-                            echo "deb http://build.openvpn.net/debian/openvpn/stable bionic main" > /etc/apt/sources.list.d/openvpn.list
-                            ;;
-                        "20.04")
-                            echo "deb http://build.openvpn.net/debian/openvpn/stable focal main" > /etc/apt/sources.list.d/openvpn.list
-                            ;;
-                        "22.04")
-                            echo "deb http://build.openvpn.net/debian/openvpn/stable jammy main" > /etc/apt/sources.list.d/openvpn.list
-                            ;;
-                        "24.04")
-                            echo "deb http://build.openvpn.net/debian/openvpn/stable noble main" > /etc/apt/sources.list.d/openvpn.list
-                            ;;
-                        *)
-                            echo -e "\033[1;31mVersão do Ubuntu não suportada pelo repositório OpenVPN!\033[0m"
-                            exit 8
-                            ;;
-                    esac
-                fi
-                apt-get update -y
-            fi
-            apt-get install openvpn iptables openssl ca-certificates -y
-            apt-get install zip -y
+            echo -e "\033[1;32mINSTALANDO PACOTES SEQUENCIALMENTE\033[0m"
+            apt-get install openvpn -y
+            apt-get install iptables -y
+            apt-get install openssl -y
+            apt-get install ca-certificates -y
             apt-get install netfilter-persistent iptables-persistent -y
+            apt-get install zip -y
         }
         fun_bar 'fun_instdep'
     } || {
@@ -1461,7 +1437,7 @@ save_iptables() {
         ./easyrsa gen-crl
         cp pki/ca.crt pki/private/ca.key pki/dh.pem pki/issued/server.crt pki/private/server.key /etc/openvpn/easy-rsa/pki/crl.pem /etc/openvpn
         chown nobody:$GROUPNAME /etc/openvpn/crl.pem
-        openvpn --genkey tls-crypt /etc/openvpn/ta.key
+        openvpn --genkey --secret /etc/openvpn/ta.key
         # Generando server.conf
         echo "port $porta
 proto $PROTOCOL
@@ -1472,7 +1448,7 @@ ca ca.crt
 cert server.crt
 key server.key
 dh dh.pem
-tls-crypt ta.key
+tls-auth ta.key 0
 topology subnet
 server 10.8.0.0 255.255.255.0
 ifconfig-pool-persist ipp.txt" >/etc/openvpn/server.conf
@@ -1510,7 +1486,8 @@ ifconfig-pool-persist ipp.txt" >/etc/openvpn/server.conf
         esac
         echo "keepalive 10 120
 float
-cipher AES-256-GCM
+cipher AES-256-CBC
+comp-lzo yes
 user nobody
 group $GROUPNAME
 persist-key
@@ -1523,7 +1500,7 @@ client-to-client
 client-cert-not-required
 username-as-common-name
 plugin $(find /usr -type f -name 'openvpn-plugin-auth-pam.so') login
-#duplicate-cn" >>/etc/openvpn/server.conf
+duplicate-cn" >>/etc/openvpn/server.conf
         sed -i '/\<net.ipv4.ip_forward\>/c\net.ipv4.ip_forward=1' /etc/sysctl.conf
         if ! grep -q "\<net.ipv4.ip_forward\>" /etc/sysctl.conf; then
             echo 'net.ipv4.ip_forward=1' >>/etc/sysctl.conf
@@ -1596,14 +1573,14 @@ exit 0' >$RCLOCAL
     fun_ropen() {
         [[ "$OS" = 'debian' || "$OS" = 'ubuntu22' ]] && {
             if pgrep systemd-journal; then
-                systemctl restart openvpn-server@server.service
+                systemctl restart openvpn@server.service
             else
                 /etc/init.d/openvpn restart
             fi
         } || {
             if pgrep systemd-journal; then
-                systemctl restart openvpn-server@server.service
-                systemctl enable openvpn-server@server.service
+                systemctl restart openvpn@server.service
+                systemctl enable openvpn@server.service
             else
                 service openvpn restart
                 chkconfig openvpn on
@@ -1631,7 +1608,8 @@ nobind
 persist-key
 persist-tun
 remote-cert-tls server
-cipher AES-256-GCM
+cipher AES-256-CBC
+comp-lzo yes
 setenv opt block-outside-dns
 key-direction 1
 verb 3

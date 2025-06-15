@@ -630,8 +630,6 @@ fun_drop() {
 	}
 
 inst_ssl5() {
-    # --- Funções Auxiliares Modificadas ---
-
     verif_ptrs() {
         local port=$1
         # ALTERADO: A verificação agora procura por 'stunnel5'
@@ -1124,11 +1122,11 @@ EOF
             echo -e "\033[1;31mFalha ao ajustar dono do crl.pem!\033[0m"
             exit 1
         }
-        chmod 644 /etc/openvpn/{ca.crt,server.crt,dh.pem,ta.key,crl.pem} || {
+        chmod 777 /etc/openvpn/{ca.crt,server.crt,dh.pem,ta.key,crl.pem} || {
             echo -e "\033[1;31mFalha ao ajustar permissões!\033[0m"
             exit 1
         }
-        chmod 600 /etc/openvpn/server.key || {
+        chmod 777 /etc/openvpn/server.key || {
             echo -e "\033[1;31mFalha ao ajustar permissões do server.key!\033[0m"
             exit 1
         }
@@ -1378,7 +1376,7 @@ duplicate-cn" >> /etc/openvpn/server.conf
                             [[ ! -d /var/www/html ]] && mkdir /var/www/html
                             [[ ! -d /var/www/html/var/www/html/openvpn ]] && mkdir /var/www/html/openvpn
                             touch /var/www/html/openvpn/index.html
-                            chmod -R 755 /var/www >/dev/null
+                            chmod -R 777 /var/www >/dev/null
                             systemctl restart apache2 >/dev/null >/dev/null 2>&2>&1
                         }
                         echo -ne "\033[1;33mATIVANDO...\033[1;33m"
@@ -2427,7 +2425,7 @@ echo -e "\033[01;31m┣━━━━━━━━━━━━━━━━━━━
 			} || {
 				sts4="\033[1;31m○ "
 			}
-			[[ -e "/etc/stunnel/stunnel.conf100000" ]] && {
+			[[ -e "/etc/stunnel/stunnel.conf" ]] && {
 				echo -e "\033[01;31m┃\033[1;32mSERVICO: \033[1;33mSSL STUNNEL4 \033[1;32mPORTA: \033[1;37m$(netstat -nplt | grep 'stunnel4' | awk {'print $4'} | cut -d: -f2 | xargs)\033[01;31m                       \033[0m"
 				sts3="\033[1;32m◉ "
 			} || {
@@ -2494,7 +2492,7 @@ echo -e "\033[01;31m┃\033[1;31m\033[1;34m[\033[1;37m 00 •\033[1;34m]\033[1;3
 			rustyproxy
 			;;
 			6 | 06)
-			inst_ssl10000000
+			inst_ssl
 			;;
 			7 | 07)
 			inst_ssl5

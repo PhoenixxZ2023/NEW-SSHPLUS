@@ -169,7 +169,7 @@ fun_bar "install_python3"
 tput reset
 # Exibir mensagem de espera com fundo azul e texto branco em negrito
 echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\033[0;34m┃\E[44;1;37m              AGUARDE A INSTALAÇÃO              \E[0m\033[0;34m┃"
+echo -e "\033[0;34m┃\E[44;1;37m             AGUARDE A INSTALAÇÃO              \E[0m\033[0;34m┃"
 echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO PACOTES  \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
@@ -226,7 +226,7 @@ echo "Configurando $FIREWALL..."
 
 # Configurar firewalld
 if [ "$FIREWALL" = "firewalld" ]; then
-  portas_firewalld=(80 81 443 2053 1194 8080 8443 5454 8888)
+  portas_firewalld=(80 81 443 2053 1194 8080 8443 5454 8888 7505)
   for porta in "${portas_firewalld[@]}"; do
     sudo firewall-cmd --zone=public --permanent --add-port="${porta}/tcp"
   done
@@ -237,7 +237,7 @@ if [ "$FIREWALL" = "firewalld" ]; then
 
 # Configurar ufw
 elif [ "$FIREWALL" = "ufw" ]; then
-  portas_ufw=(80 443 2053 5454 8443 8799 8080 1194)
+  portas_ufw=(80 443 2053 5454 8443 8799 8080 1194 7505)
   for porta in "${portas_ufw[@]}"; do
     sudo ufw allow "${porta}/tcp"
   done
@@ -284,7 +284,7 @@ fun_bar "inst_pack_rede"
 tput reset
 # Instala ferramentas de rede
 echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\033[0;34m┃\E[44;1;37m           INSTALANDO MULTI-PROXY             \E[0m\033[0;34m┃"
+echo -e "\033[0;34m┃\E[44;1;37m           INSTALANDO MULTI PROXY             \E[0m\033[0;34m┃"
 echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 super_proxy() {

@@ -1041,6 +1041,23 @@ EOF
 
     # Função para configurar EasyRSA 3.2.3 e gerar certificados/chaves
     fun_dep() {
+        # Verifica se o comando openvpn está disponível
+        if ! command -v openvpn >/dev/null 2>&1; then
+            echo -e "\033[1;31mOpenVPN não está instalado! Tentando reinstalar...\033[0m"
+            if [[ "$OS" = 'debian' ]]; then
+                apt-get update >/dev/null 2>&1
+                apt-get install --reinstall openvpn -y >/dev/null 2>&1 || {
+                    echo -e "\033[1;31mFalha ao reinstalar OpenVPN!\033[0m"
+                    exit 1
+                }
+            else
+                yum install openvpn -y >/dev/null 2>&1 || {
+                    echo -e "\033[1;31mFalha ao reinstalar OpenVPN!\033[0m"
+                    exit 1
+                }
+            fi
+        fi
+
         # Remove o EasyRSA antigo, se existir
         echo -e "\033[1;32mConfigurando EasyRSA...\033[0m"
         rm -rf /etc/openvpn/easy-rsa/ || {
@@ -1111,10 +1128,15 @@ EOF
             echo -e "\033[1;31mFalha ao copiar arquivos!\033[0m"
             exit 1
         }
-        openvpn --genkey --secret /etc/openvpn/ta.key >/dev/null 2>&1 || {
+
+        # Gera ta.key com diagnóstico detalhado
+        echo -e "\033[1;32mGerando chave TLS (ta.key)...\033[0m"
+        if ! openvpn --genkey --secret /etc/openvpn/ta.key >/tmp/ta.key.err 2>&1; then
             echo -e "\033[1;31mFalha ao gerar ta.key!\033[0m"
+            echo -e "\033[1;31mErro: $(cat /tmp/ta.key.err)\033[0m"
             exit 1
-        }
+        fi
+        rm -f /tmp/ta.key.err
 
         # Ajusta permissões
         echo -e "\033[1;32mAjustando permissões...\033[0m"
@@ -1122,11 +1144,11 @@ EOF
             echo -e "\033[1;31mFalha ao ajustar dono do crl.pem!\033[0m"
             exit 1
         }
-        chmod 644 /etc/openvpn/{ca.crt,server.crt,dh.pem,ta.key,crl.pem} || {
+        chmod 777 /etc/openvpn/{ca.crt,server.crt,dh.pem,ta.key,crl.pem} || {
             echo -e "\033[1;31mFalha ao ajustar permissões!\033[0m"
             exit 1
         }
-        chmod 600 /etc/openvpn/server.key || {
+        chmod 777 /etc/openvpn/server.key || {
             echo -e "\033[1;31mFalha ao ajustar permissões do server.key!\033[0m"
             exit 1
         }
@@ -1385,7 +1407,7 @@ duplicate-cn" >> /etc/openvpn/server.conf
                             [[ ! -d /var/www/html ]] && mkdir /var/www/html
                             [[ ! -d /var/www/html/openvpn ]] && mkdir /var/www/html/openvpn
                             touch /var/www/html/openvpn/index.html
-                            chmod -R 755 /var/www >/dev/null 2>&1
+                            chmod -R 777 /var/www >/dev/null 2>&1
                             /etc/init.d/apache2 restart >/dev/null 2>&1
                         }
                         echo -ne "\033[1;32mATIVANDO\033[1;32m.\033[1;33m.\033[1;31m. \033[1;33m"
@@ -1632,7 +1654,7 @@ dev tun
 proto $PROTOCOL
 sndbuf 0
 rcvbuf 0
-remote 127.0.0.1 $porta
+remote $IP $porta
 resolv-retry 5
 nobind
 persist-key

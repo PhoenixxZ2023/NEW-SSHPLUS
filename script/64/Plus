@@ -115,7 +115,7 @@ awk -F : "$3 >= 500 { print $1 "1" }" /etc/passwd | grep -v "^nobody" > $HOME/us
 tput reset
 ## Exibir mensagem de espera com fundo azul e texto branco em negrito
 echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\033[0;34m┃\E[44;1;37m               AGUARDE A INSTALAÇÃO             \E[0m\033[0;34m┃"
+echo -e "\033[0;34m┃\E[44;1;37m             AGUARDE A INSTALAÇÃO              \E[0m\033[0;34m┃"
 echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;37m] \033[1;97mATUALIZANDO SISTEMA \033[1;37m[\033[1;31m⚠️ \033[1;91m]\033[0m"
@@ -134,7 +134,7 @@ fun_attlist() {
 tput reset
 # Exibir mensagem de espera com fundo azul e texto branco em negrito
 echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\033[0;34m┃\E[44;1;37m               AGUARDE A INSTALAÇÃO            \E[0m\033[0;34m┃"
+echo -e "\033[0;34m┃\E[44;1;37m             AGUARDE A INSTALAÇÃO              \E[0m\033[0;34m┃"
 echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
 echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO PYTHON \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"

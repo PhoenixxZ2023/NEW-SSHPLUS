@@ -1699,7 +1699,7 @@ EOF
         conexao
     fi
 }
-fun_openvpn
+fun_conexao
 
 	fun_socks() {
 		clear

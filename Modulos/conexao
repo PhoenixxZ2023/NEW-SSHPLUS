@@ -1143,11 +1143,11 @@ EOF
             echo -e "\033[1;31mFalha ao ajustar dono dos arquivos!\033[0m"
             exit 1
         }
-        chmod 777 /etc/SSHPlus/openvpn/{ca.crt,server.crt,dh.pem,ta.key,crl.pem} || {
+        chmod 644 /etc/SSHPlus/openvpn/{ca.crt,server.crt,dh.pem,ta.key,crl.pem} || {
             echo -e "\033[1;31mFalha ao ajustar permissões!\033[0m"
             exit 1
         }
-        chmod 777 /etc/SSHPlus/openvpn/server.key || {
+        chmod 600 /etc/SSHPlus/openvpn/server.key || {
             echo -e "\033[1;31mFalha ao ajustar permissões do server.key!\033[0m"
             exit 1
         }
@@ -1220,7 +1220,7 @@ Documentation=https://community.openvpn.net/openvpn/wiki/HOWTO
 Type=notify
 PrivateTmp=true
 WorkingDirectory=/etc/SSHPlus/openvpn
-ExecStart=/usr/sbin/openvpn --status %t/openvpn-server/status-%i.log --status-version 2 --suppress-timestamps --config %i.conf
+ExecStart=/usr/sbin/openvpn --status %t/openvpn-server/status-%i.log --status-version 2 --suppress-timestamps --config /etc/SSHPlus/openvpn/%i.conf
 CapabilityBoundingSet=CAP_IPC_LOCK CAP_NET_ADMIN CAP_NET_BIND_SERVICE CAP_NET_RAW CAP_SETGID CAP_SETUID CAP_SETPCAP CAP_SYS_CHROOT CAP_DAC_OVERRIDE CAP_AUDIT_WRITE
 LimitNPROC=10
 DeviceAllow=/dev/null rw
@@ -1332,7 +1332,7 @@ EOF
             else
                 mult="\033[1;31m○ "
             fi
-            echo -e "\E[44;1;37m          GERENCIAR OPENVPN           \E[0m"
+            echo -e "\E[44;1;37m         GERENCIAR OPENVPN           \E[0m"
             echo ""
             echo -e "\033[1;33mPORTA\033[1;37m: \033[1;32m$opnp"
             echo ""
@@ -1348,7 +1348,7 @@ EOF
             case $option in
                 1)
                     clear
-                    echo -e "\E[44;1;37m        ALTERAR PORTA OPENVPN         \E[0m"
+                    echo -e "\E[44;1;37m       ALTERAR PORTA OPENVPN         \E[0m"
                     echo ""
                     echo -e "\033[1;33mPORTA EM USO: \033[1;32m$opnp"
                     echo ""
@@ -1461,7 +1461,7 @@ EOF
                     ;;
                 5)
                     clear
-                    echo -e "\E[44;1;37m          ALTERAR HOST DNS           \E[0m"
+                    echo -e "\E[44;1;37m         ALTERAR HOST DNS          \E[0m"
                     echo ""
                     echo -e "\033[1;31m[\033[1;36m1\033[1;31m] \033[1;37m• \033[1;33mADICIONAR HOST DNS"
                     echo -e "\033[1;31m[\033[1;36m2\033[1;31m] \033[1;37m• \033[1;33mREMOVER HOST DNS"
@@ -1478,7 +1478,7 @@ EOF
                     }
                     if [[ "$resp" = '1' ]]; then
                         clear
-                        echo -e "\E[44;1;37m           Adicionar Host DNS            \E[0m"
+                        echo -e "\E[44;1;37m         Adicionar Host DNS          \E[0m"
                         echo ""
                         echo -e "\033[1;33mLista dos hosts atuais:\033[0m"
                         echo ""
@@ -1506,7 +1506,7 @@ EOF
                         continue
                     elif [[ "$resp" = '2' ]]; then
                         clear
-                        echo -e "\E[44;1;37m           Remover Host DNS            \E[0m"
+                        echo -e "\E[44;1;37m         Remover Host DNS          \E[0m"
                         echo ""
                         echo -e "\033[1;33mLista dos hosts atuais:\033[0m"
                         echo ""
@@ -1579,7 +1579,7 @@ EOF
         done
     else
         clear
-        echo -e "\E[44;1;37m             INSTALADOR OPENVPN              \E[0m"
+        echo -e "\E[44;1;37m           INSTALADOR OPENVPN            \E[0m"
         echo ""
         echo -e "\033[1;33mRESPONDA AS QUESTÕES PARA INICIAR A INSTALAÇÃO"
         echo ""

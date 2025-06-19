@@ -932,12 +932,7 @@ fun_openvpn() {
     if [[ -e /etc/debian_version ]]; then
         OS=debian
         GROUPNAME=nogroup
-        # Verifica se o rc.local existe; caso contrário, usa systemd
-        if [[ -e /etc/rc.local ]]; then
-            RCLOCAL='/etc/rc.local'
-        else
-            RCLOCAL='systemd'
-        fi
+        RCLOCAL='systemd'
     elif [[ -e /etc/centos-release || -e /etc/redhat-release ]]; then
         OS=centos
         GROUPNAME=nobody
@@ -952,7 +947,7 @@ fun_openvpn() {
         update-alternatives --set iptables /usr/sbin/iptables-legacy >/dev/null 2>&1
     fi
 
-    # Função para criar unidade systemd (para sistemas sem rc.local)
+    # Função para criar unidade systemd
     create_systemd_service() {
         cat <<-EOF >/etc/systemd/system/openvpn-startup.service
 [Unit]
@@ -987,7 +982,6 @@ EOF
         if [[ "$RCLOCAL" == "systemd" ]]; then
             create_systemd_service
         else
-            # Adiciona ao rc.local para sistemas antigos
             echo '#!/bin/sh -e' > $RCLOCAL
             echo "iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j SNAT --to $IP" >> $RCLOCAL
             echo "iptables -I INPUT -p $PROTOCOL --dport $porta -j ACCEPT" >> $RCLOCAL
@@ -1041,7 +1035,6 @@ EOF
 
     # Função para configurar EasyRSA 3.2.3 e gerar certificados/chaves
     fun_dep() {
-        # Verifica se o comando openvpn está disponível
         if ! command -v openvpn >/dev/null 2>&1; then
             echo -e "\033[1;31mOpenVPN não está instalado! Tentando reinstalar...\033[0m"
             if [[ "$OS" = 'debian' ]]; then
@@ -1058,14 +1051,12 @@ EOF
             fi
         fi
 
-        # Remove o EasyRSA antigo, se existir
         echo -e "\033[1;32mConfigurando EasyRSA...\033[0m"
         rm -rf /etc/SSHPlus/openvpn/easy-rsa/ || {
             echo -e "\033[1;31mFalha ao remover EasyRSA antigo!\033[0m"
             exit 1
         }
 
-        # Cria o diretório EasyRSA
         mkdir -p /etc/SSHPlus/openvpn/easy-rsa/ || {
             echo -e "\033[1;31mFalha ao criar diretório EasyRSA!\033[0m"
             exit 1
@@ -1075,7 +1066,6 @@ EOF
             exit 1
         }
 
-        # Baixa o EasyRSA 3.2.3 do repositório oficial
         fun_bar "wget -q https://github.com/OpenVPN/easy-rsa/releases/download/v3.2.3/EasyRSA-3.2.3.tgz" "Baixando EasyRSA 3.2.3"
         tar xzf EasyRSA-3.2.3.tgz --strip-components=1 || {
             echo -e "\033[1;31mFalha ao extrair EasyRSA!\033[0m"
@@ -1090,10 +1080,12 @@ EOF
             exit 1
         }
 
-        # Gera certificados e chaves com saída suprimida
         echo -e "\033[1;32mInicializando PKI...\033[0m"
         ./easyrsa init-pki >/dev/null 2>&1 || {
-            echo -e "\033[1;32mGerando CA...\033[0m"
+            echo -e "\033[1;31mFalha ao inicializar PKI!\033[0m"
+            exit 1
+        }
+        echo -e "\033[1;32mGerando CA...\033[0m"
         ./easyrsa --batch build-ca nopass >/dev/null 2>&1 || {
             echo -e "\033[1;31mFalha ao criar CA!\033[0m"
             exit 1
@@ -1119,23 +1111,29 @@ EOF
             exit 1
         }
 
-        # Copia os arquivos para /etc/SSHPlus/openvpn/
         echo -e "\033[1;32mCopiando certificados e chaves...\033[0m"
         cp pki/ca.crt pki/issued/server.crt pki/private/server.key pki/dh.pem pki/crl.pem /etc/SSHPlus/openvpn/ || {
             echo -e "\033[1;31mFalha ao copiar arquivos!\033[0m"
             exit 1
         }
 
-        # Gera ta.key com diagnóstico detalhado
         echo -e "\033[1;32mGerando chave TLS (ta.key)...\033[0m"
-        if ! openvpn --genkey secret /etc/SSHPlus/openvpn/ta.key >/tmp/ta.key.err 2>&1; then
-            echo -e "\033[1;31mFalha ao gerar ta.key!\033[0m"
-            echo -e "\033[1;31mErro: $(cat /tmp/ta.key.err)\033[0m"
-            exit 1
-        }
+        OPENVPN_VERSION=$(openvpn --version | head -n 1 | awk '{print $2}' | cut -d. -f1-2)
+        if [[ "$OPENVPN_VERSION" < "2.5" ]]; then
+            if ! openvpn --genkey secret /etc/SSHPlus/openvpn/ta.key >/tmp/ta.key.err 2>&1; then
+                echo -e "\033[1;31mFalha ao gerar ta.key!\033[0m"
+                echo -e "\033[1;31mErro: $(cat /tmp/ta.key.err)\033[0m"
+                exit 1
+            fi
+        else
+            if ! openvpn --genkey tls-auth /etc/SSHPlus/openvpn/ta.key >/tmp/ta.key.err 2>&1; then
+                echo -e "\033[1;31mFalha ao gerar ta.key!\033[0m"
+                echo -e "\033[1;31mErro: $(cat /tmp/ta.key.err)\033[0m"
+                exit 1
+            fi
+        fi
         rm -f /tmp/ta.key.err
 
-        # Ajusta permissões
         echo -e "\033[1;32mAjustando permissões...\033[0m"
         chown nobody:$GROUPNAME /etc/SSHPlus/openvpn/crl.pem || {
             echo -e "\033[1;31mFalha ao ajustar dono do crl.pem!\033[0m"
@@ -1154,7 +1152,6 @@ EOF
             exit 1
         }
 
-        # Configura o server.conf com cifra segura
         echo -e "\033[1;32mConfigurando server.conf...\033[0m"
         [[ ! -d /etc/SSHPlus/openvpn ]] && mkdir -p /etc/SSHPlus/openvpn
         PAM_PLUGIN=$(find /usr -type f -name 'openvpn-plugin-auth-pam.so' 2>/dev/null)
@@ -1209,7 +1206,6 @@ plugin $PAM_PLUGIN login
 duplicate-cn
 EOF
 
-        # Ajusta o serviço systemd para usar /etc/SSHPlus/openvpn
         echo -e "\033[1;32mAjustando serviço systemd...\033[0m"
         cat << EOF > /lib/systemd/system/openvpn-server@.service
 [Unit]
@@ -1272,18 +1268,15 @@ EOF
 
     # Função para remover OpenVPN
     rmv_open() {
-        # Define valores padrão para evitar erros
         PORT=${PORT:-1194}
         PROTOCOL=${PROTOCOL:-tcp}
         IP=${IP:-$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -o -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)}
 
-        # Se server.conf existe, extrai PORT e PROTOCOL
         if [[ -f /etc/SSHPlus/openvpn/server.conf ]]; then
             PORT=$(grep '^port ' /etc/SSHPlus/openvpn/server.conf | cut -d " " -f 2)
             PROTOCOL=$(grep '^proto ' /etc/SSHPlus/openvpn/server.conf | cut -d " " -f 2)
         fi
 
-        # Remove regras do firewalld, se ativo
         if pgrep firewalld >/dev/null 2>&1; then
             firewall-cmd --zone=public --remove-port=$PORT/$PROTOCOL >/dev/null 2>&1
             firewall-cmd --zone=trusted --remove-source=10.8.0.0/24 >/dev/null 2>&1
@@ -1291,7 +1284,6 @@ EOF
             firewall-cmd --permanent --zone=trusted --remove-source=10.8.0.0/24 >/dev/null 2>&1
         fi
 
-        # Remove regras do iptables, se existirem
         if iptables -L -n >/dev/null 2>&1; then
             iptables -D INPUT -p $PROTOCOL --dport $PORT -j ACCEPT >/dev/null 2>&1
             iptables -D FORWARD -s 10.8.0.0/24 -j ACCEPT >/dev/null 2>&1
@@ -1299,7 +1291,6 @@ EOF
             iptables -t nat -D POSTROUTING -s 10.8.0.0/24 -j SNAT --to $IP >/dev/null 2>&1
         fi
 
-        # Remove regras de inicialização
         if [[ "$RCLOCAL" == "systemd" ]]; then
             systemctl disable openvpn-startup.service >/dev/null 2>&1
             rm -f /etc/systemd/system/openvpn-startup.service >/dev/null 2>&1
@@ -1311,7 +1302,6 @@ EOF
             sed -i "/iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT/d" $RCLOCAL 2>/dev/null
         fi
 
-        # Remove portas SELinux, se aplicável
         if hash sestatus 2>/dev/null; then
             if sestatus | grep "Current mode" | grep -qs "enforcing"; then
                 if [[ "$PORT" != '1194' || "$PROTOCOL" = 'tcp' ]]; then
@@ -1320,7 +1310,6 @@ EOF
             fi
         fi
 
-        # Remove pacotes e arquivos
         if [[ "$OS" = 'debian' ]]; then
             fun_bar "apt-get remove --purge -y openvpn" "Removendo pacotes OpenVPN"
             apt-get autoremove -y >/dev/null 2>&1
@@ -1329,9 +1318,10 @@ EOF
         fi
         rm -rf /etc/SSHPlus/openvpn >/dev/null 2>&1
         rm -rf /usr/share/doc/openvpn* >/dev/null 2>&1
+        echo -e "\033[1;32mOPENVPN REMOVIDO COM SUCESSO!\033[0m"
     }
 
-    # Resto do script (com correção no gerenciamento de DNS)
+    # Menu principal
     if [[ $(netstat -nplt | grep -wc 'openvpn') != '0' ]]; then
         while :; do
             clear
@@ -1368,7 +1358,7 @@ EOF
                         echo ""
                         echo -e "\033[1;31mPorta inválida!"
                         sleep 3
-                        fun_openvpn
+                        continue
                     }
                     verif_ptrs $porta
                     echo ""
@@ -1387,7 +1377,7 @@ EOF
                     echo ""
                     echo -e "\033[1;32mPORTA ALTERADA COM SUCESSO!\033[1;33m"
                     sleep 2
-                    fun_openvpn
+                    continue
                     ;;
                 2)
                     echo ""
@@ -1398,15 +1388,13 @@ EOF
                         echo -e "\033[1;32mREMOVENDO O OPENVPN!\033[0m"
                         echo ""
                         rmv_open
-                        echo ""
-                        echo -e "\033[1;32mOPENVPN REMOVIDO COM SUCESSO!\033[0m"
                         sleep 2
                         exit 0
                     } || {
                         echo ""
                         echo -e "\033[1;31mRetornando...\033[0m"
                         sleep 2
-                        fun_openvpn
+                        continue
                     }
                     ;;
                 3)
@@ -1421,7 +1409,7 @@ EOF
                         fun_spcr
                         echo -e "\e[1DOk"
                         sleep 2
-                        fun_openvpn
+                        continue
                     } || {
                         clear
                         fun_apchon() {
@@ -1438,7 +1426,7 @@ EOF
                         fun_apchon
                         echo -e "\e[1DOk"
                         sleep 2
-                        fun_openvpn
+                        continue
                     }
                     ;;
                 4)
@@ -1454,7 +1442,7 @@ EOF
                         fun_multon
                         echo -e "\e[1DOk"
                         sleep 1
-                        fun_openvpn
+                        continue
                     else
                         clear
                         fun_multoff() {
@@ -1468,7 +1456,7 @@ EOF
                         fun_multoff
                         echo -e "\e[1DOk"
                         sleep 1
-                        fun_openvpn
+                        continue
                     fi
                     ;;
                 5)
@@ -1486,7 +1474,7 @@ EOF
                         echo ""
                         echo -e "\033[1;31mOpção inválida!\033[0m"
                         sleep 2
-                        fun_openvpn
+                        continue
                     }
                     if [[ "$resp" = '1' ]]; then
                         clear
@@ -1504,18 +1492,18 @@ EOF
                             echo ""
                             echo -e "\033[1;31mCampo vazio ou inválido!\033[0m"
                             sleep 2
-                            fun_openvpn
+                            continue
                         fi
                         if [[ "$(grep -w "$host" /etc/hosts | wc -l)" -gt "0" ]]; then
                             echo -e "\033[1;31mEsse host já está adicionado!\033[0m"
                             sleep 2
-                            fun_openvpn
+                            continue
                         fi
                         sed -i "3i127.0.0.1 $host" /etc/hosts
                         echo ""
                         echo -e "\033[1;32mHost adicionado com sucesso!\033[0m"
                         sleep 2
-                        fun_openvpn
+                        continue
                     elif [[ "$resp" = '2' ]]; then
                         clear
                         echo -e "\E[44;1;37m           Remover Host DNS            \E[0m"
@@ -1537,7 +1525,7 @@ EOF
                             echo ""
                             echo -e "\033[1;31mOpção inválida!\033[0m"
                             sleep 2
-                            fun_openvpn
+                            continue
                         fi
                         if [[ "$option" =~ ^[0-9]+$ && "$option" -ge 1 && "$option" -le "$i" ]]; then
                             host=$(echo -e "$oP" | grep "^$(printf "%02d" $option):" | cut -d: -f2)
@@ -1546,12 +1534,12 @@ EOF
                             echo ""
                             echo -e "\033[1;32mHost removido com sucesso!\033[0m"
                             sleep 2
-                            fun_openvpn
+                            continue
                         else
                             echo ""
                             echo -e "\033[1;31mOpção inválida!\033[0m"
                             sleep 2
-                            fun_openvpn
+                            continue
                         fi
                     elif [[ "$resp" = '3' ]]; then
                         echo -e "\n\033[1;32mALTERANDO ARQUIVO \033[1;37m/etc/hosts\033[0m"
@@ -1562,7 +1550,7 @@ EOF
                         nano /etc/hosts
                         echo -e "\n\033[1;32mALTERADO COM SUCESSO!\033[0m"
                         sleep 2
-                        fun_openvpn
+                        continue
                     elif [[ "$resp" = '0' ]]; then
                         echo ""
                         echo -e "\033[1;31mRetornando...\033[0m"
@@ -1572,17 +1560,20 @@ EOF
                         echo ""
                         echo -e "\033[1;31mOpção inválida!\033[0m"
                         sleep 2
-                        fun_openvpn
+                        continue
                     fi
                     ;;
                 0)
+                    echo ""
+                    echo -e "\033[1;31mRetornando...\033[0m"
+                    sleep 2
                     exit 0
                     ;;
                 *)
                     echo ""
                     echo -e "\033[1;31mOpção inválida!\033[0m"
                     sleep 2
-                    fun_openvpn
+                    continue
                     ;;
             esac
         done

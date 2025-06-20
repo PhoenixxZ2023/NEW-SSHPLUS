@@ -1,7 +1,6 @@
 #!/bin/bash
 # EDIT: Adaptado para XRay por Grok
 # Acessível como https://multi.netlify.app/go.sh (original), modificado para XRay
-# MODIFICAÇÃO: VLESS + XTLS por padrão em novas instalações.
 
 # Códigos de retorno:
 # 0: Sucesso
@@ -303,81 +302,48 @@ installXRay(){
         return 1
     }
 
-    # Bloco modificado para VLESS + XTLS por padrão
     if [ ! -f /etc/xray/config.json ]; then
-        # Pede ao usuário o domínio, que é essencial para o TLS/XTLS
-        local DOMAIN=""
-        while [[ -z "$DOMAIN" ]]; do
-          colorEcho ${yellow} "Para VLESS + XTLS, é necessário um nome de domínio."
-          read -p "Por favor, digite seu domínio: " DOMAIN
-          if [[ -z "$DOMAIN" ]]; then
-            colorEcho ${red} "O domínio não pode ser vazio."
-          fi
-        done
-
-        # Gera um certificado auto-assinado para o domínio informado
-        colorEcho ${blue} "Gerando certificado TLS para o domínio: ${DOMAIN}..."
-        /usr/bin/xray/xray cert --domain "$DOMAIN" --name "Xray" --organization "Xray" --expire 3650d --ca >/dev/null 2>&1
-        if [[ $? -ne 0 ]]; then
-            colorEcho ${red} "Falha ao gerar o certificado."
-            return 1
-        fi
-        mv cert.pem /etc/xray/xray.crt
-        mv key.pem /etc/xray/xray.key
-        
-        # Gera uma porta e um UUID
-        local port="443"
+        local port="$(($RANDOM + 10000))"
         local uuid="$(cat '/proc/sys/kernel/random/uuid')"
-
-        # Cria o config.json já com VLESS + XTLS-Vision
         cat > /etc/xray/config.json <<EOF
 {
-  "log": {
-    "loglevel": "warning"
-  },
-  "inbounds": [
-    {
-      "port": ${port},
-      "protocol": "vless",
-      "settings": {
-        "clients": [
-          {
-            "id": "${uuid}",
-            "flow": "xtls-rprx-vision"
-          }
-        ],
-        "decryption": "none"
-      },
-      "streamSettings": {
-        "network": "tcp",
-        "security": "xtls",
-        "xtlsSettings": {
-          "alpn": [
-            "h2",
-            "http/1.1"
-          ],
-          "certificates": [
-            {
-              "certificateFile": "/etc/xray/xray.crt",
-              "keyFile": "/etc/xray/xray.key"
-            }
-          ]
+  "inbounds": [{
+    "port": ${port},
+    "protocol": "vless",
+    "settings": {
+      "clients": [
+        {
+          "id": "${uuid}",
+          "level": 0
         }
+      ],
+      "decryption": "none"
+    },
+    "streamSettings": {
+      "network": "tcp"
+    }
+  }],
+  "outbounds": [{
+    "protocol": "freedom",
+    "settings": {}
+  },{
+    "protocol": "blackhole",
+    "settings": {},
+    "tag": "blocked"
+  }],
+  "routing": {
+    "rules": [
+      {
+        "type": "field",
+        "ip": ["geoip:private"],
+        "outboundTag": "blocked"
       }
-    }
-  ],
-  "outbounds": [
-    {
-      "protocol": "freedom"
-    }
-  ]
+    ]
+  }
 }
 EOF
-        colorEcho ${green} "Configuração VLESS + XTLS-Vision criada com sucesso!"
-        colorEcho ${blue} "Domínio: ${DOMAIN}"
         colorEcho ${blue} "Porta: ${port}"
         colorEcho ${blue} "UUID: ${uuid}"
-        colorEcho ${blue} "Flow: xtls-rprx-vision"
     fi
 }
 

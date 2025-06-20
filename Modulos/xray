@@ -18,7 +18,7 @@ REMOVE=0
 CHINESE=0
 
 # URLs base
-BASE_SOURCE_PATH="https://multi.netlify.app"
+BASE_SOURCE_PATH="https://github.com/PhoenixxZ2023/NEW-SSHPLUS/Modulos/xray"
 UTIL_PATH="/etc/xray_util/util.cfg"
 UTIL_CFG="$BASE_SOURCE_PATH/v2ray_util/util_core/util.cfg"
 BASH_COMPLETION_SHELL="$BASE_SOURCE_PATH/v2ray"

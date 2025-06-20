@@ -1,6 +1,7 @@
 #!/bin/bash
 # EDIT: Adaptado para XRay por Grok
 # Acessível como https://multi.netlify.app/go.sh (original), modificado para XRay
+# MODIFICAÇÃO: Adicionado "alterId": 0 para compatibilidade com xray info.
 
 # Códigos de retorno:
 # 0: Sucesso
@@ -314,7 +315,8 @@ installXRay(){
       "clients": [
         {
           "id": "${uuid}",
-          "level": 0
+          "level": 0,
+          "alterId": 0
         }
       ],
       "decryption": "none"

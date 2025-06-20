@@ -2,6 +2,7 @@
 #====================================================
 #	@TURBONET2023
 #	Adaptado para XRay por Grok
+#   MODIFICAÇÃO: Adicionada opção dedicada para VLESS+XTLS
 #====================================================
 
 # Cores
@@ -12,7 +13,9 @@ GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 SCOLOR='\033[0m'
 
-# Mensagens de erro
+# (As mensagens de erro e outras funções iniciais permanecem as mesmas...)
+# ... (todo o bloco de mensagens de erro e funções de utilidade) ...
+
 msg01='\033[1;37m\033[1;33mUSUÁRIO NULO\033[1;31m'
 msg02='\033[1;37m\033[1;33mNOME MUITO CURTO (MÍN: 2 CARACTERES)\033[1;31m'
 msg03='\033[1;37m\033[1;33mNOME MUITO LONGO (MÁX: 5 CARACTERES)\033[1;31m'
@@ -75,7 +78,7 @@ intall_xray() {
 }
 
 protocol_xray() {
-    echo -e "\E[44;1;37m            EDITAR PROTOCOLO XRAY             \E[0m"
+    echo -e "\E[44;1;37m             EDITAR PROTOCOLO XRAY              \E[0m"
     echo -e "\033[1;37m• \033[1;33mESCOLHA A OPÇÃO 3 E COLOQUE SEU DOMÍNIO OU HOST. EX: turbonetvpn.com\033[1;31m"
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     xray stream
@@ -86,15 +89,50 @@ protocol_xray() {
 
 tls() {
     clear
-    echo -e "\E[44;1;37m            ATIVAR OU DESATIVAR TLS             \E[0m"
+    echo -e "\E[44;1;37m             ATIVAR OU DESATIVAR TLS              \E[0m"
     xray tls
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo -e "\033[1;37m• \033[1;33mEnter Para Continuar\033[1;31m" && read enter
     fun_xraymanager
 }
 
+# NOVA FUNÇÃO PARA ATIVAR XTLS
+ativar_vless_xtls() {
+    clear
+    echo -e "\E[44;1;37m         ATIVAR/CONFIGURAR VLESS + XTLS-Vision         \E[0m"
+    echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    
+    # Verifica se o certificado já foi gerado pela opção "Ativar TLS"
+    if [ ! -f "/etc/xray/xray.crt" ] || [ ! -f "/etc/xray/xray.key" ]; then
+        echo -e "\n${YELLOW}AVISO: Certificado TLS não encontrado!${SCOLOR}"
+        echo -e "O XTLS precisa de um certificado TLS para funcionar."
+        echo -e "Por favor, execute primeiro a opção ${GREEN}'ATIVAR TLS'${SCOLOR} no menu anterior."
+        echo -e "Ela irá gerar o certificado para o seu domínio."
+        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+        echo -e "\033[1;37m• \033[1;33mEnter Para Voltar ao Menu\033[1;31m" && read enter
+        fun_xraymanager
+        return
+    fi
+    
+    echo -e "\n${GREEN}Certificado TLS encontrado!${SCOLOR}"
+    echo -e "Você será direcionado para o menu de configuração de 'stream'."
+    echo -e "Para ativar o XTLS, siga estes passos no menu que aparecerá:"
+    echo -e " 1. Em 'Security', escolha a opção ${YELLOW}xtls${SCOLOR}."
+    echo -e " 2. Em 'Flow', escolha a opção ${YELLOW}xtls-rprx-vision${SCOLOR}."
+    echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    read -p "Pressione Enter para continuar..."
+
+    xray stream
+    
+    echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    echo -e "${GREEN}Configuração de stream finalizada.${SCOLOR}"
+    echo -e "\033[1;37m• \033[1;33mEnter Para Continuar\033[1;31m" && read enter
+    fun_xraymanager
+}
+
+
 port_xray() {
-    echo -e "\E[44;1;37m            EDITAR PORTA XRAY             \E[0m"
+    echo -e "\E[44;1;37m              EDITAR PORTA XRAY               \E[0m"
     xray port
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo -e "\033[1;37m• \033[1;33mEnter Para Continuar\033[1;31m" && read enter
@@ -102,7 +140,7 @@ port_xray() {
 }
 
 stats() {
-    echo -e "\E[44;1;37m            ESTATÍSTICAS DE CONSUMO             \E[0m"
+    echo -e "\E[44;1;37m           ESTATÍSTICAS DE CONSUMO            \E[0m"
     xray stats
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo -e "\033[1;37m• \033[1;33mEnter Para Continuar\033[1;31m" && read enter
@@ -119,23 +157,24 @@ uninstall_xray() {
 }
 
 infocuenta() {
-    echo -e "\E[44;1;37m            INFORMAÇÕES DA CONTA             \E[0m"
+    echo -e "\E[44;1;37m            INFORMAÇÕES DA CONTA              \E[0m"
     xray info
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo -e "\033[1;37m• \033[1;33mEnter Para Continuar\033[1;31m" && read enter
     fun_xraymanager
 }
 
+# ... (o restante das funções como addusr, delusr, etc., permanece o mesmo)
 addusr() {
     clear
-    echo -e "\E[44;1;37m            ADICIONAR USUÁRIO | UUID XRAY             \E[0m"
+    echo -e "\E[44;1;37m         ADICIONAR USUÁRIO | UUID XRAY          \E[0m"
     ## DIAS
     valid=$(date '+%C%y-%m-%d' -d " +31 days")
     ## CORREIO
     USERMAIL=$(cat /dev/urandom | tr -dc '[:alnum:]' | head -c 10)
     ## ADDUSERXRAY
     UUID=$(uuidgen)
-    sed -i '/"clients": \[/a\            {"id": "'$UUID'", "email": "'$USERMAIL'@gmail.com", "alterId": 0},' /etc/xray/config.json
+    sed -i '/"clients": \[/a\            {"id": "'$UUID'", "email": "'$USERMAIL'@gmail.com"},' /etc/xray/config.json
     echo ""
     while true; do
         echo -ne "\e[91m >> DIGITE UM USUÁRIO: \033[1;92m"
@@ -178,7 +217,7 @@ addusr() {
     sed -n ${suma}p /etc/SSHPlus/xray/confuuid.log
     echo ""
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\e[92m           UUID ADICIONADO COM SUCESSO "
+    echo -e "\e[92m             UUID ADICIONADO COM SUCESSO "
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo -e "\033[1;37m• \033[1;33mEnter Para Continuar\033[1;31m" && read enter
     fun_xraymanager
@@ -188,14 +227,14 @@ delusr() {
     clear
     invaliduuid() {
         echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-        echo -e "\e[91m                    UUID INVÁLIDO \n"
+        echo -e "\e[91m                   UUID INVÁLIDO \n"
         echo -e "\033[1;37m• \033[1;33mEnter Para Continuar\033[1;31m" && read enter
         fun_xraymanager
     }
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\E[44;1;37m            REMOVER USUÁRIO | UUID XRAY             \E[0m"
+    echo -e "\E[44;1;37m         REMOVER USUÁRIO | UUID XRAY          \E[0m"
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\e[97m               USUÁRIOS REGISTRADOS"
+    echo -e "\e[97m                    USUÁRIOS REGISTRADOS"
     echo -e "\e[33m$(cat /etc/SSHPlus/RegXray | cut -d '|' -f2,1)"
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo -ne "\e[91m >> DIGITE UUID PARA REMOVER:\n \033[1;92m " && read uuidel
@@ -207,7 +246,7 @@ delusr() {
     systemctl restart xray >/dev/null 2>&1
     echo ""
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\e[92m           UUID REMOVIDO COM SUCESSO "
+    echo -e "\e[92m             UUID REMOVIDO COM SUCESSO "
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo -e "\033[1;37m• \033[1;33mEnter Para Continuar\033[1;31m" && read enter
     fun_xraymanager
@@ -216,7 +255,7 @@ delusr() {
 mosusr_kk() {
     clear
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\E[44;1;37m            USUÁRIOS REGISTRADOS | UUID XRAY             \E[0m"
+    echo -e "\E[44;1;37m       USUÁRIOS REGISTRADOS | UUID XRAY         \E[0m"
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     VPSsec=$(date +%s)
     local HOST="/etc/SSHPlus/RegXray"
@@ -228,7 +267,7 @@ mosusr_kk() {
         fun_xraymanager
     else
         i=1
-        echo -e "\e[97m                 UUID                | USUÁRIO | EXPIRAÇÃO \e[93m"
+        echo -e "\e[97m                 UUID                       | USUÁRIO | EXPIRAÇÃO \e[93m"
         echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
         while read hostreturn; do
             DateExp="$(cat /etc/SSHPlus/RegXray | grep -w "$hostreturn" | cut -d'|' -f3)"
@@ -260,7 +299,7 @@ mosusr_kk() {
 lim_port() {
     clear
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\E[44;1;37m            LIMITAR MB POR PORTA | UUID XRAY             \E[0m"
+    echo -e "\E[44;1;37m        LIMITAR MB POR PORTA | UUID XRAY         \E[0m"
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     estarts() {
         VPSsec=$(date +%s)
@@ -277,7 +316,7 @@ lim_port() {
                 iptables -n -v -L >/etc/SSHPlus/xray/data1.log
                 statsss=$(cat /etc/SSHPlus/xray/data1.log | grep -w "tcp spt:$hostreturn quota:" | cut -d' ' -f3,4,5)
                 gblim=$(cat /etc/SSHPlus/xray/lisportt.log | grep -w "$hostreturn" | cut -d'|' -f2)
-                local contador_secuencial+="         \e[97mPORTA: \e[93m$hostreturn \e[97m|\e[93m$statsss \e[97m|\e[93m $gblim GB  \n"
+                local contador_secuencial+="             \e[97mPORTA: \e[93m$hostreturn \e[97m|\e[93m$statsss \e[97m|\e[93m $gblim GB   \n"
                 if [[ $i -gt 30 ]]; then
                     echo -e "$contador_secuencial"
                     unset contador_secuencial
@@ -345,7 +384,7 @@ lim_port() {
                 iptables -n -v -L >/etc/SSHPlus/xray/data1.log
                 statsss=$(cat /etc/SSHPlus/xray/data1.log | grep -w "tcp spt:$hostreturn quota:" | cut -d' ' -f3,4,5)
                 gblim=$(cat /etc/SSHPlus/xray/lisportt.log | grep -w "$hostreturn" | cut -d'|' -f2)
-                local contador_secuencial+="         \e[97mPORTA: \e[93m$hostreturn \e[97m|\e[93m$statsss \e[97m|\e[93m $gblim GB  \n"
+                local contador_secuencial+="             \e[97mPORTA: \e[93m$hostreturn \e[97m|\e[93m$statsss \e[97m|\e[93m $gblim GB   \n"
                 if [[ $i -gt 30 ]]; then
                     echo -e "$contador_secuencial"
                     unset contador_secuencial
@@ -372,7 +411,7 @@ lim_port() {
         done
         invaliduuid() {
             echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-            echo -e "\e[91m                PORTA INVÁLIDA \n"
+            echo -e "\e[91m               PORTA INVÁLIDA \n"
             echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
             echo -e "\033[1;37m• \033[1;33mEnter Para Continuar\033[1;31m" && read enter
             fun_xraymanager
@@ -417,10 +456,10 @@ limpiador_activador() {
     statgen="$(echo $PID_GEN)"
     clear
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-    echo -e "\E[44;1;37m            REMOVER EXPIRADOS | UUID XRAY             \E[0m"
+    echo -e "\E[44;1;37m         REMOVER EXPIRADOS | UUID XRAY          \E[0m"
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo ""
-    echo -e "                    $statgen "
+    echo -e "                 $statgen "
     echo ""
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     echo -e "\033[1;37m• \033[1;33mEnter Para Continuar\033[1;31m" && read enter
@@ -439,36 +478,35 @@ selection_fun() {
     echo $selection
 }
 
-PID_GEN=$(ps x|grep -v grep|grep "limxray")
-    [[ ! $PID_GEN ]] && PID_GEN="\e[91m○  " || PID_GEN="\e[92m◉  "
-    statgen="$(echo $PID_GEN)"
-    #SPR & 
-    echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-
 fun_xraymanager() {
+    PID_GEN=$(ps x|grep -v grep|grep "limxray")
+    [[ ! $PID_GEN ]] && PID_GEN="\e[91m○ " || PID_GEN="\e[92m◉ "
+    statgen="$(echo $PID_GEN)"
+    
     while true; do
         clear
         echo -e "\033[1;36m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\033[0m"
-        echo -e "\033[1;36m┃\E[46;1;97m            GERENCIADOR XRAY             \E[0m\033[1;36m┃"
+        echo -e "\033[1;36m┃\E[46;1;97m           GERENCIADOR XRAY              \E[0m\033[1;36m┃"
         echo -e "\033[1;36m┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┫\033[0m"
         xray_status=$(if netstat -tunlp | grep xray >/dev/null 2>&1; then echo -e "\e[92m ATIVADO"; else echo -e "\e[91m DESATIVADO"; fi)
-        echo -e "\033[1;36m┃\033[1;32mSERVIÇO: \033[1;33mXRAY \033[1;32m$xray_status\033[1;37m                \033[0m"
+        echo -e "\033[1;36m┃\033[1;32mSERVIÇO: \033[1;33mXRAY \033[1;32m$xray_status\033[1;37m                       \033[0m"
         xray_icon=$(if netstat -tunlp | grep xray >/dev/null 2>&1; then echo -e "\033[1;32m◉ "; else echo -e "\033[1;31m○ "; fi)
         echo -e "\033[1;36m┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\033[0m"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m01\033[1;31m] \033[1;37m• \033[1;37mINSTALAR V2RAY $xv2ray                   \033[1;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m02\033[1;31m] \033[1;37m• \033[1;37mALTERAR PROTOCOLO                 \033[1;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m03\033[1;31m] \033[1;37m• \033[1;37mATIVAR TLS                        \033[1;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m04\033[1;31m] \033[1;37m• \033[1;37mALTERAR PORTA V2RAY               \033[1;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m05\033[1;31m] \033[1;37m• \033[1;37mADICIONAR USUARIO UUID            \033[1;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m06\033[1;31m] \033[1;37m• \033[1;37mELIMINAR USUARIO UUID             \033[1;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m07\033[1;31m] \033[1;37m• \033[1;37mMOSTAR USUARIOS REGISTRADOS       \033[1;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m08\033[1;31m] \033[1;37m• \033[1;37mINFORMAÇÃO DA CONTA               \033[1;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m09\033[1;31m] \033[1;37m• \033[1;37mESTATÍSTICAS DE CONSUMO           \033[1;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m10\033[1;31m] \033[1;37m• \033[1;37mLIMITADOR POR CONSUMO             \033[1;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m11\033[1;31m] \033[1;37m• \033[1;37mLIMPADOR DE EXPIRADOS $statgen           \033[0;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m12\033[1;31m] \033[1;37m• \033[1;37mDESINSTALAR V2RAY                 \033[0;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m13\033[1;31m] \033[1;37m• \033[1;37mVOLTAR \033[1;32m<\033[1;33m<\033[1;31m<                        \033[0;36m┃"
-	echo -e "\033[1;36m┃\033[1;31m[\033[1;36m00\033[1;31m] \033[1;37m• \033[1;37mSAIR \033[1;32m<\033[1;33m<\033[1;31m<                          \033[0;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m01\033[1;31m] \033[1;37m• \033[1;37mINSTALAR/REPARAR XRAY                 \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m02\033[1;31m] \033[1;37m• \033[1;37mALTERAR PROTOCOLO (genérico)          \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m03\033[1;31m] \033[1;37m• \033[1;37mATIVAR TLS                            \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m04\033[1;31m] \033[1;37m• \033[1;33mATIVAR/CONFIGURAR VLESS+XTLS          \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m05\033[1;31m] \033[1;37m• \033[1;37mALTERAR PORTA XRAY                    \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m06\033[1;31m] \033[1;37m• \033[1;37mADICIONAR USUARIO UUID                \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m07\033[1;31m] \033[1;37m• \033[1;37mELIMINAR USUARIO UUID                 \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m08\033[1;31m] \033[1;37m• \033[1;37mMOSTRAR USUARIOS REGISTRADOS          \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m09\033[1;31m] \033[1;37m• \033[1;37mINFORMAÇÃO DA CONTA                   \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m10\033[1;31m] \033[1;37m• \033[1;37mESTATÍSTICAS DE CONSUMO               \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m11\033[1;31m] \033[1;37m• \033[1;37mLIMITADOR POR CONSUMO                 \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m12\033[1;31m] \033[1;37m• \033[1;37mLIMPADOR DE EXPIRADOS $statgen              \033[0;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m13\033[1;31m] \033[1;37m• \033[1;37mDESINSTALAR XRAY                      \033[0;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m14\033[1;31m] \033[1;37m• \033[1;37mVOLTAR <<<                            \033[0;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m00\033[1;31m] \033[1;37m• \033[1;37mSAIR <<<                              \033[0;36m┃"
         echo -e "\033[1;36m┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\033[0m"
         tput civis
         echo -ne "\033[1;36m┗➤\033[1;32m ESCOLHA UMA OPÇÃO \033[1;32m?\033[1;37m: "
@@ -479,20 +517,22 @@ fun_xraymanager() {
         1 | 01) intall_xray ;;
         2 | 02) protocol_xray ;;
         3 | 03) tls ;;
-        4 | 04) port_xray ;;
-        5 | 05) addusr ;;
-        6 | 06) delusr ;;
-        7 | 07) mosusr_kk ;;
-        8 | 08) infocuenta ;;
-        9 | 09) stats ;;
-        10) lim_port ;;
-        11) limpiador_activador ;;
-        12) uninstall_xray ;;
-        13) conexao; exit ;; # Função 'conexao' não definida; ajustar conforme necessário
+        4 | 04) ativar_vless_xtls ;; # Nova opção chama a nova função
+        5 | 05) port_xray ;;
+        6 | 06) addusr ;;
+        7 | 07) delusr ;;
+        8 | 08) mosusr_kk ;;
+        9 | 09) infocuenta ;;
+        10) stats ;;
+        11) lim_port ;;
+        12) limpiador_activador ;;
+        13) uninstall_xray ;;
+        14) conexao; exit ;; # Função 'conexao' não definida; ajustar conforme necessário
         0 | 00) echo -e "\033[1;31mSaindo...\033[0m"; sleep 1; clear; exit ;;
         *) echo -e "\033[1;31mOpção inválida!\033[0m"; sleep 2 ;;
         esac
     done
 }
 
+# Inicia o menu principal
 fun_xraymanager

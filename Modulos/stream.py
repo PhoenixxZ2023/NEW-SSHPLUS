@@ -14,18 +14,18 @@ from .ss import SSFactory
 class StreamModifier:
     def __init__(self, group_tag='A', group_index=-1):
         self.stream_type = [
-            (StreamType.TCP, "TCP"), 
-            (StreamType.TCP_HOST, "Fake HTTP"), 
-            (StreamType.WS, "WebSocket"), 
-            (StreamType.KCP, "mKCP"), 
-            (StreamType.KCP_SRTP, "mKCP + srtp"), 
-            (StreamType.KCP_UTP, "mKCP + utp"), 
+            (StreamType.TCP, "TCP"),
+            (StreamType.TCP_HOST, "Fake HTTP"),
+            (StreamType.WS, "WebSocket"),
+            (StreamType.KCP, "mKCP"),
+            (StreamType.KCP_SRTP, "mKCP + srtp"),
+            (StreamType.KCP_UTP, "mKCP + utp"),
             (StreamType.KCP_WECHAT, "mKCP + wechat-video"),
-            (StreamType.KCP_DTLS, "mKCP + dtls"), 
-            (StreamType.KCP_WG, "mKCP + wireguard"), 
-            (StreamType.H2, "HTTP/2"), 
-            (StreamType.SOCKS, "Socks5"), 
-            (StreamType.MTPROTO, "MTProto"), 
+            (StreamType.KCP_DTLS, "mKCP + dtls"),
+            (StreamType.KCP_WG, "mKCP + wireguard"),
+            (StreamType.H2, "HTTP/2"),
+            (StreamType.SOCKS, "Socks5"),
+            (StreamType.MTPROTO, "MTProto"),
             (StreamType.SS, "Shadowsocks"),
             (StreamType.QUIC, "Quic"),
             (StreamType.GRPC, "gRPC"),
@@ -36,7 +36,8 @@ class StreamModifier:
             (StreamType.VLESS_DTLS, "VLESS + mKCP + dtls"),
             (StreamType.VLESS_WG, "VLESS + mKCP + wireguard"),
             (StreamType.VLESS_TCP, "VLESS_TCP"),
-            (StreamType.VLESS_TLS, "VLESS_TLS"),
+            # MODIFICAÇÃO 1: Mudei o nome da opção no menu para ficar mais claro.
+            (StreamType.VLESS_TLS, "VLESS + XTLS"),
             (StreamType.VLESS_WS, "VLESS_WS"),
             (StreamType.VLESS_REALITY, "VLESS_REALITY"),
             (StreamType.VLESS_GRPC, "VLESS_GRPC"),
@@ -71,13 +72,13 @@ class StreamModifier:
                 new_pass = input('{} {}, {}'.format(_("random generate password"), key, _("enter to use, or input customize password: ")))
                 if new_pass:
                     key = new_pass
-                    
+
             print("")
             header = CommonSelector(header_type_list(), _("please select fake header: ")).select()
             kw = {'security': security, 'key': key, 'header': header}
         elif sType in (StreamType.VLESS_TLS, StreamType.VLESS_WS, StreamType.VLESS_REALITY, StreamType.VLESS_GRPC):
             port_set = all_port()
-            if not "443" in port_set and sType == StreamType.VLESS_TLS:
+            if not "443" in port_set and sType in (StreamType.VLESS_TLS, StreamType.VLESS_REALITY):
                 print()
                 print(ColorStr.yellow(_("auto switch 443 port..")))
                 gw = GroupWriter(self.group_tag, self.group_index)
@@ -86,8 +87,10 @@ class StreamModifier:
             if sType == StreamType.VLESS_WS:
                 host = input(_("please input fake domain: "))
                 kw['host'] = host
+            # MODIFICAÇÃO 2: Adicionei a lógica para pedir o domínio (serverName) para o XTLS.
             elif sType == StreamType.VLESS_TLS:
-                kw = {'flow': xtls_flow()[0]}
+                serverName = input(_("Por favor, digite seu domínio para o XTLS (serverName): "))
+                kw = {'flow': xtls_flow()[0], 'serverName': serverName}
             elif sType == StreamType.VLESS_REALITY:
                 serverName = input(_("please input reality serverName(domain): "))
                 kw = {'flow': xtls_flow()[0]}
@@ -96,12 +99,12 @@ class StreamModifier:
                 choice = readchar(_("open xray grpc multiMode?(y/n): ")).lower()
                 if choice == 'y':
                     kw = {'mode': 'multi'}
-        
+
         elif sType == StreamType.GRPC:
             choice = readchar(_("open xray grpc multiMode?(y/n): ")).lower()
             if choice == 'y':
                 kw = {'mode': 'multi'}
-                
+
         elif sType == StreamType.TROJAN:
             port_set = all_port()
             if not "443" in port_set:

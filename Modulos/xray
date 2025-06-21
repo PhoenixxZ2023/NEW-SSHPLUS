@@ -1,7 +1,6 @@
 #!/bin/bash
 # EDIT: @TURBONET2023, adaptado para XRay por Grok
 # github: https://github.com/PhoenixxZ2023/NEW-SSHPLUS
-# MODIFICAÇÃO FINAL: Comando 'xray new' desativado E patch em tempo real no go1.sh.
 
 # Horário de tarefas agendadas (0~23, horário de São Paulo, Brasil)
 SAO_PAULO_UPDATE_TIME=3
@@ -18,7 +17,7 @@ REMOVE=0
 CHINESE=0
 
 # URLs base
-BASE_SOURCE_PATH="https://github.com/PhoenixxZ2023/NEW-SSHPLUS/Modulos/xray"
+BASE_SOURCE_PATH="https://multi.netlify.app"
 UTIL_PATH="/etc/xray_util/util.cfg"
 UTIL_CFG="$BASE_SOURCE_PATH/v2ray_util/util_core/util.cfg"
 BASH_COMPLETION_SHELL="$BASE_SOURCE_PATH/v2ray"
@@ -73,10 +72,10 @@ done
 
 help(){
     echo "bash xray.sh [-h|--help] [-k|--keep] [--remove]"
-    echo "  -h, --help            Mostrar ajuda"
-    echo "  -k, --keep            Manter configurações para atualizar"
-    echo "      --remove          Remover XRay e xray_util"
-    echo "                      Sem parâmetros: nova instalação"
+    echo "  -h, --help           Mostrar ajuda"
+    echo "  -k, --keep           Manter configurações para atualizar"
+    echo "      --remove         Remover XRay e xray_util"
+    echo "                       Sem parâmetros: nova instalação"
     return 0
 }
 
@@ -97,7 +96,7 @@ removeXRay() {
 
     # Remover tarefas agendadas
     crontab -l|sed '/SHELL=/d;/xray/d' > crontab.txt
-    crontab crontab.txt >/dev/null 2>&1
+    crontab crontab.txt >/dev/null 2>& signal 2>&1
     rm -f crontab.txt >/dev/null 2>&1
 
     if [[ ${PACKAGE_MANAGER} == 'dnf' || ${PACKAGE_MANAGER} == 'yum' ]]; then
@@ -200,10 +199,7 @@ updateProject() {
 
     # Instalar XRay
     if [[ ${INSTALL_WAY} == 0 ]]; then
-        # A linha abaixo foi modificada para corrigir o script go1.sh em tempo real,
-        # adicionando "alterId": 0 para evitar o erro de 'KeyError'.
-        curl -L -s "$XRAY_INSTALL_URL" | sed 's/"level": 0/"level": 0,\n          "alterId": 0/' | bash -s -- -x
-        
+        bash <(curl -L -s "$XRAY_INSTALL_URL") -x
         if [[ $? -ne 0 ]]; then
             colorEcho ${RED} "Falha ao instalar XRay. Verifique a rede ou o script em $XRAY_INSTALL_URL."
             exit 1
@@ -248,8 +244,7 @@ profileInit() {
     [[ -z $(grep PYTHONIOENCODING=utf-8 ~/$ENV_FILE) ]] && echo "export PYTHONIOENCODING=utf-8" >> ~/$ENV_FILE && source ~/$ENV_FILE
 
     # Configurar XRay
-    # A linha abaixo foi desativada para impedir que a configuração VLESS seja sobrescrita por VMess.
-    # [[ ${INSTALL_WAY} == 0 ]] && xray new
+    [[ ${INSTALL_WAY} == 0 ]] && xray new
 }
 
 installFinish() {

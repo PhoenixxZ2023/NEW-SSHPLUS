@@ -2,7 +2,7 @@
 #====================================================
 #	@TURBONET2023
 #	Adaptado para XRay por Grok
-#   MODIFICAÇÃO: Adicionada opção dedicada para VLESS+XTLS
+#   MODIFICAÇÕES: Limite de nome de usuário (10), menu XTLS.
 #====================================================
 
 # Cores
@@ -13,12 +13,10 @@ GREEN='\033[1;32m'
 YELLOW='\033[1;33m'
 SCOLOR='\033[0m'
 
-# (As mensagens de erro e outras funções iniciais permanecem as mesmas...)
-# ... (todo o bloco de mensagens de erro e funções de utilidade) ...
-
+# Mensagens de erro
 msg01='\033[1;37m\033[1;33mUSUÁRIO NULO\033[1;31m'
 msg02='\033[1;37m\033[1;33mNOME MUITO CURTO (MÍN: 2 CARACTERES)\033[1;31m'
-msg03='\033[1;37m\033[1;33mNOME MUITO LONGO (MÁX: 5 CARACTERES)\033[1;31m'
+msg03='\033[1;37m\033[1;33mNOME MUITO LONGO (MÁX: 10 CARACTERES)\033[1;31m'
 msg04='\033[1;37m\033[1;33mSENHA NULA\033[1;31m'
 msg05='\033[1;37m\033[1;33mSENHA MUITO CURTA\033[1;31m'
 msg06='\033[1;37m\033[1;33mSENHA MUITO LONGA\033[1;31m'
@@ -37,7 +35,7 @@ err_fun() {
     case $1 in
         1) msg -verm "$(fun_trans "USUÁRIO NULO")"; sleep 2s; tput cuu1; tput dl1; tput cuu1; tput dl1 ;;
         2) msg -verm "$(fun_trans "NOME MUITO CURTO (MÍN: 2 CARACTERES)")"; sleep 2s; tput cuu1; tput dl1; tput cuu1; tput dl1 ;;
-        3) msg -verm "$(fun_trans "NOME MUITO LONGO (MÁX: 5 CARACTERES)")"; sleep 2s; tput cuu1; tput dl1; tput cuu1; tput dl1 ;;
+        3) msg -verm "$(fun_trans "NOME MUITO LONGO (MÁX: 10 CARACTERES)")"; sleep 2s; tput cuu1; tput dl1; tput cuu1; tput dl1 ;;
         4) msg -verm "$(fun_trans "SENHA NULA")"; sleep 2s; tput cuu1; tput dl1; tput cuu1; tput dl1 ;;
         5) msg -verm "$(fun_trans "SENHA MUITO CURTA")"; sleep 2s; tput cuu1; tput dl1; tput cuu1; tput dl1 ;;
         6) msg -verm "$(fun_trans "SENHA MUITO LONGA")"; sleep 2s; tput cuu1; tput dl1; tput cuu1; tput dl1 ;;
@@ -96,13 +94,11 @@ tls() {
     fun_xraymanager
 }
 
-# NOVA FUNÇÃO PARA ATIVAR XTLS
 ativar_vless_xtls() {
     clear
     echo -e "\E[44;1;37m         ATIVAR/CONFIGURAR VLESS + XTLS-Vision         \E[0m"
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
     
-    # Verifica se o certificado já foi gerado pela opção "Ativar TLS"
     if [ ! -f "/etc/xray/xray.crt" ] || [ ! -f "/etc/xray/xray.key" ]; then
         echo -e "\n${YELLOW}AVISO: Certificado TLS não encontrado!${SCOLOR}"
         echo -e "O XTLS precisa de um certificado TLS para funcionar."
@@ -129,7 +125,6 @@ ativar_vless_xtls() {
     echo -e "\033[1;37m• \033[1;33mEnter Para Continuar\033[1;31m" && read enter
     fun_xraymanager
 }
-
 
 port_xray() {
     echo -e "\E[44;1;37m              EDITAR PORTA XRAY               \E[0m"
@@ -164,7 +159,6 @@ infocuenta() {
     fun_xraymanager
 }
 
-# ... (o restante das funções como addusr, delusr, etc., permanece o mesmo)
 addusr() {
     clear
     echo -e "\E[44;1;37m         ADICIONAR USUÁRIO | UUID XRAY          \E[0m"
@@ -174,18 +168,18 @@ addusr() {
     USERMAIL=$(cat /dev/urandom | tr -dc '[:alnum:]' | head -c 10)
     ## ADDUSERXRAY
     UUID=$(uuidgen)
-    sed -i '/"clients": \[/a\            {"id": "'$UUID'", "email": "'$USERMAIL'@gmail.com"},' /etc/xray/config.json
+    sed -i '/"clients": \[/a\            {"id": "'$UUID'", "email": "'$USERMAIL'@gmail.com", "alterId": 0},' /etc/xray/config.json
     echo ""
     while true; do
         echo -ne "\e[91m >> DIGITE UM USUÁRIO: \033[1;92m"
         read -p ": " nick
         nick="$(echo $nick | sed -e 's/[^a-z0-9 -]//ig')"
         if [[ -z $nick ]]; then
-            echo -e "$msg17" && continue
+            err_fun 17 && continue
         elif [[ "${#nick}" -lt "2" ]]; then
-            echo -e "$msg02" && continue
-        elif [[ "${#nick}" -gt "5" ]]; then
-            echo -e "$msg03" && continue
+            err_fun 2 && continue
+        elif [[ "${#nick}" -gt "10" ]]; then
+            err_fun 3 && continue
         fi
         break
     done
@@ -193,11 +187,11 @@ addusr() {
     while true; do
         echo -ne "\e[91m >> DURAÇÃO DO UUID (DIAS):\033[1;92m " && read diasuser
         if [[ -z "$diasuser" ]]; then
-            echo -e "$msg17" && continue
+            err_fun 7 && continue
         elif [[ "$diasuser" != +([0-9]) ]]; then
-            echo -e "$msg08" && continue
+            err_fun 8 && continue
         elif [[ "$diasuser" -gt "360" ]]; then
-            echo -e "$msg09" && continue
+            err_fun 9 && continue
         fi
         break
     done
@@ -337,22 +331,22 @@ lim_port() {
         while true; do
             echo -ne "\e[91m >> DIGITE PORTA A LIMITAR:\033[1;92m " && read portbg
             if [[ -z "$portbg" ]]; then
-                echo -e "$msg17" && continue
+                err_fun 17 && continue
             elif [[ "$portbg" != +([0-9]) ]]; then
-                echo -e "$msg16" && continue
+                err_fun 16 && continue
             elif [[ "$portbg" -gt "1000" ]]; then
-                echo -e "$msg16" && continue
+                err_fun 16 && continue
             fi
             break
         done
         while true; do
             echo -ne "\e[91m >> DIGITE QUANTIDADE DE GB:\033[1;92m " && read capgb
             if [[ -z "$capgb" ]]; then
-                echo -e "$msg17" && continue
+                err_fun 17 && continue
             elif [[ "$capgb" != +([0-9]) ]]; then
-                echo -e "$msg15" && continue
+                err_fun 15 && continue
             elif [[ "$capgb" -gt "1000" ]]; then
-                echo -e "$msg15" && continue
+                err_fun 15 && continue
             fi
             break
         done
@@ -401,11 +395,11 @@ lim_port() {
         while true; do
             echo -ne "\e[91m >> DIGITE PORTA A LIMPAR:\033[1;92m " && read portbg
             if [[ -z "$portbg" ]]; then
-                echo -e "$msg17" && continue
+                err_fun 17 && continue
             elif [[ "$portbg" != +([0-9]) ]]; then
-                echo -e "$msg16" && continue
+                err_fun 16 && continue
             elif [[ "$portbg" -gt "1000" ]]; then
-                echo -e "$msg16" && continue
+                err_fun 16 && continue
             fi
             break
         done
@@ -492,21 +486,21 @@ fun_xraymanager() {
         echo -e "\033[1;36m┃\033[1;32mSERVIÇO: \033[1;33mXRAY \033[1;32m$xray_status\033[1;37m                       \033[0m"
         xray_icon=$(if netstat -tunlp | grep xray >/dev/null 2>&1; then echo -e "\033[1;32m◉ "; else echo -e "\033[1;31m○ "; fi)
         echo -e "\033[1;36m┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\033[0m"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m01\033[1;31m] \033[1;37m• \033[1;37mINSTALAR/REPARAR XRAY             \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m02\033[1;31m] \033[1;37m• \033[1;37mALTERAR PROTOCOLO (genérico)      \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m03\033[1;31m] \033[1;37m• \033[1;37mATIVAR TLS                        \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m04\033[1;31m] \033[1;37m• \033[1;33mATIVAR/CONFIGURAR VLESS+XTLS      \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m05\033[1;31m] \033[1;37m• \033[1;37mALTERAR PORTA XRAY                \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m06\033[1;31m] \033[1;37m• \033[1;37mADICIONAR USUARIO UUID            \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m07\033[1;31m] \033[1;37m• \033[1;37mELIMINAR USUARIO UUID             \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m08\033[1;31m] \033[1;37m• \033[1;37mMOSTRAR USUARIOS REGISTRADOS      \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m09\033[1;31m] \033[1;37m• \033[1;37mINFORMAÇÃO DA CONTA               \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m10\033[1;31m] \033[1;37m• \033[1;37mESTATÍSTICAS DE CONSUMO           \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m11\033[1;31m] \033[1;37m• \033[1;37mLIMITADOR POR CONSUMO             \033[1;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m12\033[1;31m] \033[1;37m• \033[1;37mLIMPADOR DE EXPIRADOS $statgen           \033[0;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m13\033[1;31m] \033[1;37m• \033[1;37mDESINSTALAR XRAY                  \033[0;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m14\033[1;31m] \033[1;37m• \033[1;37mVOLTAR <<<                        \033[0;36m┃"
-        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m00\033[1;31m] \033[1;37m• \033[1;37mSAIR <<<                          \033[0;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m01\033[1;31m] \033[1;37m• \033[1;37mINSTALAR/REPARAR XRAY                 \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m02\033[1;31m] \033[1;37m• \033[1;37mALTERAR PROTOCOLO (genérico)          \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m03\033[1;31m] \033[1;37m• \033[1;37mATIVAR TLS                            \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m04\033[1;31m] \033[1;37m• \033[1;33mATIVAR/CONFIGURAR VLESS+XTLS          \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m05\033[1;31m] \033[1;37m• \033[1;37mALTERAR PORTA XRAY                    \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m06\033[1;31m] \033[1;37m• \033[1;37mADICIONAR USUARIO UUID                \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m07\033[1;31m] \033[1;37m• \033[1;37mELIMINAR USUARIO UUID                 \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m08\033[1;31m] \033[1;37m• \033[1;37mMOSTRAR USUARIOS REGISTRADOS          \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m09\033[1;31m] \033[1;37m• \033[1;37mINFORMAÇÃO DA CONTA                   \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m10\033[1;31m] \033[1;37m• \033[1;37mESTATÍSTICAS DE CONSUMO               \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m11\033[1;31m] \033[1;37m• \033[1;37mLIMITADOR POR CONSUMO                 \033[1;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m12\033[1;31m] \033[1;37m• \033[1;37mLIMPADOR DE EXPIRADOS $statgen              \033[0;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m13\033[1;31m] \033[1;37m• \033[1;37mDESINSTALAR XRAY                      \033[0;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m14\033[1;31m] \033[1;37m• \033[1;37mVOLTAR <<<                            \033[0;36m┃"
+        echo -e "\033[1;36m┃\033[1;31m[\033[1;36m00\033[1;31m] \033[1;37m• \033[1;37mSAIR <<<                              \033[0;36m┃"
         echo -e "\033[1;36m┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\033[0m"
         tput civis
         echo -ne "\033[1;36m┗➤\033[1;32m ESCOLHA UMA OPÇÃO \033[1;32m?\033[1;37m: "
@@ -517,7 +511,7 @@ fun_xraymanager() {
         1 | 01) intall_xray ;;
         2 | 02) protocol_xray ;;
         3 | 03) tls ;;
-        4 | 04) ativar_vless_xtls ;; # Nova opção chama a nova função
+        4 | 04) ativar_vless_xtls ;;
         5 | 05) port_xray ;;
         6 | 06) addusr ;;
         7 | 07) delusr ;;
@@ -527,7 +521,7 @@ fun_xraymanager() {
         11) lim_port ;;
         12) limpiador_activador ;;
         13) uninstall_xray ;;
-        14) conexao; exit ;; # Função 'conexao' não definida; ajustar conforme necessário
+        14) exit ;; # Ajustado para sair corretamente
         0 | 00) echo -e "\033[1;31mSaindo...\033[0m"; sleep 1; clear; exit ;;
         *) echo -e "\033[1;31mOpção inválida!\033[0m"; sleep 2 ;;
         esac

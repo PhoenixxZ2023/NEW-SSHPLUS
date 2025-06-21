@@ -1,7 +1,7 @@
 #!/bin/bash
 # EDIT: Adaptado para XRay por Grok
 # Acessível como https://multi.netlify.app/go.sh (original), modificado para XRay
-# MODIFICAÇÃO: Adicionado "alterId": 0 para compatibilidade com xray info.
+# MODIFICAÇÃO FINAL: Gera uma configuração VMess válida por padrão para evitar bugs.
 
 # Códigos de retorno:
 # 0: Sucesso
@@ -306,20 +306,19 @@ installXRay(){
     if [ ! -f /etc/xray/config.json ]; then
         local port="$(($RANDOM + 10000))"
         local uuid="$(cat '/proc/sys/kernel/random/uuid')"
+        # Gera uma configuração VMess limpa e correta
         cat > /etc/xray/config.json <<EOF
 {
   "inbounds": [{
     "port": ${port},
-    "protocol": "vless",
+    "protocol": "vmess",
     "settings": {
       "clients": [
         {
           "id": "${uuid}",
-          "level": 0,
           "alterId": 0
         }
-      ],
-      "decryption": "none"
+      ]
     },
     "streamSettings": {
       "network": "tcp"

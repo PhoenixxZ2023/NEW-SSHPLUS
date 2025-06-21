@@ -214,39 +214,40 @@ echo ""
 TCP_PORTS=(80 8080 8443 443 5454 5000 8799 1194 7505 8081 8089 444 445 2053 2052)
 UDP_PORTS=(7300 7200 7100)
 install_firewall() {
-    set -e
-    local FIREWALL=""
-    echo -e "\033[1;36mDetectando firewall ativo...\033[0m"
-    if systemctl is-active --quiet firewalld; then
-        FIREWALL="firewalld"
-    elif command -v ufw &>/dev/null && ufw status &>/dev/null; then
-        FIREWALL="ufw"
-    else
-        echo -e "\033[1;31mNenhum firewall compatível (firewalld ou ufw) parece estar ativo ou instalado.\033[0m"
-        exit 1
-    fi
+# VERIFICAR SE O UFW ESTÁ INSTALADO
+if ! command -v ufw &> /dev/null; then
+  echo -e "\033[1;33mUFW NÃO ESTÁ INSTALADO. INSTALANDO...\033[0m"
+  apt-get update
+  apt-get install -y ufw
+else
+  echo -e "\033[1;32mO UFW JÁ ESTÁ INSTALADO.\033[0m"
+fi
 
-    echo -e "\033[1;32mFirewall detectado: ${FIREWALL}. Iniciando configuração...\033[0m"
+# ABRIR AS PORTAS TCP UMA POR UMA
+echo -e "\033[1;33mCONFIGURANDO PORTAS TCP...\033[0m"
+for port in "${TCP_PORTS[@]}"; do
+    ufw allow "$port"/tcp
+    echo -e "  -> Porta $port/tcp liberada."
+done
 
-    if [ "$FIREWALL" = "firewalld" ]; then
-        echo -e "\033[1;33mConfigurando regras para TCP...\033[0m"
-        for port in "${TCP_PORTS[@]}"; do firewall-cmd --zone=public --permanent --add-port="${port}/tcp"; done
-        echo -e "\033[1;33mConfigurando regras para UDP...\033[0m"
-        for port in "${UDP_PORTS[@]}"; do firewall-cmd --zone=public --permanent --add-port="${port}/udp"; done
-        echo -e "\033[1;33mRecarregando firewalld para aplicar as regras...\033[0m"
-        firewall-cmd --reload
-        echo -e "\033[1;32mRegras do firewalld configuradas com sucesso!\033[0m"
-        echo -e "\033[1;36mVerificando status final:\033[0m"
-        firewall-cmd --list-all --zone=public
-    elif [ "$FIREWALL" = "ufw" ]; then
-        echo -e "\033[1;33mAtivando UFW, se necessário...\033[0m"
-        ufw --force enable
-        echo -e "\033[1;33mConfigurando regras para TCP...\033[0m"
-        for port in "${TCP_PORTS[@]}"; do ufw allow "${port}/tcp"; done
-        echo -e "\033[1;33mConfigurando regras para UDP...\033[0m"
-        for port in "${UDP_PORTS[@]}"; do ufw allow "${port}/udp"; done
-        echo -e "\033[1;32mRegras do UFW configuradas com sucesso!\033[0m"
-    fi
+# ABRIR AS PORTAS UDP UMA POR UMA
+echo -e "\033[1;33mCONFIGURANDO PORTAS UDP...\033[0m"
+for port in "${UDP_PORTS[@]}"; do
+    ufw allow "$port"/udp
+    echo -e "  -> Porta $port/udp liberada."
+done
+
+# ATIVAR O UFW (SE ESTIVER INATIVO) DE FORMA NÃO INTERATIVA
+if ! ufw status | grep -q "Status: active"; then
+  echo -e "\033[1;33mO UFW NÃO ESTÁ ATIVO. ATIVANDO-O...\033[0m"
+  ufw --force enable
+fi
+
+# REMOVER O NETFILTER-PERSISTENT SE EXISTIR
+if dpkg -s netfilter-persistent &> /dev/null; then
+    echo -e "\033[1;33mREMOVENDO PACOTE CONFLITANTE 'NETFILTER-PERSISTENT'...\033[0m"
+    apt-get remove -y netfilter-persistent
+fi
 }
 fun_bar "install_firewall"
 

@@ -73,7 +73,6 @@ echo ""
     echo "/bin/menu" >/bin/h && chmod +x /bin/h >/dev/null 2>&1
     rm versao* >/dev/null 2>&1
     wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/versao >/dev/null 2>&1
-    wget https://iplogger.org/10BEq > /dev/null 2>&1
     rm 2lHZ43 > /dev/null 2>&1
     cd /bin/ > /dev/null 2>&1
     rm xraymanager >/dev/null 2>&1

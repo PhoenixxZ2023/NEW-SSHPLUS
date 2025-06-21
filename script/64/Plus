@@ -84,23 +84,22 @@ echo ""
 [[ -f "$HOME/usuarios.db" ]] && {
 tput reset
 echo -e "\033[0;34m┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓\033[0m"
-echo -e "\033[0;34m┃               \033[1;37m• \033[1;31mATENCAO \033[1;37m•               \033[0;34m┃"
+echo -e "\033[0;34m┃                   \033[1;37m• \033[1;31mATENCAO \033[1;37m•                   \033[0;34m┃"
 echo -e "\033[0;34m┠━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┨\033[0m"
-echo -e "\033[0;34m┃\033[1;37mUMA BASE DE DADOS DE USUÁRIO \033[1;32m(usuarios.db) \033[1;37mFoi    \033[0;34m┃"
-echo -e "\033[0;34m┃\033[1;37mENCONTRADA! DESEJA MANTE-LA PRESERVANDO O LIMITE  \033[0;34m┃"
-echo -e "\033[0;34m┃\033[1;37mDE CONEXÕES SIMULTÂNEAS DE USUARIOS? OU DESEJA    \033[0;34m┃"
-echo -e "\033[0;34m┃\033[1;37mCRIAR UMA NOVA BASE ?                           \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;37mUMA BASE DE DADOS DE USUÁRIO \033[1;32m(usuarios.db) \033[1;37mFoi   \033[0;34m┃" 
+echo -e "\033[0;34m┃\033[1;37mENCONTRADA! DESEJA MANTE-LA PRESERVANDO O LIMITE \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;37mDE CONEXÕES SIMULTÂNEAS DE USUARIOS? OU DESEJA   \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;37mCRIAR UMA NOVA BASE ?                            \033[0;34m┃"
 echo -e "\033[0;34m┠━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┨\033[0m"
-echo -e "\033[0;34m┃\033[1;37m[\033[1;31m1\033[1;37m] \033[1;37mMANTER BASE DE DADOS ATUAIS                 \033[0;34m┃"
-echo -e "\033[0;34m┃\033[1;37m[\033[1;31m2\033[1;37m] \033[1;37mCRIAR UMA NOVA BASE DE DADOS                \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;37m[\033[1;31m1\033[1;37m] \033[1;37mMANTER BASE DE DADOS ATUAIS                  \033[0;34m┃"
+echo -e "\033[0;34m┃\033[1;37m[\033[1;31m2\033[1;37m] \033[1;37mCRIAR UMA NOVA BASE DE DADOS                 \033[0;34m┃"
 echo -e "\033[0;34m┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛\033[0m"
 echo ""
 tput setaf 2 ; tput bold ; read -p "Opção ?: " -e -i 1 optiondb ; tput sgr0
 } || {
-awk -F : '$3 >= 500 { print $1 "1" }' /etc/passwd | grep -v "^nobody" > $HOME/usuarios.db
+awk -F : "$3 >= 500 { print $1 "1" }" /etc/passwd | grep -v "^nobody" > $HOME/usuarios.db
 }
-[[ "$optiondb" = "2" ]] && awk -F : '$3 >= 500 { print $1 " 1" }' /etc/passwd | grep -v "^nobody" > $HOME/usuarios.db
-
+[[ "$optiondb" = "2" ]] && awk -F : "$3 >= 500 { print $1 " 1" }" /etc/passwd | grep -v "^nobody" > $HOME/usuarios.db
 
 # =================================================================================
 # ========== INÍCIO DAS SEÇÕES MODIFICADAS (AGRUPAMENTO E DETECÇÃO DE SO) =========

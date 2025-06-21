@@ -211,52 +211,59 @@ echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━�
 echo ""
 echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mMODIFICAÇÕES REDE FIREWALL  \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
 echo ""
-# Verificar firewall ativo
-install_firewall(){
-if systemctl is-active --quiet firewalld && command -v firewall-cmd &>/dev/null; then
-  FIREWALL="firewalld"
-elif command -v ufw &>/dev/null && ufw status >/dev/null 2>&1; then
-  FIREWALL="ufw"
-else
-  echo "Nenhum firewall ativo (firewalld ou ufw)."
-  exit 1
-fi
+TCP_PORTS=(80 8080 8443 443 5454 5000 8799 1194 7505 8081 8089 444 445 2053 2052)
+UDP_PORTS=(7300 7200 7100)
+install_firewall() {
+    set -e
 
-echo "Configurando $FIREWALL..."
+    local FIREWALL=""
 
-# Configurar firewalld
-if [ "$FIREWALL" = "firewalld" ]; then
-  portas_firewalld=(80 81 443 2053 1194 8080 8443 5454 8888 7505)
-  for porta in "${portas_firewalld[@]}"; do
-    sudo firewall-cmd --zone=public --permanent --add-port="${porta}/tcp"
-  done
-  sudo firewall-cmd --zone=public --permanent --add-port=7300/udp
-  sudo firewall-cmd --reload
-  echo "Regras do firewalld configuradas."
-  sudo firewall-cmd --list-all --zone=public
+    echo -e "\033[1;36mDetectando firewall ativo...\033[0m"
+    if systemctl is-active --quiet firewalld; then
+        FIREWALL="firewalld"
+    elif command -v ufw &>/dev/null && ufw status &>/dev/null; then
+        FIREWALL="ufw"
+    else
+        echo -e "\033[1;31mNenhum firewall compatível (firewalld ou ufw) parece estar ativo ou instalado.\033[0m"
+        exit 1
+    fi
 
-# Configurar ufw
-elif [ "$FIREWALL" = "ufw" ]; then
-  portas_ufw=(80 443 2053 5454 8443 8799 8080 1194 7505)
-  for porta in "${portas_ufw[@]}"; do
-    sudo ufw allow "${porta}/tcp"
-  done
-  echo "Regras do ufw configuradas."
-  sudo ufw status
-fi
+    echo -e "\033[1;32mFirewall detectado: ${FIREWALL}. Iniciando configuração...\033[0m"
 
-# Limpar todas las reglas existentes
-iptables -F
+    if [ "$FIREWALL" = "firewalld" ]; then
+        echo -e "\033[1;33mConfigurando regras para TCP...\033[0m"
+        for port in "${TCP_PORTS[@]}"; do
+            firewall-cmd --zone=public --permanent --add-port="${port}/tcp"
+        done
 
-# Permitir todo el trafico de entrada y salidas
-iptables -P INPUT ACCEPT
-iptables -P OUTPUT ACCEPT
+        echo -e "\033[1;33mConfigurando regras para UDP...\033[0m"
+        for port in "${UDP_PORTS[@]}"; do
+            firewall-cmd --zone=public --permanent --add-port="${port}/udp"
+        done
 
-# Guardar las reglas aplicas y reinciar el servicio
-iptables-save > /etc/iptables/rules.v4
+        echo -e "\033[1;33mRecarregando firewalld para aplicar as regras...\033[0m"
+        firewall-cmd --reload
 
-echo "Todas las reglas fueron abiertas Exitosamente."
-rm firewall
+        echo -e "\033[1;32mRegras do firewalld configuradas com sucesso!\033[0m"
+        echo -e "\033[1;36mVerificando status final:\033[0m"
+        firewall-cmd --list-all --zone=public
+
+    elif [ "$FIREWALL" = "ufw" ]; then
+        echo -e "\033[1;33mAtivando UFW, se necessário...\033[0m"
+        ufw --force enable
+
+        echo -e "\033[1;33mConfigurando regras para TCP...\033[0m"
+        for port in "${TCP_PORTS[@]}"; do
+            ufw allow "${port}/tcp"
+        done
+
+        echo -e "\033[1;33mConfigurando regras para UDP...\033[0m"
+        for port in "${UDP_PORTS[@]}"; do
+            ufw allow "${port}/udp"
+        done
+
+        echo -e "\033[1;32mRegras do UFW configuradas com sucesso!\033[0m"
+    fi
 }
 fun_bar "install_firewall"
 

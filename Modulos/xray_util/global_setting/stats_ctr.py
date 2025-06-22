@@ -4,8 +4,10 @@ import os
 import re
 import subprocess
 
-from v2ray_util import run_type
-from ..util_core.v2ray import V2ray
+# MODIFICAÇÃO 1: Corrigido o nome do pacote na importação.
+from xray_util import run_type
+# MODIFICAÇÃO 2: Importa a nova classe 'Xray' do arquivo 'xray.py' renomeado.
+from ..util_core.xray import Xray
 from ..util_core.loader import Loader
 from ..util_core.writer import GlobalWriter
 from ..util_core.utils import bytes_2_human_readable, ColorStr, readchar
@@ -28,12 +30,10 @@ class StatsFactory:
         is_reset = "true" if is_reset else "false"
         type_tag = ("inbound" if is_group else "user")
 
-        if run_type == "xray":
-            stats_cmd = "cd /usr/bin/xray && ./xray api stats --server=127.0.0.1:{} -name \"{}>>>{}>>>traffic>>>{}\""
-            if is_reset == "true":
-                stats_cmd = stats_cmd + " -reset"
-        else:
-            stats_cmd = "cd /usr/bin/v2ray && ./v2ctl api --server=127.0.0.1:{} StatsService.GetStats 'name: \"{}>>>{}>>>traffic>>>{}\"" + " reset: {}'".format(is_reset)
+        # MODIFICAÇÃO 3: Removida a lógica 'else' para v2ray, simplificando para Xray.
+        stats_cmd = "cd /usr/bin/xray && ./xray api stats --server=127.0.0.1:{} -name \"{}>>>{}>>>traffic>>>{}\""
+        if is_reset == "true":
+            stats_cmd = stats_cmd + " -reset"
 
         stats_real_cmd = stats_cmd.format(str(self.door_port), type_tag, meta_info, "downlink")
         self.downlink_value = self.__run_command(stats_real_cmd)
@@ -113,14 +113,16 @@ def manage(stat_type=''):
                     continue
             gw = GlobalWriter(group_list)
             gw.write_stats(True)
-            V2ray.restart()
+            # MODIFICAÇÃO 4: Atualizada a chamada para a classe Xray
+            Xray.restart()
             print(_("open traffic statistics success!"))
             print("")
             
         elif choice == "2":
             gw = GlobalWriter(group_list)
             gw.write_stats(False)
-            V2ray.restart()
+            # MODIFICAÇÃO 5: Atualizada a chamada para a classe Xray
+            Xray.restart()
             print(_("close traffic statistics success!"))
             print("")
 
@@ -134,7 +136,7 @@ def manage(stat_type=''):
 Group: {group.tag}
 IP: {color_ip}
 Port: {group.port}{port_way}
-{node}             
+{node}                  
                     '''.format(group=group, color_ip=ColorStr.fuchsia(group.ip), node=node, port_way=port_way).strip())
                     if node.user_info:
                         sf.get_stats(node.user_info, False)
@@ -182,8 +184,8 @@ TLS: {tls}
                         for node in group.node_list:
                             if node.user_number == schoice:
                                 if node.user_info:
-                                   sf.get_stats(node.user_info, True)
-                                   sf.print_stats()
+                                    sf.get_stats(node.user_info, True)
+                                    sf.print_stats()
                                 else:
                                     print(_("no effective email!!!"))
                                     print("")

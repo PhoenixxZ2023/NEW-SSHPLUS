@@ -2,10 +2,8 @@
 # -*- coding: utf-8 -*-
 from setuptools import setup, find_packages
 
-# Importa do novo nome da pasta
 import xray_util
 
-# Bloco try/except para evitar o erro do README.md
 try:
     with open("README.md", "r", encoding='UTF-8') as fh:
         long_description = fh.read()
@@ -25,18 +23,8 @@ setup(
     license='GPL',
     packages=find_packages(),
     
-    # Esta seção garante que todos os arquivos que não são .py sejam incluídos.
-    # É a solução definitiva para o erro dos arquivos de tradução.
+    # Esta linha diz ao setup para procurar e usar o arquivo MANIFEST.in
     include_package_data=True,
-    package_data={
-        'xray_util': [
-            'locale_i18n/en_US/LC_MESSAGES/lang.mo',
-            'locale_i18n/zh_CH/LC_MESSAGES/lang.mo',
-            'json_template/*.json',
-            'global_setting/*.sh',
-            'util.cfg'
-        ]
-    },
     
     zip_safe=False,
     python_requires='>=3',

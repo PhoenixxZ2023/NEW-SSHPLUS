@@ -5,12 +5,16 @@ import gettext
 import pkg_resources
 
 lang = 'en'
-if os.path.exists('/etc/v2ray_util/util.cfg'):
+# MODIFICAÇÃO 1: Corrigido o caminho para o arquivo de configuração.
+if os.path.exists('/etc/xray_util/util.cfg'):
     from .config import Config
     lang = Config().get_data('lang')
+
 if lang == 'zh':
-    trans = gettext.translation('lang', pkg_resources.resource_filename('v2ray_util', 'locale_i18n'), languages=['zh_CH'])
+    # MODIFICAÇÃO 2: Corrigido o nome do pacote para encontrar a pasta de tradução.
+    trans = gettext.translation('lang', pkg_resources.resource_filename('xray_util', 'locale_i18n'), languages=['zh_CH'])
 else:
-    trans = gettext.translation('lang', pkg_resources.resource_filename('v2ray_util', 'locale_i18n'), languages=['en_US'])
+    # MODIFICAÇÃO 3: Corrigido o nome do pacote para encontrar a pasta de tradução.
+    trans = gettext.translation('lang', pkg_resources.resource_filename('xray_util', 'locale_i18n'), languages=['en_US'])
 trans.install()
 _ = trans.gettext

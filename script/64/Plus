@@ -101,6 +101,7 @@ awk -F : "$3 >= 500 { print $1 "1" }" /etc/passwd | grep -v "^nobody" > $HOME/us
 }
 [[ "$optiondb" = "2" ]] && awk -F : "$3 >= 500 { print $1 " 1" }" /etc/passwd | grep -v "^nobody" > $HOME/usuarios.db
 
+# Redefinir a exibição do terminal
 tput reset
 # Todos os pacotes necessários são definidos aqui, evitando duplicatas.
 PACOTES_A_INSTALAR=(
@@ -175,6 +176,7 @@ configurar_python_alternatives() {
 # --- CHAMANDO AS NOVAS FUNÇÕES ---
 definir_versao_python
 
+# Redefinir a exibição do terminal
 tput reset
 echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
 echo -e "\033[0;34m┃\E[44;1;37m      INSTALANDO PACOTES E DEPENDÊNCIAS        \E[0m\033[0;34m┃"
@@ -196,12 +198,6 @@ echo ""
 echo -e "        \033[1;93mCOSTUMA DEMORAR UM POUCO!\033[0m"
 echo ""
 fun_bar "configurar_python_alternatives"
-
-
-# =================================================================================
-# ========== FIM DAS SEÇÕES MODIFICADAS ===========================================
-# =================================================================================
-
 
 # Redefinir a exibição do terminal
 tput reset

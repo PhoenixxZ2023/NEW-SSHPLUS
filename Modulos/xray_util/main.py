@@ -4,7 +4,8 @@ import os
 import sys
 import subprocess
 
-from v2ray_util import run_type
+# MODIFICAÇÃO 1: Importando a partir do novo nome do pacote
+from xray_util import run_type
 from .util_core.v2ray import V2ray
 from .util_core.utils import ColorStr, open_port, loop_input_choice_number
 from .global_setting import stats_ctr, iptables_ctr, ban_bt, update_timer
@@ -15,6 +16,7 @@ def help():
     from .util_core.config import Config
     lang = Config().get_data('lang')
     if lang == 'zh':
+        # (Texto em Chinês mantido como original)
         print("""
 {0} [-h|help] [options]
     -h, help             查看帮助
@@ -26,7 +28,7 @@ def help():
     new                  重建新的{bin} json配置文件
     update               更新 {bin} 到最新Release版本
     update [version]     更新 {bin} 到指定版本
-    update.sh            更新 multi-v2ray 到最新版本
+    update.sh            更新 NEW-SSHPLUS 到最新版本
     add                  新增端口组
     add [protocol]       新增一种协议的组, 端口随机, 如 {bin} add utp 为新增utp协议
     del                  删除端口组
@@ -43,6 +45,7 @@ def help():
     rm                   卸载{bin}
         """.format(exec_name[exec_name.rfind("/") + 1:], bin=run_type))
     else:
+        # MODIFICAÇÃO 3: Pequeno ajuste no texto de ajuda
         print("""
 {0} [-h|help] [options]
     -h, help             get help
@@ -54,7 +57,7 @@ def help():
     new                  create new json profile
     update               update {bin} to latest
     update [version]     update {bin} to special version
-    update.sh            update multi-v2ray to latest
+    update.sh            update NEW-SSHPLUS to latest
     add                  add new group
     add [protocol]       create special protocol, random new port
     del                  delete port group
@@ -73,8 +76,12 @@ def help():
 
 def updateSh():
     if os.path.exists("/.dockerenv"):
-        subprocess.Popen("pip install -U v2ray_util", shell=True).wait()
+        # MODIFICAÇÃO 2: Alterado para instalar/atualizar a partir do SEU repositório GitHub
+        print(ColorStr.yellow("Atualizando para a versão mais recente do seu repositório..."))
+        command = 'pip install -U "git+https://github.com/PhoenixxZ2023/NEW-SSHPLUS.git#subdirectory=Modulos"'
+        subprocess.Popen(command, shell=True).wait()
     else:
+        # Este trecho baixa um script de instalação externo, mantido como original
         subprocess.Popen("curl -Ls https://multi.netlify.app/v2ray.sh -o temp.sh", shell=True).wait()
         subprocess.Popen("bash temp.sh -k && rm -f temp.sh", shell=True).wait()
 
@@ -179,7 +186,7 @@ def user_manage():
 
 def profile_alter():
     show_text = (_("modify email"), _("modify UUID"), _("modify alterID"), _("modify port"), _("modify stream"), _("modify tls"), 
-                _("modify tcpFastOpen"), _("modify dyn_port"), _("modify shadowsocks method"), _("modify shadowsocks password"), _("CDN mode(need domain)"))
+                 _("modify tcpFastOpen"), _("modify dyn_port"), _("modify shadowsocks method"), _("modify shadowsocks password"), _("CDN mode(need domain)"))
     print("")
     for index, text in enumerate(show_text): 
         print("{}.{}".format(index + 1, text))

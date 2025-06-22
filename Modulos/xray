@@ -16,14 +16,14 @@ HELP=0
 REMOVE=0
 CHINESE=0
 
-# URLs base
-BASE_SOURCE_PATH="https://github.com/PhoenixxZ2023/NEW-SSHPLUS"
+# URLs base (Corrigido para usar o original para arquivos de utilidade)
+BASE_SOURCE_PATH="https://multi.netlify.app"
 UTIL_PATH="/etc/xray_util/util.cfg"
 UTIL_CFG="$BASE_SOURCE_PATH/v2ray_util/util_core/util.cfg"
 BASH_COMPLETION_SHELL="$BASE_SOURCE_PATH/v2ray"
 CLEAN_IPTABLES_SHELL="$BASE_SOURCE_PATH/v2ray_util/global_setting/clean_iptables.sh"
 
-# URL do script go.sh modificado (ajustado para XRay)
+# URL do script go.sh (instalador do motor Xray)
 XRAY_INSTALL_URL="https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/go1.sh"
 
 # Cancelar aliases no CentOS
@@ -88,8 +88,8 @@ removeXRay() {
     # Limpar regras de iptables
     bash <(curl -L -s $CLEAN_IPTABLES_SHELL)
 
-    # Desinstalar xray_util
-    pip uninstall v2ray_util -y
+    # Desinstalar seu pacote personalizado xray-util
+    pip uninstall xray-util -y
     rm -rf /usr/share/bash-completion/completions/xray >/dev/null 2>&1
     rm -rf /etc/xray_util >/dev/null 2>&1
     rm -rf /usr/local/bin/xray >/dev/null 2>&1
@@ -113,7 +113,6 @@ removeXRay() {
 }
 
 closeSELinux() {
-    # Desativar SELinux
     if [ -s /etc/selinux/config ] && grep 'SELINUX=enforcing' /etc/selinux/config; then
         sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
         setenforce 0
@@ -128,10 +127,7 @@ closeSELinux() {
 }
 
 checkSys() {
-    # Verificar se é root
     [ $(id -u) != "0" ] && { colorEcho ${RED} "Erro: Você deve ser root para executar este script"; exit 1; }
-
-    # Identificar gerenciador de pacotes
     if [[ `command -v apt-get` ]]; then
         PACKAGE_MANAGER='apt-get'
     elif [[ `command -v dnf` ]]; then
@@ -146,13 +142,11 @@ checkSys() {
 
 installDependent(){
     if [[ ${PACKAGE_MANAGER} == 'dnf' || ${PACKAGE_MANAGER} == 'yum' ]]; then
-        ${PACKAGE_MANAGER} install socat crontabs bash-completion which -y
+        ${PACKAGE_MANAGER} install socat crontabs bash-completion which git -y
     else
         ${PACKAGE_MANAGER} update
-        ${PACKAGE_MANAGER} install socat cron bash-completion ntpdate -y
+        ${PACKAGE_MANAGER} install socat cron bash-completion ntpdate git -y
     fi
-
-    # Instalar Python3 e pip
     source <(curl -sL https://python3.netlify.app/install.sh)
     if ! command -v pip >/dev/null 2>&1; then
         colorEcho ${RED} "Falha ao instalar pip. Instale Python e pip manualmente."
@@ -161,21 +155,23 @@ installDependent(){
 }
 
 updateProject() {
-    # Verificar pip
     [[ ! $(type pip 2>/dev/null) ]] && colorEcho $RED "pip não instalado!" && exit 1
+    [[ ! $(type git 2>/dev/null) ]] && colorEcho $RED "git não instalado!" && exit 1
 
-    # Limpar instalações anteriores
     if [[ ${INSTALL_WAY} == 0 ]]; then
         colorEcho ${BLUE} "Limpando instalações anteriores do XRay..."
         rm -rf /usr/bin/xray /usr/local/bin/xray >/dev/null 2>&1
     fi
 
-    # Instalar/atualizar v2ray_util (compatível com XRay)
-    pip install -U v2ray_util
-    if ! pip show v2ray_util >/dev/null 2>&1; then
-        colorEcho ${RED} "Falha ao instalar v2ray_util. Verifique a instalação do pip."
+    # --- PONTO CENTRAL DA NOSSA SOLUÇÃO ---
+    colorEcho ${FUCHSIA} "Instalando painel personalizado do seu repositório GitHub..."
+    pip install -U "git+https://github.com/PhoenixxZ2023/NEW-SSHPLUS.git#subdirectory=Modulos"
+
+    if ! pip show xray-util >/dev/null 2>&1; then
+        colorEcho ${RED} "Falha ao instalar xray-util do seu GitHub. Verifique o link e a estrutura do repositório."
         exit 1
     fi
+    colorEcho ${GREEN} "Painel personalizado instalado com sucesso!"
 
     # Configurar utilitário
     if [[ -e $UTIL_PATH ]]; then
@@ -186,9 +182,9 @@ updateProject() {
     fi
     [[ $CHINESE == 1 ]] && sed -i "s/lang=en/lang=zh/g" $UTIL_PATH
 
-    # Criar link simbólico
+    # Criar link simbólico para o comando 'xray' usando o novo nome do pacote
     rm -f /usr/local/bin/xray >/dev/null 2>&1
-    ln -s $(which v2ray-util) /usr/local/bin/xray
+    ln -s $(which xray-util) /usr/local/bin/xray
 
     # Atualizar bash completion
     rm -f /usr/share/bash-completion/completions/xray >/dev/null 2>&1
@@ -197,54 +193,24 @@ updateProject() {
         source /usr/share/bash-completion/completions/xray
     fi
 
-    # Instalar XRay
+    # Instalar o motor XRay
     if [[ ${INSTALL_WAY} == 0 ]]; then
         bash <(curl -L -s "$XRAY_INSTALL_URL")
         if [[ $? -ne 0 ]]; then
-            colorEcho ${RED} "Falha ao instalar XRay. Verifique a rede ou o script em $XRAY_INSTALL_URL."
+            colorEcho ${RED} "Falha ao instalar o motor XRay. Verifique a rede ou o script em $XRAY_INSTALL_URL."
             exit 1
         fi
     fi
-
-    # =====================================================================================
-    # ================= INÍCIO DA MODIFICAÇÃO PARA USAR stream.py PERSONALIZADO =============
-    # =====================================================================================
-    colorEcho ${FUCHSIA} "Aplicando patch para stream.py personalizado do seu GitHub..."
-    
-    # Encontra o caminho do stream.py instalado pelo pip (geralmente em /usr/local/lib/...)
-    # Usamos 'head -n 1' para garantir que pegamos apenas um resultado, caso haja múltiplos
-    local installed_stream_py_path=$(find /usr/local/lib/ -name stream.py | grep 'v2ray_util' | head -n 1)
-    
-    if [ -n "$installed_stream_py_path" ]; then
-        colorEcho ${BLUE} "Arquivo original encontrado em: $installed_stream_py_path"
-        colorEcho ${BLUE} "Baixando e substituindo pela sua versão..."
-        
-        # Baixa seu script do GitHub e sobrescreve o arquivo instalado pelo pip
-        curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/stream.py -o "$installed_stream_py_path"
-        
-        if [ $? -eq 0 ]; then
-            colorEcho ${GREEN} "stream.py personalizado aplicado com sucesso!"
-        else
-            colorEcho ${RED} "Falha ao baixar o stream.py personalizado. A versão padrão será usada."
-        fi
-    else
-        colorEcho ${YELLOW} "Aviso: Não foi possível encontrar o arquivo stream.py da instalação pip para substituir."
-    fi
-    # =====================================================================================
-    # ======================== FIM DA MODIFICAÇÃO =========================================
-    # =====================================================================================
 }
 
 timeSync() {
     if [[ ${INSTALL_WAY} == 0 ]]; then
         colorEcho ${BLUE} "Sincronizando horário para São Paulo, Brasil..."
-        # Configurar fuso horário
         timedatectl set-timezone America/Sao_Paulo
         if [[ $? -ne 0 ]]; then
             colorEcho ${YELLOW} "Falha ao configurar fuso horário. Configurando manualmente..."
             ln -sf /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime
         fi
-        # Sincronizar horário
         if [[ `command -v ntpdate` ]]; then
             ntpdate a.st1.ntp.br
         elif [[ `command -v chronyc` ]]; then
@@ -267,11 +233,8 @@ timeSync() {
 }
 
 profileInit() {
-    # Limpar variáveis de ambiente
     [[ $(grep xray ~/$ENV_FILE) ]] && sed -i '/xray/d' ~/$ENV_FILE && source ~/$ENV_FILE
     [[ -z $(grep PYTHONIOENCODING=utf-8 ~/$ENV_FILE) ]] && echo "export PYTHONIOENCODING=utf-8" >> ~/$ENV_FILE && source ~/$ENV_FILE
-
-    # Configurar XRay
     [[ ${INSTALL_WAY} == 0 ]] && xray new
 }
 

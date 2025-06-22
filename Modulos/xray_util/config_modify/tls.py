@@ -3,7 +3,8 @@
 import socket
 import os
 
-from ..util_core.v2ray import restart, V2ray
+# MODIFICAÇÃO 1: Importa do arquivo 'xray.py' renomeado e a nova classe 'Xray'.
+from ..util_core.xray import restart, Xray
 from ..util_core.writer import GroupWriter
 from ..util_core.group import Mtproto, SS
 from ..util_core.selector import GroupSelector
@@ -14,7 +15,7 @@ class TLSModifier:
         self.domain = domain
         self.alpn = alpn
         self.writer = GroupWriter(group_tag, group_index)
-    
+
     @restart(True)
     def turn_on(self, need_restart=True):
         cert_list=["letsencrypt", "zerossl", "buypass"]
@@ -52,7 +53,8 @@ class TLSModifier:
                     break
 
             print(_("auto generate SSL certificate, please wait.."))
-            V2ray.stop()
+            # MODIFICAÇÃO 2: Usa o nome da nova classe 'Xray' para parar o serviço.
+            Xray.stop()
             gen_cert(input_domain, cert_list[int(choice) - 1], input_email)
             crt_file = "/root/.acme.sh/" + input_domain +"_ecc"+ "/fullchain.cer"
             key_file = "/root/.acme.sh/" + input_domain +"_ecc"+ "/"+ input_domain +".key"

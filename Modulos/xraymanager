@@ -493,13 +493,7 @@ fun_xraymanager() {
         10) lim_port ;;
         11) limpiador_activador ;;
         12) uninstall_xray ;;
-        13)
-            # A função 'conexao' não está definida neste script.
-            # Se for um script separado, você precisa chamá-lo com o caminho completo.
-            # Exemplo: /path/to/conexao
-            # Se for para voltar ao menu principal do sistema, talvez 'exit' ou 'return' seja o suficiente.
-            exit 0
-            ;;
+        13) conexao ;;
         14) ativar_vless_xtls_direto ;; # MODIFICAÇÃO: Chamada para a nova função
         0 | 00) echo -e "\033[1;31mSaindo...\033[0m"; sleep 1; clear; exit ;;
         *) echo -e "\033[1;31mOpção inválida!\033[0m"; sleep 2 ;;

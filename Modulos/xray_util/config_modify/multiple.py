@@ -3,7 +3,8 @@
 import random
 import string
 
-from ..util_core.v2ray import restart
+# MODIFICAÇÃO ÚNICA: Corrigido o nome do arquivo importado de 'v2ray' para 'xray'.
+from ..util_core.xray import restart
 from ..util_core.loader import Loader
 from ..util_core.writer import NodeWriter
 from ..util_core.group import Vmess, Socks, Mtproto, SS, Vless, Trojan
@@ -72,7 +73,7 @@ def new_user():
                         elif node.user_info == email:
                             print(_("have same email, please input other"))
                             is_duplicate_email = True
-                            break              
+                            break
                 if not is_duplicate_email:
                     break
 

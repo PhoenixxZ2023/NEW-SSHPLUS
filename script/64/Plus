@@ -101,11 +101,7 @@ awk -F : "$3 >= 500 { print $1 "1" }" /etc/passwd | grep -v "^nobody" > $HOME/us
 }
 [[ "$optiondb" = "2" ]] && awk -F : "$3 >= 500 { print $1 " 1" }" /etc/passwd | grep -v "^nobody" > $HOME/usuarios.db
 
-# =================================================================================
-# ========== INÍCIO DAS SEÇÕES MODIFICADAS (AGRUPAMENTO E DETECÇÃO DE SO) =========
-# =================================================================================
-
-# --- 1. LISTA ÚNICA DE PACOTES ---
+tput reset
 # Todos os pacotes necessários são definidos aqui, evitando duplicatas.
 PACOTES_A_INSTALAR=(
     lolcat iproute2 toilet curl git figlet boxes net-tools procps sysstat
@@ -184,7 +180,9 @@ echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━�
 echo -e "\033[0;34m┃\E[44;1;37m      INSTALANDO PACOTES E DEPENDÊNCIAS        \E[0m\033[0;34m┃"
 echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
 echo ""
-echo -e " \033[1;93mISSO PODE DEMORAR ALGUNS MINUTOS. POR FAVOR, AGUARDE...\033[0m"
+echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO PACOTES  \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
+echo ""
+echo -e " \033[1;93mALGUNS PACOTES SÃO EXTREMAMENTE NECESSÁRIOS!\033[0m"
 echo ""
 fun_bar "instalar_pacotes_agrupados"
 
@@ -192,6 +190,10 @@ tput reset
 echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
 echo -e "\033[0;34m┃\E[44;1;37m        CONFIGURANDO AMBIENTE PYTHON           \E[0m\033[0;34m┃"
 echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
+echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mINSTALANDO PYTHON \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
+echo ""
+echo -e "        \033[1;93mCOSTUMA DEMORAR UM POUCO!\033[0m"
 echo ""
 fun_bar "configurar_python_alternatives"
 
@@ -257,6 +259,10 @@ tput reset
 echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
 echo -e "\033[0;34m┃\E[44;1;37m           INSTALANDO MULTI PROXY             \E[0m\033[0;34m┃"
 echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
+echo -e "       \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[1;97mSUPER MULTI PROTOCOLO \033[1;91m[\033[1;31m⚠️ \033[1;91m] \033[0m"
+echo ""
+echo -e "        \033[1;93mCOSTUMA DEMORAR UM POUCO!\033[0m"
 echo ""
 super_proxy() {
 # instalando rustyproxy by @UlekBR

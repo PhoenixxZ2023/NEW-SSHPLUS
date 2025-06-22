@@ -1,183 +1,276 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-import random
-import string
+#!/bin/bash
+# EDIT: @TURBONET2023, adaptado para XRay por Grok
+# github: https://github.com/PhoenixxZ2023/NEW-SSHPLUS
 
-# MODIFICAÇÃO 1: Corrigido o nome do pacote na importação.
-from xray_util import run_type
-from ..util_core.v2ray import restart
-from ..util_core.writer import StreamWriter, GroupWriter
-from ..util_core.selector import GroupSelector, CommonSelector
-from ..util_core.utils import StreamType, header_type_list, ColorStr, all_port, xtls_flow, readchar
+# Horário de tarefas agendadas (0~23, horário de São Paulo, Brasil)
+SAO_PAULO_UPDATE_TIME=3
 
-from .ss import SSFactory
+# Caminho inicial do script
+BEGIN_PATH=$(pwd)
 
-class StreamModifier:
-    def __init__(self, group_tag='A', group_index=-1):
-        self.stream_type = [
-            (StreamType.TCP, "TCP"),
-            (StreamType.TCP_HOST, "Fake HTTP"),
-            (StreamType.WS, "WebSocket"),
-            (StreamType.KCP, "mKCP"),
-            (StreamType.KCP_SRTP, "mKCP + srtp"),
-            (StreamType.KCP_UTP, "mKCP + utp"),
-            (StreamType.KCP_WECHAT, "mKCP + wechat-video"),
-            (StreamType.KCP_DTLS, "mKCP + dtls"),
-            (StreamType.KCP_WG, "mKCP + wireguard"),
-            (StreamType.H2, "HTTP/2"),
-            (StreamType.SOCKS, "Socks5"),
-            (StreamType.MTPROTO, "MTProto"),
-            (StreamType.SS, "Shadowsocks"),
-            (StreamType.QUIC, "Quic"),
-            (StreamType.GRPC, "gRPC"),
-            (StreamType.VLESS_KCP, "VLESS + mkcp"),
-            (StreamType.VLESS_UTP, "VLESS + mKCP + utp"),
-            (StreamType.VLESS_SRTP, "VLESS + mKCP + srtp"),
-            (StreamType.VLESS_WECHAT, "VLESS + mKCP + wechat-video"),
-            (StreamType.VLESS_DTLS, "VLESS + mKCP + dtls"),
-            (StreamType.VLESS_WG, "VLESS + mKCP + wireguard"),
-            (StreamType.VLESS_TCP, "VLESS_TCP"),
-            # MODIFICAÇÃO 2: Nome da opção no menu alterado para clareza.
-            (StreamType.VLESS_TLS, "VLESS + XTLS (Recomendado)"),
-            (StreamType.VLESS_WS, "VLESS_WS"),
-            (StreamType.VLESS_REALITY, "VLESS_REALITY"),
-            (StreamType.VLESS_GRPC, "VLESS_GRPC"),
-            (StreamType.TROJAN, "Trojan"),
-        ]
-        self.group_tag = group_tag
-        self.group_index = group_index
+# Modo de instalação: 0 para nova, 1 para manter configurações
+INSTALL_WAY=0
 
-    def select(self, sType):
-        sw = StreamWriter(self.group_tag, self.group_index, sType)
-        kw = {}
-        if sType in (StreamType.TCP_HOST, StreamType.WS):
-            host = input(_("please input fake domain: "))
-            kw['host'] = host
-        elif sType == StreamType.SOCKS:
-            user = input(_("please input socks user: "))
-            password = input(_("please input socks password: "))
-            if user == "" or password == "":
-                print(_("socks user or password is null!!"))
-                exit(-1)
-            kw = {'user': user, 'pass': password}
-        elif sType == StreamType.SS:
-            sf = SSFactory()
-            kw = {"method": sf.get_method(), "password": sf.get_password()}
-        elif sType == StreamType.QUIC:
-            key = ""
-            security_list = ('none', "aes-128-gcm", "chacha20-poly1305")
-            print("")
-            security = CommonSelector(security_list, _("please select ss method: ")).select()
-            if security != "none":
-                key = ''.join(random.sample(string.ascii_letters + string.digits, 8))
-                new_pass = input('{} {}, {}'.format(_("random generate password"), key, _("enter to use, or input customize password: ")))
-                if new_pass:
-                    key = new_pass
+# Variáveis de controle: 0 para não, 1 para sim
+HELP=0
+REMOVE=0
+CHINESE=0
 
-            print("")
-            header = CommonSelector(header_type_list(), _("please select fake header: ")).select()
-            kw = {'security': security, 'key': key, 'header': header}
-        elif sType in (StreamType.VLESS_TLS, StreamType.VLESS_WS, StreamType.VLESS_REALITY, StreamType.VLESS_GRPC):
-            port_set = all_port()
-            # Garante que a porta 443 esteja em uso para VLESS+XTLS ou REALITY
-            if not "443" in port_set and sType in (StreamType.VLESS_TLS, StreamType.VLESS_REALITY):
-                print()
-                print(ColorStr.yellow(_("auto switch 443 port..")))
-                gw = GroupWriter(self.group_tag, self.group_index)
-                gw.write_port(443)
-                sw = StreamWriter(self.group_tag, self.group_index, sType)
-            
-            if sType == StreamType.VLESS_WS:
-                host = input(_("please input fake domain: "))
-                kw['host'] = host
-            
-            # MODIFICAÇÃO 3: Lógica completa para configurar VLESS + XTLS
-            elif sType == StreamType.VLESS_TLS:
-                serverName = input("Por favor, digite seu domínio para o XTLS (serverName): ")
-                if not serverName:
-                    print(ColorStr.red("ERRO: O domínio é obrigatório para VLESS + XTLS."))
-                    return # Retorna para evitar erro
-                
-                # Prepara os parâmetros para o StreamWriter, incluindo flow e serverName
-                kw = {
-                    'flow': xtls_flow()[0],
-                    'serverName': serverName
-                }
-                print(ColorStr.green(f"VLESS + XTLS configurado para o domínio: {serverName}"))
+# URLs base
+BASE_SOURCE_PATH="https://multi.netlify.app"
+UTIL_PATH="/etc/xray_util/util.cfg"
+UTIL_CFG="$BASE_SOURCE_PATH/v2ray_util/util_core/util.cfg"
+BASH_COMPLETION_SHELL="$BASE_SOURCE_PATH/v2ray"
+CLEAN_IPTABLES_SHELL="$BASE_SOURCE_PATH/v2ray_util/global_setting/clean_iptables.sh"
 
-            elif sType == StreamType.VLESS_REALITY:
-                serverName = input(_("please input reality serverName(domain): "))
-                kw = {'flow': xtls_flow()[0]}
-                kw['serverNames'] = [serverName]
-            elif sType == StreamType.VLESS_GRPC and run_type == "xray":
-                choice = readchar(_("open xray grpc multiMode?(y/n): ")).lower()
-                if choice == 'y':
-                    kw = {'mode': 'multi'}
+# URL do script go.sh (instalador do motor Xray)
+XRAY_INSTALL_URL="https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/go1.sh"
 
-        elif sType == StreamType.GRPC:
-            choice = readchar(_("open xray grpc multiMode?(y/n): ")).lower()
-            if choice == 'y':
-                kw = {'mode': 'multi'}
+# Cancelar aliases no CentOS
+[[ -f /etc/redhat-release && -z $(echo $SHELL|grep zsh) ]] && unalias -a
 
-        elif sType == StreamType.TROJAN:
-            port_set = all_port()
-            if not "443" in port_set:
-                print()
-                print(ColorStr.yellow(_("auto switch 443 port..")))
-                gw = GroupWriter(self.group_tag, self.group_index)
-                gw.write_port(443)
-                sw = StreamWriter(self.group_tag, self.group_index, sType)
-            random_pass = ''.join(random.sample(string.digits + string.ascii_letters, 8))
-            tip = _("create random trojan user password:") + ColorStr.cyan(random_pass) + _(", enter to use or input new password: ")
-            password = input(tip)
-            if password == "":
-                password = random_pass
-            kw['password'] = password
-        sw.write(**kw)
+# Definir arquivo de ambiente (Bash ou Zsh)
+[[ -z $(echo $SHELL|grep zsh) ]] && ENV_FILE=".bashrc" || ENV_FILE=".zshrc"
 
-    def random_kcp(self):
-        kcp_list = (StreamType.KCP_SRTP, StreamType.KCP_UTP, StreamType.KCP_WECHAT, StreamType.KCP_DTLS, StreamType.KCP_WG)
-        choice = random.randint(0, 4)
-        print("{}: {} \n".format(_("random generate (srtp | wechat-video | utp | dtls | wireguard) fake header, new protocol"), ColorStr.green(kcp_list[choice].value)))
-        self.select(kcp_list[choice])
+####### Códigos de cores #######
+RED="31m"
+GREEN="32m"
+YELLOW="33m"
+BLUE="36m"
+FUCHSIA="35m"
 
-@restart()
-def modify(group=None, sType=None):
-    need_restart = False
-    if group == None:
-        need_restart = True
-        gs = GroupSelector(_('modify protocol'))
-        group = gs.group
+colorEcho(){
+    COLOR=$1
+    echo -e "\033[${COLOR}${@:2}\033[0m"
+}
 
-    if group == None:
-        pass
-    else:
-        sm = StreamModifier(group.tag, group.index)
+####### Processar parâmetros #######
+while [[ $# > 0 ]]; do
+    key="$1"
+    case $key in
+        --remove)
+        REMOVE=1
+        ;;
+        -h|--help)
+        HELP=1
+        ;;
+        -k|--keep)
+        INSTALL_WAY=1
+        colorEcho ${BLUE} "Manter configurações para atualizar\n"
+        ;;
+        --zh)
+        CHINESE=1
+        colorEcho ${BLUE} "Instalando em chinês..\n"
+        ;;
+        *)
+        ;;
+    esac
+    shift
+done
 
-        if sType != None:
-            sm.select([v for v in StreamType if v.value == sType][0])
-            print(_("modify protocol success"))
-            return
+#############################
 
-        if need_restart:
-            print("")
-            print("{}: {}".format(_("group protocol"), group.node_list[0].stream()))
+help(){
+    echo "bash xray.sh [-h|--help] [-k|--keep] [--remove]"
+    echo "  -h, --help            Mostrar ajuda"
+    echo "  -k, --keep            Manter configurações para atualizar"
+    echo "      --remove          Remover XRay e xray_util"
+    echo "                      Sem parâmetros: nova instalação"
+    return 0
+}
 
-        print("")
-        for index, stream_type in enumerate(sm.stream_type):
-            print("{0}.{1}".format(index + 1, stream_type[1]))
+removeXRay() {
+    # Desinstalar XRay
+    bash <(curl -L -s "$XRAY_INSTALL_URL") --remove >/dev/null 2>&1
+    rm -rf /etc/xray >/dev/null 2>&1
+    rm -rf /var/log/xray >/dev/null 2>&1
 
-        print("")
-        choice = input(_("please select new protocol: "))
+    # Limpar regras de iptables
+    bash <(curl -L -s $CLEAN_IPTABLES_SHELL)
 
-        if not choice.isdecimal():
-            print(_("please input number!"))
-        else:
-            choice = int(choice)
-            if choice > 0 and choice <= len(sm.stream_type):
-                if sm.stream_type[choice - 1][1] in ("MTProto", "Shadowsocks") and group.tls in ('tls', 'reality'):
-                    print(_("{} MTProto/Shadowsocks not support https, close tls success!".format(run_type.capitalize())))
-                sm.select(sm.stream_type[choice - 1][0])
-                print(_("modify protocol success"))
-                if need_restart:
-                    return True
+    # Desinstalar xray_util
+    pip uninstall xray-util -y
+    rm -rf /usr/share/bash-completion/completions/xray >/dev/null 2>&1
+    rm -rf /etc/xray_util >/dev/null 2>&1
+    rm -rf /usr/local/bin/xray >/dev/null 2>&1
+
+    # Remover tarefas agendadas
+    crontab -l|sed '/SHELL=/d;/xray/d' > crontab.txt
+    crontab crontab.txt >/dev/null 2>&1
+    rm -f crontab.txt >/dev/null 2>&1
+
+    if [[ ${PACKAGE_MANAGER} == 'dnf' || ${PACKAGE_MANAGER} == 'yum' ]]; then
+        systemctl restart crond >/dev/null 2>&1
+    else
+        systemctl restart cron >/dev/null 2>&1
+    fi
+
+    # Limpar variáveis de ambiente
+    sed -i '/xray/d' ~/$ENV_FILE
+    source ~/$ENV_FILE
+
+    colorEcho ${GREEN} "XRay desinstalado com sucesso!"
+}
+
+closeSELinux() {
+    # Desativar SELinux
+    if [ -s /etc/selinux/config ] && grep 'SELINUX=enforcing' /etc/selinux/config; then
+        sed -i 's/SELINUX=enforcing/SELINUX=disabled/g' /etc/selinux/config
+        setenforce 0
+    fi
+    if command -v getenforce >/dev/null && [ "$(getenforce)" = "Enforcing" ]; then
+        colorEcho ${YELLOW} "SELinux ainda ativo. Forçando desativação."
+        setenforce 0
+        if [ $? -ne 0 ]; then
+            colorEcho ${RED} "Falha ao desativar SELinux. Pode causar problemas de permissão."
+        fi
+    fi
+}
+
+checkSys() {
+    # Verificar se é root
+    [ $(id -u) != "0" ] && { colorEcho ${RED} "Erro: Você deve ser root para executar este script"; exit 1; }
+
+    # Identificar gerenciador de pacotes
+    if [[ `command -v apt-get` ]]; then
+        PACKAGE_MANAGER='apt-get'
+    elif [[ `command -v dnf` ]]; then
+        PACKAGE_MANAGER='dnf'
+    elif [[ `command -v yum` ]]; then
+        PACKAGE_MANAGER='yum'
+    else
+        colorEcho $RED "Sistema não suportado!"
+        exit 1
+    fi
+}
+
+installDependent(){
+    if [[ ${PACKAGE_MANAGER} == 'dnf' || ${PACKAGE_MANAGER} == 'yum' ]]; then
+        ${PACKAGE_MANAGER} install socat crontabs bash-completion which git -y
+    else
+        ${PACKAGE_MANAGER} update
+        ${PACKAGE_MANAGER} install socat cron bash-completion ntpdate git -y
+    fi
+
+    # Instalar Python3 e pip
+    source <(curl -sL https://python3.netlify.app/install.sh)
+    if ! command -v pip >/dev/null 2>&1; then
+        colorEcho ${RED} "Falha ao instalar pip. Instale Python e pip manualmente."
+        exit 1
+    fi
+}
+
+updateProject() {
+    # Verificar pip e git
+    [[ ! $(type pip 2>/dev/null) ]] && colorEcho $RED "pip não instalado!" && exit 1
+    [[ ! $(type git 2>/dev/null) ]] && colorEcho $RED "git não instalado!" && exit 1
+
+    # Limpar instalações anteriores
+    if [[ ${INSTALL_WAY} == 0 ]]; then
+        colorEcho ${BLUE} "Limpando instalações anteriores do XRay..."
+        rm -rf /usr/bin/xray /usr/local/bin/xray >/dev/null 2>&1
+    fi
+
+    # Instalar o painel diretamente do seu repositório GitHub
+    colorEcho ${FUCHSIA} "Instalando painel personalizado do seu repositório GitHub..."
+    pip install -U "git+https://github.com/PhoenixxZ2023/NEW-SSHPLUS.git#subdirectory=Modulos"
+
+    if ! pip show xray-util >/dev/null 2>&1; then
+        colorEcho ${RED} "Falha ao instalar xray-util do seu GitHub. Verifique o link e a estrutura do repositório."
+        exit 1
+    fi
+    colorEcho ${GREEN} "Painel personalizado instalado com sucesso!"
+
+    # Configurar utilitário
+    if [[ -e $UTIL_PATH ]]; then
+        [[ -z $(cat $UTIL_PATH|grep lang) ]] && echo "lang=en" >> $UTIL_PATH
+    else
+        mkdir -p /etc/xray_util
+        curl -s $UTIL_CFG > $UTIL_PATH
+    fi
+    [[ $CHINESE == 1 ]] && sed -i "s/lang=en/lang=zh/g" $UTIL_PATH
+
+    # Criar link simbólico para o comando 'xray'
+    rm -f /usr/local/bin/xray >/dev/null 2>&1
+    ln -s $(which xray-util) /usr/local/bin/xray
+
+    # Atualizar bash completion
+    rm -f /usr/share/bash-completion/completions/xray >/dev/null 2>&1
+    curl -s $BASH_COMPLETION_SHELL > /usr/share/bash-completion/completions/xray
+    if [[ -z $(echo $SHELL|grep zsh) ]]; then
+        source /usr/share/bash-completion/completions/xray
+    fi
+
+    # Instalar o motor XRay
+    if [[ ${INSTALL_WAY} == 0 ]]; then
+        bash <(curl -L -s "$XRAY_INSTALL_URL")
+        if [[ $? -ne 0 ]]; then
+            colorEcho ${RED} "Falha ao instalar o motor XRay. Verifique a rede ou o script em $XRAY_INSTALL_URL."
+            exit 1
+        fi
+    fi
+}
+
+timeSync() {
+    if [[ ${INSTALL_WAY} == 0 ]]; then
+        colorEcho ${BLUE} "Sincronizando horário para São Paulo, Brasil..."
+        timedatectl set-timezone America/Sao_Paulo
+        if [[ $? -ne 0 ]]; then
+            colorEcho ${YELLOW} "Falha ao configurar fuso horário. Configurando manualmente..."
+            ln -sf /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime
+        fi
+        if [[ `command -v ntpdate` ]]; then
+            ntpdate a.st1.ntp.br
+        elif [[ `command -v chronyc` ]]; then
+            chronyc -a makestep
+        fi
+        if [[ $? -eq 0 ]]; then 
+            colorEcho ${GREEN} "Sincronização bem-sucedida"
+            colorEcho ${GREEN} "Agora: `date -R`"
+        else
+            colorEcho ${YELLOW} "Falha na sincronização. Tentando servidor alternativo..."
+            ntpdate b.st1.ntp.br
+            if [[ $? -eq 0 ]]; then
+                colorEcho ${GREEN} "Sincronização bem-sucedida com servidor alternativo"
+                colorEcho ${GREEN} "Agora: `date -R`"
+            else
+                colorEcho ${RED} "Falha na sincronização com servidores NTP. Verifique a rede."
+            fi
+        fi
+    fi
+}
+
+profileInit() {
+    [[ $(grep xray ~/$ENV_FILE) ]] && sed -i '/xray/d' ~/$ENV_FILE && source ~/$ENV_FILE
+    [[ -z $(grep PYTHONIOENCODING=utf-8 ~/$ENV_FILE) ]] && echo "export PYTHONIOENCODING=utf-8" >> ~/$ENV_FILE && source ~/$ENV_FILE
+    [[ ${INSTALL_WAY} == 0 ]] && xray new
+}
+
+installFinish() {
+    cd ${BEGIN_PATH}
+    [[ ${INSTALL_WAY} == 0 ]] && WAY="instalação" || WAY="atualização"
+    colorEcho ${GREEN} "XRay ${WAY} concluída com sucesso!\n"
+
+    if [[ ${INSTALL_WAY} == 0 ]]; then
+        clear
+        echo -e "\n\033[1;32mXRAY INSTALADO COM SUCESSO!\033[0m"
+        xray info
+        echo -e "Use o comando 'xray' para gerenciar o XRay\n"
+    fi
+}
+
+main() {
+    [[ ${HELP} == 1 ]] && help && return
+    [[ ${REMOVE} == 1 ]] && removeXRay && return
+    [[ ${INSTALL_WAY} == 0 ]] && colorEcho ${BLUE} "Nova instalação\n"
+
+    checkSys
+    installDependent
+    closeSELinux
+    timeSync
+    updateProject
+    profileInit
+    installFinish
+}
+
+main

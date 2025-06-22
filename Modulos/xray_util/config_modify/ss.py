@@ -4,7 +4,8 @@ import random
 import string
 
 from ..util_core.group import SS
-from ..util_core.v2ray import restart
+# MODIFICAÇÃO ÚNICA: Corrigido o nome do arquivo importado de 'v2ray' para 'xray'.
+from ..util_core.xray import restart
 from ..util_core.writer import GroupWriter
 from ..util_core.selector import GroupSelector
 from ..util_core.utils import ss_method, ColorStr, readchar
@@ -25,7 +26,7 @@ class SSFactory:
             else:
                 return self.method_tuple[choice - 1]
         else:
-            exit(-1)   
+            exit(-1)    
 
     def get_password(self):
         random_pass = ''.join(random.sample(string.ascii_letters + string.digits, 16))

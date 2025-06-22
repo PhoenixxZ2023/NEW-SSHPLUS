@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-from v2ray_util import run_type
+# MODIFICAÇÃO 1: Corrigido o nome do pacote na importação.
+from xray_util import run_type
 
-from ..util_core.v2ray import restart
+# MODIFICAÇÃO 2: Corrigido o nome do arquivo importado de 'v2ray' para 'xray'.
+from ..util_core.xray import restart
 from ..util_core.utils import readchar, random_email, ColorStr
 from ..util_core.group import Vless, Vmess, Socks, Mtproto, SS
 from ..util_core.writer import ClientWriter, GroupWriter
@@ -91,7 +93,7 @@ def new_email():
                     elif node.user_info == email:
                         print(_("have same email, please input other"))
                         is_duplicate_email = True
-                        break              
+                        break
             if not is_duplicate_email:
                 break
 

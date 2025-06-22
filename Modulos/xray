@@ -17,7 +17,7 @@ REMOVE=0
 CHINESE=0
 
 # URLs base
-BASE_SOURCE_PATH="https://multi.netlify.app"
+BASE_SOURCE_PATH="https://github.com/PhoenixxZ2023/NEW-SSHPLUS"
 UTIL_PATH="/etc/xray_util/util.cfg"
 UTIL_CFG="$BASE_SOURCE_PATH/v2ray_util/util_core/util.cfg"
 BASH_COMPLETION_SHELL="$BASE_SOURCE_PATH/v2ray"
@@ -182,7 +182,7 @@ updateProject() {
         [[ -z $(cat $UTIL_PATH|grep lang) ]] && echo "lang=en" >> $UTIL_PATH
     else
         mkdir -p /etc/xray_util
-        curl $UTIL_CFG > $UTIL_PATH
+        curl -s $UTIL_CFG > $UTIL_PATH
     fi
     [[ $CHINESE == 1 ]] && sed -i "s/lang=en/lang=zh/g" $UTIL_PATH
 
@@ -192,7 +192,7 @@ updateProject() {
 
     # Atualizar bash completion
     rm -f /usr/share/bash-completion/completions/xray >/dev/null 2>&1
-    curl $BASH_COMPLETION_SHELL > /usr/share/bash-completion/completions/xray
+    curl -s $BASH_COMPLETION_SHELL > /usr/share/bash-completion/completions/xray
     if [[ -z $(echo $SHELL|grep zsh) ]]; then
         source /usr/share/bash-completion/completions/xray
     fi
@@ -287,9 +287,6 @@ installFinish() {
         echo -e "Use o comando 'xray' para gerenciar o XRay\n"
     fi
 }
-
-# A função installXRay do go1.sh não é mais necessária aqui, pois o go1.sh já cuida disso.
-# Removida para evitar confusão.
 
 main() {
     [[ ${HELP} == 1 ]] && help && return

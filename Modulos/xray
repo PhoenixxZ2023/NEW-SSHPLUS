@@ -72,10 +72,10 @@ done
 
 help(){
     echo "bash xray.sh [-h|--help] [-k|--keep] [--remove]"
-    echo "  -h, --help           Mostrar ajuda"
-    echo "  -k, --keep           Manter configurações para atualizar"
-    echo "      --remove         Remover XRay e xray_util"
-    echo "                       Sem parâmetros: nova instalação"
+    echo "  -h, --help            Mostrar ajuda"
+    echo "  -k, --keep            Manter configurações para atualizar"
+    echo "      --remove          Remover XRay e xray_util"
+    echo "                      Sem parâmetros: nova instalação"
     return 0
 }
 
@@ -96,7 +96,7 @@ removeXRay() {
 
     # Remover tarefas agendadas
     crontab -l|sed '/SHELL=/d;/xray/d' > crontab.txt
-    crontab crontab.txt >/dev/null 2>& signal 2>&1
+    crontab crontab.txt >/dev/null 2>&1
     rm -f crontab.txt >/dev/null 2>&1
 
     if [[ ${PACKAGE_MANAGER} == 'dnf' || ${PACKAGE_MANAGER} == 'yum' ]]; then
@@ -199,12 +199,40 @@ updateProject() {
 
     # Instalar XRay
     if [[ ${INSTALL_WAY} == 0 ]]; then
-        bash <(curl -L -s "$XRAY_INSTALL_URL") -x
+        bash <(curl -L -s "$XRAY_INSTALL_URL")
         if [[ $? -ne 0 ]]; then
             colorEcho ${RED} "Falha ao instalar XRay. Verifique a rede ou o script em $XRAY_INSTALL_URL."
             exit 1
         fi
     fi
+
+    # =====================================================================================
+    # ================= INÍCIO DA MODIFICAÇÃO PARA USAR stream.py PERSONALIZADO =============
+    # =====================================================================================
+    colorEcho ${FUCHSIA} "Aplicando patch para stream.py personalizado do seu GitHub..."
+    
+    # Encontra o caminho do stream.py instalado pelo pip (geralmente em /usr/local/lib/...)
+    # Usamos 'head -n 1' para garantir que pegamos apenas um resultado, caso haja múltiplos
+    local installed_stream_py_path=$(find /usr/local/lib/ -name stream.py | grep 'v2ray_util' | head -n 1)
+    
+    if [ -n "$installed_stream_py_path" ]; then
+        colorEcho ${BLUE} "Arquivo original encontrado em: $installed_stream_py_path"
+        colorEcho ${BLUE} "Baixando e substituindo pela sua versão..."
+        
+        # Baixa seu script do GitHub e sobrescreve o arquivo instalado pelo pip
+        curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/stream.py -o "$installed_stream_py_path"
+        
+        if [ $? -eq 0 ]; then
+            colorEcho ${GREEN} "stream.py personalizado aplicado com sucesso!"
+        else
+            colorEcho ${RED} "Falha ao baixar o stream.py personalizado. A versão padrão será usada."
+        fi
+    else
+        colorEcho ${YELLOW} "Aviso: Não foi possível encontrar o arquivo stream.py da instalação pip para substituir."
+    fi
+    # =====================================================================================
+    # ======================== FIM DA MODIFICAÇÃO =========================================
+    # =====================================================================================
 }
 
 timeSync() {
@@ -260,55 +288,8 @@ installFinish() {
     fi
 }
 
-installXRay(){
-    mkdir -p /etc/xray /var/log/xray && \
-    unzip -oj "$1" "$2xray" "$2geoip.dat" "$2geosite.dat" -d /usr/bin/xray && \
-    chmod +x /usr/bin/xray/xray || {
-        colorEcho ${red} "Falha ao copiar binários e recursos do XRay."
-        return 1
-    }
-
-    if [ ! -f /etc/xray/config.json ]; then
-        local port="$(($RANDOM + 10000))"
-        local uuid="$(cat '/proc/sys/kernel/random/uuid')"
-        cat > /etc/xray/config.json <<EOF
-{
-  "inbounds": [{
-    "port": ${port},
-    "protocol": "vmess",
-    "settings": {
-      "clients": [
-        {
-          "id": "${uuid}",
-          "level": 1,
-          "alterId": 64
-        }
-      ]
-    }
-  }],
-  "outbounds": [{
-    "protocol": "freedom",
-    "settings": {}
-  },{
-    "protocol": "blackhole",
-    "settings": {},
-    "tag": "blocked"
-  }],
-  "routing": {
-    "rules": [
-      {
-        "type": "field",
-        "ip": ["geoip:private"],
-        "outboundTag": "blocked"
-      }
-    ]
-  }
-}
-EOF
-        colorEcho ${blue} "Porta: ${port}"
-        colorEcho ${blue} "UUID: ${uuid}"
-    fi
-}
+# A função installXRay do go1.sh não é mais necessária aqui, pois o go1.sh já cuida disso.
+# Removida para evitar confusão.
 
 main() {
     [[ ${HELP} == 1 ]] && help && return

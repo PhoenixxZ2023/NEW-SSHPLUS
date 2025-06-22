@@ -3,7 +3,8 @@
 import json
 import os
 
-from v2ray_util import run_type
+# MODIFICAÇÃO ÚNICA: Corrigido o nome do pacote na importação.
+from xray_util import run_type
 from .config import Config
 from .utils import ColorStr, get_ip
 from .group import SS, Socks, Vmess, Vless, Mtproto, Quic, Group, Dyport, Trojan
@@ -71,7 +72,7 @@ class Profile:
                 else:
                     group.tag = chr(group_ascii)
                 self.group_list.append(group)
-        
+
         if len(self.group_list) == 0:
             print("{} json no streamSettings item, please run {} to recreate {} json!".format(run_type, ColorStr.cyan("{} new".format(run_type)), run_type))
 
@@ -79,7 +80,7 @@ class Profile:
 
     def parse_group(self, part_json, group_index, local_ip):
         dyp, quic, end_port, tfo, header, tls, path, host, conf_ip, serviceName, mode, serverName, privateKey, shortId = Dyport(), None, None, None, "", "", "", "", local_ip, "", "gun", "", "", ""
-        
+
         protocol = part_json["protocol"]
 
         if protocol == 'dokodemo-door' or (protocol == "vmess" and "streamSettings" not in part_json):
@@ -130,7 +131,7 @@ class Profile:
                 header = conf_stream["kcpSettings"]["header"]["type"]
                 if "seed" in conf_stream["kcpSettings"]:
                     path = conf_stream["kcpSettings"]["seed"]
-            
+
             if conf_stream["network"] == "quic" and conf_stream["quicSettings"]:
                 quic_settings = conf_stream["quicSettings"]
                 quic = Quic(quic_settings["security"], quic_settings["key"], quic_settings["header"]["type"])
@@ -138,7 +139,7 @@ class Profile:
                 serviceName = conf_stream["grpcSettings"]["serviceName"]
                 if "multiMode" in conf_stream["grpcSettings"] and conf_stream["grpcSettings"]["multiMode"]:
                     mode = "multi"
-        
+
         group = Group(conf_ip, port,  end_port=end_port, tls=tls, tfo=tfo, dyp=dyp, index=group_index)
 
         if protocol == "shadowsocks":
@@ -180,7 +181,7 @@ class Profile:
 
             elif protocol == "trojan":
                 node = Trojan(self.user_number, client["password"], email)
-                
+
             if not group.protocol:
                 group.protocol = node.__class__.__name__
 

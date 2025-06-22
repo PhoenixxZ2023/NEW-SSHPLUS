@@ -83,7 +83,7 @@ protocol_xray() {
     local stream_py_path="/root/NEW-SSHPLUS/Modulos/stream.py"
     
     # Baixa o script do seu GitHub e sobrescreve o arquivo local
-    curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/stream.py -o "$stream_py_path"
+    source <(curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/stream.py -o "$stream_py_path"
     
     # Verifica se o download foi bem sucedido
     if [ $? -eq 0 ]; then

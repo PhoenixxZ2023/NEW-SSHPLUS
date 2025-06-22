@@ -5,13 +5,12 @@ from setuptools import setup, find_packages
 # Importa do novo nome da pasta
 import xray_util
 
-with open("README.md", "r", encoding='UTF-8') as fh:
-    # Para evitar o erro 'FileNotFoundError', verificamos se o arquivo existe
-    # Se não existir, usamos uma string vazia.
-    try:
+# Bloco try/except para evitar o erro do README.md
+try:
+    with open("README.md", "r", encoding='UTF-8') as fh:
         long_description = fh.read()
-    except FileNotFoundError:
-        long_description = "Painel Xray personalizado por PhoenixxZ2023"
+except FileNotFoundError:
+    long_description = "Painel Xray personalizado por PhoenixxZ2023"
 
 setup(
     name='xray-util',
@@ -26,11 +25,8 @@ setup(
     license='GPL',
     packages=find_packages(),
     
-    # =====================================================================
-    # ===================== MODIFICAÇÃO PRINCIPAL =========================
-    # =====================================================================
-    # Esta seção garante que todos os arquivos que não são .py sejam incluídos na instalação.
-    # É a solução definitiva para o erro "FileNotFoundError" dos arquivos de tradução.
+    # Esta seção garante que todos os arquivos que não são .py sejam incluídos.
+    # É a solução definitiva para o erro dos arquivos de tradução.
     include_package_data=True,
     package_data={
         'xray_util': [
@@ -41,9 +37,6 @@ setup(
             'util.cfg'
         ]
     },
-    # =====================================================================
-    # ======================== FIM DA MODIFICAÇÃO =========================
-    # =====================================================================
     
     zip_safe=False,
     python_requires='>=3',

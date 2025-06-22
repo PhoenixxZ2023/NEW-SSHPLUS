@@ -4,9 +4,9 @@ import os
 import sys
 import subprocess
 
-# MODIFICAÇÃO 1: Importando a partir do novo nome do pacote
 from xray_util import run_type
-from .util_core.v2ray import V2ray
+# MODIFICAÇÃO: Importando a nova classe 'Xray' do arquivo (idealmente renomeado para xray.py)
+from .util_core.xray import Xray
 from .util_core.utils import ColorStr, open_port, loop_input_choice_number
 from .global_setting import stats_ctr, iptables_ctr, ban_bt, update_timer
 from .config_modify import base, multiple, ss, stream, tls, cdn
@@ -45,7 +45,6 @@ def help():
     rm                   卸载{bin}
         """.format(exec_name[exec_name.rfind("/") + 1:], bin=run_type))
     else:
-        # MODIFICAÇÃO 3: Pequeno ajuste no texto de ajuda
         print("""
 {0} [-h|help] [options]
     -h, help             get help
@@ -76,7 +75,6 @@ def help():
 
 def updateSh():
     if os.path.exists("/.dockerenv"):
-        # MODIFICAÇÃO 2: Alterado para instalar/atualizar a partir do SEU repositório GitHub
         print(ColorStr.yellow("Atualizando para a versão mais recente do seu repositório..."))
         command = 'pip install -U "git+https://github.com/PhoenixxZ2023/NEW-SSHPLUS.git#subdirectory=Modulos"'
         subprocess.Popen(command, shell=True).wait()
@@ -90,19 +88,19 @@ def parse_arg():
         return
     elif len(sys.argv) == 2:
         if sys.argv[1] == "start":
-            V2ray.start()
+            Xray.start() # MODIFICADO
         elif sys.argv[1] == "stop":
-            V2ray.stop()
+            Xray.stop() # MODIFICADO
         elif sys.argv[1] == "restart":
-            V2ray.restart()
+            Xray.restart() # MODIFICADO
         elif sys.argv[1] in ("-h", "help"):
             help()
         elif sys.argv[1] in ("-v", "version"):
-            V2ray.version()
+            Xray.version() # MODIFICADO
         elif sys.argv[1] == "status":
-            V2ray.status()
+            Xray.status() # MODIFICADO
         elif sys.argv[1] == "info":
-            V2ray.info()
+            Xray.info() # MODIFICADO
         elif sys.argv[1] == "port":
             base.port()
         elif sys.argv[1] == "tls":
@@ -116,37 +114,37 @@ def parse_arg():
         elif sys.argv[1] == "iptables":
             iptables_ctr.manage()
         elif sys.argv[1] == "clean":
-            V2ray.cleanLog()
+            Xray.cleanLog() # MODIFICADO
         elif sys.argv[1] == "del":
             multiple.del_port()
         elif sys.argv[1] == "add":
             multiple.new_port()
         elif sys.argv[1] == "update":
-            V2ray.update()
+            Xray.update() # MODIFICADO
         elif sys.argv[1] == "update.sh":
             updateSh()
         elif sys.argv[1] == "new":
-            V2ray.new()
+            Xray.new() # MODIFICADO
         elif sys.argv[1] == "log":
-            V2ray.log()
+            Xray.log() # MODIFICADO
         elif sys.argv[1] == "cdn":
             cdn.modify()
         elif sys.argv[1] == "rm":
-            V2ray.remove()
+            Xray.remove() # MODIFICADO
     else:
         if sys.argv[1] == "add":
             multiple.new_port(sys.argv[2])
         elif sys.argv[1] == "update":
-            V2ray.update(sys.argv[2])
+            Xray.update(sys.argv[2]) # MODIFICADO
         elif sys.argv[1] == "iptables":
             iptables_ctr.manage(sys.argv[2])
         elif sys.argv[1] == "stats":
             stats_ctr.manage(sys.argv[2])
         elif sys.argv[1] == "log":
             if sys.argv[2] in ("error", "e"):
-                V2ray.log(True)
+                Xray.log(True) # MODIFICADO
             elif sys.argv[2] in ("access", "a"):
-                V2ray.log()
+                Xray.log() # MODIFICADO
     sys.exit(0)
 
 def service_manage():
@@ -156,15 +154,15 @@ def service_manage():
         print("{}.{}".format(index + 1, text))
     choice = loop_input_choice_number(_("please select: "), len(show_text))
     if choice == 1:
-        V2ray.start()
+        Xray.start() # MODIFICADO
     elif choice == 2:
-        V2ray.stop()
+        Xray.stop() # MODIFICADO
     elif choice == 3:
-        V2ray.restart()
+        Xray.restart() # MODIFICADO
     elif choice == 4:
-        V2ray.status()
+        Xray.status() # MODIFICADO
     elif choice == 5:
-        V2ray.log()
+        Xray.log() # MODIFICADO
 
 def user_manage():
     show_text = (_("add user"), _("add port"), _("del user"), _("del port"))
@@ -231,7 +229,7 @@ def global_setting():
     elif choice == 4:
         update_timer.manage()
     elif choice == 5:
-        V2ray.cleanLog()
+        Xray.cleanLog() # MODIFICADO
     elif choice == 6:
         from .util_core.config import Config
         config = Config()
@@ -241,7 +239,7 @@ def global_setting():
         sys.exit(0)
 
 def menu():
-    V2ray.check()
+    Xray.check() # MODIFICADO
     parse_arg()
     while True:
         print("")
@@ -262,11 +260,11 @@ def menu():
         elif choice == 3:
             profile_alter()
         elif choice == 4:
-            V2ray.info()
+            Xray.info() # MODIFICADO
         elif choice == 5:
             global_setting()
         elif choice == 6:
-            V2ray.update()
+            Xray.update() # MODIFICADO
         else:
             break
 

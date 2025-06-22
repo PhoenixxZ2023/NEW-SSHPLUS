@@ -3,7 +3,8 @@
 import os
 import time
 
-from v2ray_util import run_type
+# MODIFICAÇÃO 1: Corrigido o nome do pacote na importação.
+from xray_util import run_type
 from ..util_core.config import Config
 from ..util_core.loader import Loader
 from ..util_core.utils import ColorStr, readchar
@@ -34,7 +35,8 @@ def planUpdate():
     else:
         local_time = 3
     os.system('echo "SHELL=/bin/bash" >> crontab.txt && echo "$(crontab -l)" >> crontab.txt')
-    os.system('echo "0 {} * * * bash <(curl -L -s https://multi.netlify.app/go.sh) {}| tee -a /root/{}Update.log" >> crontab.txt'.format(local_time,"-x" if run_type == "xray" else "",run_type))
+    # MODIFICAÇÃO 2: Simplificado o comando, removendo a verificação desnecessária para v2ray.
+    os.system('echo "0 {} * * * bash <(curl -L -s https://multi.netlify.app/go.sh) -x | tee -a /root/{}Update.log" >> crontab.txt'.format(local_time, run_type))
     os.system("crontab crontab.txt && rm -f crontab.txt")
     restartCron()
     print(ColorStr.green(_("success open schedule update task!")))

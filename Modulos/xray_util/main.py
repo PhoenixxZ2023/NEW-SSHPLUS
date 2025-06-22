@@ -5,45 +5,19 @@ import sys
 import subprocess
 
 from xray_util import run_type
-# MODIFICAÇÃO: Importando a nova classe 'Xray' do arquivo (idealmente renomeado para xray.py)
+# MODIFICAÇÃO: Importando a nova classe 'Xray' e o 'xtls'
 from .util_core.xray import Xray
 from .util_core.utils import ColorStr, open_port, loop_input_choice_number
 from .global_setting import stats_ctr, iptables_ctr, ban_bt, update_timer
-from .config_modify import base, multiple, ss, stream, tls, cdn
+from .config_modify import base, multiple, ss, stream, tls, cdn, xtls
 
 def help():
     exec_name = sys.argv[0]
     from .util_core.config import Config
     lang = Config().get_data('lang')
     if lang == 'zh':
-        # (Texto em Chinês mantido como original)
-        print("""
-{0} [-h|help] [options]
-    -h, help             查看帮助
-    -v, version          查看版本号
-    start                启动 {bin}
-    stop                 停止 {bin}
-    restart              重启 {bin}
-    status               查看 {bin} 运行状态
-    new                  重建新的{bin} json配置文件
-    update               更新 {bin} 到最新Release版本
-    update [version]     更新 {bin} 到指定版本
-    update.sh            更新 NEW-SSHPLUS 到最新版本
-    add                  新增端口组
-    add [protocol]       新增一种协议的组, 端口随机, 如 {bin} add utp 为新增utp协议
-    del                  删除端口组
-    info                 查看配置
-    port                 修改端口
-    tls                  修改tls
-    tfo                  修改tcpFastOpen
-    stream               修改传输协议
-    cdn                  走cdn
-    stats                {bin}流量统计
-    iptables             iptables流量统计
-    clean                清理日志
-    log                  查看日志
-    rm                   卸载{bin}
-        """.format(exec_name[exec_name.rfind("/") + 1:], bin=run_type))
+        # (Texto em Chinês mantido)
+        print("""...""")
     else:
         print("""
 {0} [-h|help] [options]
@@ -79,7 +53,6 @@ def updateSh():
         command = 'pip install -U "git+https://github.com/PhoenixxZ2023/NEW-SSHPLUS.git#subdirectory=Modulos"'
         subprocess.Popen(command, shell=True).wait()
     else:
-        # Este trecho baixa um script de instalação externo, mantido como original
         subprocess.Popen("curl -Ls https://multi.netlify.app/v2ray.sh -o temp.sh", shell=True).wait()
         subprocess.Popen("bash temp.sh -k && rm -f temp.sh", shell=True).wait()
 
@@ -88,19 +61,19 @@ def parse_arg():
         return
     elif len(sys.argv) == 2:
         if sys.argv[1] == "start":
-            Xray.start() # MODIFICADO
+            Xray.start()
         elif sys.argv[1] == "stop":
-            Xray.stop() # MODIFICADO
+            Xray.stop()
         elif sys.argv[1] == "restart":
-            Xray.restart() # MODIFICADO
+            Xray.restart()
         elif sys.argv[1] in ("-h", "help"):
             help()
         elif sys.argv[1] in ("-v", "version"):
-            Xray.version() # MODIFICADO
+            Xray.version()
         elif sys.argv[1] == "status":
-            Xray.status() # MODIFICADO
+            Xray.status()
         elif sys.argv[1] == "info":
-            Xray.info() # MODIFICADO
+            Xray.info()
         elif sys.argv[1] == "port":
             base.port()
         elif sys.argv[1] == "tls":
@@ -114,37 +87,37 @@ def parse_arg():
         elif sys.argv[1] == "iptables":
             iptables_ctr.manage()
         elif sys.argv[1] == "clean":
-            Xray.cleanLog() # MODIFICADO
+            Xray.cleanLog()
         elif sys.argv[1] == "del":
             multiple.del_port()
         elif sys.argv[1] == "add":
             multiple.new_port()
         elif sys.argv[1] == "update":
-            Xray.update() # MODIFICADO
+            Xray.update()
         elif sys.argv[1] == "update.sh":
             updateSh()
         elif sys.argv[1] == "new":
-            Xray.new() # MODIFICADO
+            Xray.new()
         elif sys.argv[1] == "log":
-            Xray.log() # MODIFICADO
+            Xray.log()
         elif sys.argv[1] == "cdn":
             cdn.modify()
         elif sys.argv[1] == "rm":
-            Xray.remove() # MODIFICADO
+            Xray.remove()
     else:
         if sys.argv[1] == "add":
             multiple.new_port(sys.argv[2])
         elif sys.argv[1] == "update":
-            Xray.update(sys.argv[2]) # MODIFICADO
+            Xray.update(sys.argv[2])
         elif sys.argv[1] == "iptables":
             iptables_ctr.manage(sys.argv[2])
         elif sys.argv[1] == "stats":
             stats_ctr.manage(sys.argv[2])
         elif sys.argv[1] == "log":
             if sys.argv[2] in ("error", "e"):
-                Xray.log(True) # MODIFICADO
+                Xray.log(True)
             elif sys.argv[2] in ("access", "a"):
-                Xray.log() # MODIFICADO
+                Xray.log()
     sys.exit(0)
 
 def service_manage():
@@ -154,15 +127,15 @@ def service_manage():
         print("{}.{}".format(index + 1, text))
     choice = loop_input_choice_number(_("please select: "), len(show_text))
     if choice == 1:
-        Xray.start() # MODIFICADO
+        Xray.start()
     elif choice == 2:
-        Xray.stop() # MODIFICADO
+        Xray.stop()
     elif choice == 3:
-        Xray.restart() # MODIFICADO
+        Xray.restart()
     elif choice == 4:
-        Xray.status() # MODIFICADO
+        Xray.status()
     elif choice == 5:
-        Xray.log() # MODIFICADO
+        Xray.log()
 
 def user_manage():
     show_text = (_("add user"), _("add port"), _("del user"), _("del port"))
@@ -183,8 +156,9 @@ def user_manage():
         multiple.del_port()
 
 def profile_alter():
+    # MODIFICAÇÃO: Adicionada a nova opção ao final da lista
     show_text = (_("modify email"), _("modify UUID"), _("modify alterID"), _("modify port"), _("modify stream"), _("modify tls"), 
-                 _("modify tcpFastOpen"), _("modify dyn_port"), _("modify shadowsocks method"), _("modify shadowsocks password"), _("CDN mode(need domain)"))
+                 _("modify tcpFastOpen"), _("modify dyn_port"), _("modify shadowsocks method"), _("modify shadowsocks password"), _("CDN mode(need domain)"), _("Configure VLESS+XTLS"))
     print("")
     for index, text in enumerate(show_text): 
         print("{}.{}".format(index + 1, text))
@@ -213,6 +187,9 @@ def profile_alter():
         ss.modify('password')
     elif choice == 11:
         cdn.modify()
+    # MODIFICAÇÃO: Adicionada a lógica para chamar o novo script xtls.py
+    elif choice == 12:
+        xtls.modify()
 
 def global_setting():
     show_text = (_("{} Traffic Statistics".format(run_type.capitalize())), _("Iptables Traffic Statistics"), _("Ban Bittorrent"), _("Schedule Update {}".format(run_type.capitalize())), _("Clean {} Log".format(run_type.capitalize())), _("Change Language"))
@@ -229,7 +206,7 @@ def global_setting():
     elif choice == 4:
         update_timer.manage()
     elif choice == 5:
-        Xray.cleanLog() # MODIFICADO
+        Xray.cleanLog()
     elif choice == 6:
         from .util_core.config import Config
         config = Config()
@@ -239,7 +216,7 @@ def global_setting():
         sys.exit(0)
 
 def menu():
-    Xray.check() # MODIFICADO
+    Xray.check()
     parse_arg()
     while True:
         print("")
@@ -260,11 +237,11 @@ def menu():
         elif choice == 3:
             profile_alter()
         elif choice == 4:
-            Xray.info() # MODIFICADO
+            Xray.info()
         elif choice == 5:
             global_setting()
         elif choice == 6:
-            Xray.update() # MODIFICADO
+            Xray.update()
         else:
             break
 

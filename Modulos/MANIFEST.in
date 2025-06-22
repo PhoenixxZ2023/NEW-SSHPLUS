@@ -1,11 +1,11 @@
-# Inclui todos os arquivos da pasta de tradução
+# Inclui recursivamente todos os arquivos dentro da pasta de tradução
 recursive-include xray_util/locale_i18n *
 
-# Inclui todos os arquivos da pasta de templates JSON
-recursive-include xray_util/json_template *
+# Inclui recursivamente todos os arquivos .json da pasta de templates
+recursive-include xray_util/json_template *.json
 
-# Inclui os scripts .sh da pasta de configurações globais
+# Inclui recursivamente todos os scripts .sh da pasta de configurações globais
 recursive-include xray_util/global_setting *.sh
 
-# Inclui o arquivo de configuração padrão
+# Inclui arquivos de configuração específicos
 include xray_util/util.cfg

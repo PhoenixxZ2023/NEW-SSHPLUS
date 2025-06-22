@@ -75,27 +75,6 @@ intall_xray() {
 }
 
 protocol_xray() {
-    # --- Início da Modificação ---
-    echo -e "\033[1;33m-> Baixando a versão mais recente do stream.py do seu GitHub...\033[0m"
-    
-    # ATENÇÃO: Verifique se o caminho de destino (-o) abaixo está correto!
-    # Este deve ser o caminho para o arquivo stream.py no seu servidor.
-    local stream_py_path="/root/NEW-SSHPLUS/Modulos/stream.py"
-    
-    # Baixa o script do seu GitHub e sobrescreve o arquivo local
-    source <(curl -sL https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/stream.py -o "$stream_py_path"
-    
-    # Verifica se o download foi bem sucedido
-    if [ $? -eq 0 ]; then
-        echo -e "\033[1;32m-> Script atualizado com sucesso. Executando...\033[0m"
-        sleep 1
-    else
-        echo -e "\033[1;31m-> ERRO: Falha ao baixar o script. Usando a versão local existente.\033[0m"
-        sleep 2
-    fi
-    # --- Fim da Modificação ---
-
-    # O resto da função original continua aqui, executando o comando 'xray stream'
     clear
     echo -e "\E[44;1;37m            EDITAR PROTOCOLO XRAY            \E[0m"
     echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
@@ -509,7 +488,13 @@ fun_xraymanager() {
         10) lim_port ;;
         11) limpiador_activador ;;
         12) uninstall_xray ;;
-        13) conexao; exit ;; # Função 'conexao' não definida; ajustar conforme necessário
+        13)
+            # A função 'conexao' não está definida neste script.
+            # Se for um script separado, você precisa chamá-lo com o caminho completo.
+            # Exemplo: /path/to/conexao
+            # Se for para voltar ao menu principal do sistema, talvez 'exit' ou 'return' seja o suficiente.
+            exit 0
+            ;;
         0 | 00) echo -e "\033[1;31mSaindo...\033[0m"; sleep 1; clear; exit ;;
         *) echo -e "\033[1;31mOpção inválida!\033[0m"; sleep 2 ;;
         esac

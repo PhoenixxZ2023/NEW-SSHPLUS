@@ -3,7 +3,8 @@
 import socket
 
 from .tls import TLSModifier
-from ..util_core.v2ray import restart
+# MODIFICAÇÃO ÚNICA: Corrigido o nome do arquivo importado de 'v2ray' para 'xray'.
+from ..util_core.xray import restart
 from ..util_core.loader import Loader
 from ..util_core.writer import StreamWriter, NodeWriter
 from ..util_core.utils import StreamType, ColorStr, get_ip, loop_input_choice_number, check_ip, is_ipv4, port_is_use
@@ -15,7 +16,7 @@ class CDNModifier:
         cType 0: vmess_ws, 1: vless_ws
         '''
         self.domain = domain
-        self.cType = cType          
+        self.cType = cType
 
     @restart(True)
     def open(self, port=443):
@@ -56,7 +57,7 @@ def modify():
         print(_("domain check error!!!"))
         print("")
         return
-    
+
     print("")
     print(_("local vps ip address: ") + local_ip + "\n")
 

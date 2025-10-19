@@ -2004,6 +2004,7 @@ elif [[ "$resposta" = '5' ]]; then
 
         echo -e "\033[1;32m✅ Instalação concluída com sucesso!\033[0m"
         sleep 2
+		fun_dragonx
     }
 
     # ===============================
@@ -2633,14 +2634,14 @@ echo -e "\033[01;31m┣━━━━━━━━━━━━━━━━━━━
 			}
 
 			[[ "$(systemctl list-units --type=service --all | grep -c 'dragonx')" != '0' ]] && {
-				echo -e "\033[01;31m┃\033[1;32mSERVICO: \033[1;33mDRAGONX PROXY\033[1;31m: \033[1;37m$(systemctl list-units --type=service --state=running | grep 'dragonx' | awk '{print $1}' | sed 's/[^0-9]//g' | xargs)"
+				echo -e "\033[01;31m┃\033[1;32mSERVICO: \033[1;33mDRAGONX PROXY \033[1;32mPORTA: \033[1;37m$(systemctl list-units --type=service --state=running | grep 'dragonx' | awk '{print $1}' | sed 's/[^0-9]//g' | xargs)"
 				sts4="\033[1;32m◉ "
 			} || {
 				sts4="\033[1;31m○ "
 			}
 
 			[[ "$(netstat -tlpn | grep -E 'python3|proxydt|security' | wc -l)" != '0' ]] && {  
-				echo -e "\033[01;31m┃\033[1;32mSERVICO: \033[1;33mPROXY SOCKS PORTAS ATIVADAS\033[1;31m: \033[1;37m$(netstat -nplt | grep -E 'python3|proxydt|security|dragonx' | awk '{print $4}' | cut -d: -f2 | xargs)"  
+				echo -e "\033[01;31m┃\033[1;32mSERVICO: \033[1;33mPROXY SOCKS \033[1;32mPORTA: \033[1;37m$(netstat -nplt | grep -E 'python3|proxydt|security|dragonx' | awk '{print $4}' | cut -d: -f2 | xargs)"  
 				sts4="\033[1;32m◉ "
 			} || {
 				sts4="\033[1;31m○ "

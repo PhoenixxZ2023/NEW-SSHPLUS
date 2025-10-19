@@ -2506,6 +2506,7 @@ while :; do
                         --text "$(echo -e "=×=×=×=×=×=×=×=×=×=×=×\n<b>✅ SENHA ALTERADA !</b> !\n=×=×=×=×=×=×=×=×=×=×=×\n\n<b>Usuario:</b> $(cat /tmp/name-s)\n<b>Nova senha:</b> ${message_text[$id]}")" \
                         --parse_mode html
                     rm /tmp/name-s >/dev/null 2>&1
+					;;
                     '🔐 Alterar Senha ROOT 🔐\n\nDigite a nova senha:')
                     [[ "$_erro" == '1' ]] && break
                     alterar_senha_root_exec
@@ -2513,11 +2514,11 @@ while :; do
                     'ALTERAR SENHA ROOT')
                     alterar_senha_root
                     ;;
-                '👥 Alterar Limite 👥\n\nNome do usuario:')
+                	'👥 Alterar Limite 👥\n\nNome do usuario:')
                     alterar_senha_root
                     [[ "$_erro" == '1' ]] && break
                     ;;
-                '👥 Alterar Limite 👥\n\nNome do usuario:')
+                	'👥 Alterar Limite 👥\n\nNome do usuario:')
                     verifica_acesso
                     [[ "$_erro" == '1' ]] && break
                     echo $_erro segundo

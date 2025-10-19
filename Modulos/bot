@@ -509,6 +509,57 @@ alterar_senha_user() {
     [[ $(ps -u $usuario | grep sshd | wc -l) != '0' ]] && pkill -u $usuario >/dev/null 2>&1
 }
 
+alterar_senha_root() {
+    [[ "$(grep -wc ${callback_query_from_username} $suspensos)" != '0' ]] && {
+        ShellBot.answerCallbackQuery --callback_query_id ${callback_query_id[$id]} \
+            --text "⚠️ VC ESTA SUSPENSO! CONTATE O ADMINISTRADOR"
+        return 0
+    }
+
+    # Permite apenas ao admin
+    [[ "${callback_query_from_id[$id]}" == "$id_admin" ]] && {
+        ShellBot.sendMessage --chat_id ${callback_query_message_chat_id[$id]} \
+            --text "🔐 Alterar Senha ROOT 🔐\n\nDigite a nova senha:" \
+            --reply_markup "$(ShellBot.ForceReply)"
+    } || {
+        ShellBot.answerCallbackQuery --callback_query_id ${callback_query_id[$id]} \
+            --text "🚫 ACESSO NEGADO 🚫"
+        return 0
+    }
+}
+
+alterar_senha_root_exec() {
+    local senha=${message_text[$id]}
+    local sizepass=$(echo -e ${#senha})
+
+    # Verifica acesso
+    verifica_acesso
+    [[ "$_erro" == '1' ]] && return 0
+
+    # Valida tamanho da senha
+    [[ "$sizepass" -lt '4' ]] && {
+        ShellBot.sendMessage --chat_id ${message_chat_id[$id]} \
+            --text "$(echo -e "❌ Erro !\n\n⚠️ Use mínimo 4 caracteres [EX: 1234]")" \
+            --parse_mode html
+        return 0
+    }
+
+    # Aplica a senha root
+    echo "root:$senha" | chpasswd
+
+    # Confirma resultado
+    if [[ $? -eq 0 ]]; then
+        local ip=$(hostname -I | awk '{print $1}')
+        ShellBot.sendMessage --chat_id ${message_from_id[$id]} \
+            --text "$(echo -e "=×=×=×=×=×=×=×=×=×=×=×\n<b>✅ SENHA ROOT ALTERADA!</b>\n=×=×=×=×=×=×=×=×=×=×=×\n\n<b>Usuário:</b> root\n<b>Nova senha:</b> $senha\n<b>IP:</b> $ip")" \
+            --parse_mode html
+    else
+        ShellBot.sendMessage --chat_id ${message_from_id[$id]} \
+            --text "❌ Erro ao alterar a senha root. Tente novamente." \
+            --parse_mode html
+    fi
+}
+
 alterar_limite() {
     [[ "$(grep -wc ${callback_query_from_username} $suspensos)" != '0' ]] && {
         ShellBot.answerCallbackQuery --callback_query_id ${callback_query_id[$id]} \
@@ -940,7 +991,10 @@ infovps() {
             --text "$(echo -e 🚫 ACESSO NEGADO 🚫)"
         return 0
     }
+
     PTs='/tmp/prts'
+
+    # Informações gerais do sistema
     _ons=$(ps -x | grep sshd | grep -v root | grep priv | wc -l)
     [[ -e /etc/openvpn/openvpn-status.log ]] && _onop=$(grep -c "10.8.0" /etc/openvpn/openvpn-status.log) || _onop="0"
     [[ -e /etc/default/dropbear ]] && _drp=$(ps aux | grep dropbear | grep -v grep | wc -l) _ondrp=$(($_drp - 1)) || _ondrp="0"
@@ -950,33 +1004,44 @@ infovps() {
     uso=$(top -bn1 | awk '/Cpu/ { cpu = "" 100 - $8 "%" }; END { print cpu }')
     cpucores=$(grep -c cpu[0-9] /proc/stat)
     ram1=$(free -h | grep -i mem | awk {'print $2'})
-    usoram=$(free -m | awk 'NR==2{printf "%.2f%%\t\t", $3*100/$2 }')
+    usoram=$(free -m | awk 'NR==2{printf "%.2f%%", $3*100/$2 }')
     total=$(cat -n /root/usuarios.db | tail -n 1 | awk '{print $1}')
-    echo -e "SSH: $(grep 'Port' /etc/ssh/sshd_config | cut -d' ' -f2 | grep -v 'no' | xargs)" >$PTs
-    [[ -e "/etc/stunnel/stunnel.conf" ]] && echo -e "SSL Tunel: $(netstat -nplt | grep 'stunnel' | awk {'print $4'} | cut -d: -f2 | xargs)" >>$PTs
-    [[ -e "/etc/openvpn/server.conf" ]] && echo -e "Openvpn: $(netstat -nplt | grep 'openvpn' | awk {'print $4'} | cut -d: -f2 | xargs)" >>$PTs
-    [[ "$(netstat -nplt | grep 'sslh' | wc -l)" != '0' ]] && echo -e "SSlh: $(netstat -nplt | grep 'sslh' | awk {'print $4'} | cut -d: -f2 | xargs)" >>$PTs
-    [[ "$(netstat -nplt | grep 'squid' | wc -l)" != '0' ]] && echo -e "Squid: $(netstat -nplt | grep 'squid' | awk -F ":" {'print $4'} | xargs)" >>$PTs
-    [[ "$(netstat -nltp | grep 'dropbear' | wc -l)" != '0' ]] && echo -e "DropBear: $(netstat -nplt | grep 'dropbear' | awk -F ":" {'print $4'} | xargs)" >>$PTs
-    [[ "$(netstat -nplt | grep 'python' | wc -l)" != '0' ]] && echo -e "Proxy Socks: $(netstat -nplt | grep 'python' | awk {'print $4'} | cut -d: -f2 | xargs)" >>$PTs
+
+    # ================================
+    # 🔍 LISTAGEM DE PORTAS ATIVAS (como no seu script)
+    # ================================
+    echo "🔌 <b>SERVIÇOS EM EXECUÇÃO</b>" > $PTs
+    echo "" >> $PTs
+    PT=$(lsof -V -i tcp -P -n 2>/dev/null | grep -v "ESTABLISHED" | grep -v "COMMAND" | grep "LISTEN")
+    for porta in $(echo -e "$PT" | cut -d: -f2 | cut -d' ' -f1 | uniq); do
+        svcs=$(echo -e "$PT" | grep -w "$porta" | awk '{print $1}' | uniq)
+        echo -e "<b>$svcs</b> PORTA <b>$porta</b>" >> $PTs
+    done
+
+    # ================================
+    # 🧾 MONTAR MENSAGEM FINAL
+    # ================================
     local info
-    info="╔══════════•⊱✦⊰•══════════╗\n"
-    info+="<b>   INFORMAÇÕES DO SERVIDOR</b>\n"
-    info+="╚══════════•⊱✦⊰•══════════╝\n\n"
+    info="=×=×=×=×=×=×=×=×=×=×=×=×=×=\n"
+    info+="<b>INFORMAÇÕES DO SERVIDOR</b>\n"
+    info+="=×=×=×=×=×=×=×=×=×=×=×=×=×=\n\n"
     info+="<b>SISTEMA OPERACIONAL</b>\n"
     info+="$system\n\n"
     info+="<b>PROCESSADOR</b>\n"
-    info+="<b>Nucleos:</b> $cpucores\n"
-    info+="<b>Ultilizacao:</b> $uso\n\n"
-    info+="<b>MEMORIA RAM</b>\n"
-    info+="<b>Total:</b> $ram1\n"
-    info+="<b>Ultilizacao:</b> $usoram\n\n"
+    info+="Núcleos: <b>$cpucores</b>\n"
+    info+="Utilização: <b>$uso</b>\n\n"
+    info+="<b>MEMÓRIA RAM</b>\n"
+    info+="Total: <b>$ram1</b>\n"
+    info+="Uso: <b>$usoram</b>\n\n"
+
     while read linha; do
-        info+="<b>$(echo -e "$linha")</b>\n"
+        info+="$(echo -e "$linha")\n"
     done < <(cat $PTs)
-    info+="\n<b>$total</b><i> USUARIOS</i><b> $_on</b> <i>ONLINE</i>"
+
+    info+="\n<b>$total</b> USUÁRIOS — <b>$_on</b> ONLINE"
+
     ShellBot.sendMessage --chat_id $id_admin \
-        --text "$(echo -e $info)" \
+        --text "$(echo -e "$info")" \
         --parse_mode html
     return 0
 }
@@ -1088,16 +1153,32 @@ speed_test() {
 backup_users() {
     [[ "${callback_query_from_id[$id]}" != "$id_admin" ]] && {
         ShellBot.sendMessage --chat_id ${callback_query_message_chat_id[$id]} \
-            --text "$(echo -e 🚫 ACESSO NEGADO 🚫)"
+            --text "$(echo -e "🚫 ACESSO NEGADO 🚫")"
         return 0
     }
-    rm /root/backup.vps 1>/dev/null 2>/dev/null
+
     ShellBot.answerCallbackQuery --callback_query_id ${callback_query_id[$id]} \
-        --text "♻️ CRIANDO BACKUP DE USUARIOS"
-    tar cvf /root/backup.vps /root/usuarios.db /etc/shadow /etc/passwd /etc/group /etc/gshadow /etc/bot /etc/SSHPlus/senha 1>/dev/null 2>/dev/null
+        --text "♻️ CRIANDO BACKUP DE USUÁRIOS..."
+
+    rm -f /root/backup.vps 1>/dev/null 2>/dev/null
+
+    tar cvf /root/backup.vps \
+        /root/usuarios.db \
+        /etc/shadow \
+        /etc/passwd \
+        /etc/group \
+        /etc/gshadow \
+        /etc/bot \
+        /etc/SSHPlus/senha \
+        /etc/bot/lista_ativos \
+        /etc/bot/lista_suspensos \
+        /etc/bot/arquivos/ \
+        1>/dev/null 2>/dev/null
+
     ShellBot.sendDocument --chat_id ${id_admin} \
         --document "@/root/backup.vps" \
-        --caption "$(echo -e "♻️ BACKUP DE USUARIOS ♻️")"
+        --caption "$(echo -e "♻️ BACKUP DE USUÁRIOS, REVENDEDORES E SUBS ♻️")"
+
     return 0
 }
 
@@ -2054,7 +2135,7 @@ ShellBot.InlineKeyboardButton --button 'menu1' --line 7 --text 'ALTERAR LIMITE' 
 ShellBot.InlineKeyboardButton --button 'menu1' --line 8 --text 'ALTERAR DATA' --callback_data '_altdata'
 ShellBot.InlineKeyboardButton --button 'menu1' --line 9 --text 'USUARIOS ONLINE' --callback_data '_monitor'
 ShellBot.InlineKeyboardButton --button 'menu1' --line 10 --text 'INFO USUARIOS' --callback_data '_verusers'
-ShellBot.InlineKeyboardButton --button 'menu1' --line 11 --text 'EXPIRADOS' --callback_data '_expirados'
+ShellBot.InlineKeyboardButton --button 'menu1' --line 11 --text 'REMOVER EXPIRADOS' --callback_data '_expirados'
 ShellBot.InlineKeyboardButton --button 'menu1' --line 1 --text 'INFO VPS' --callback_data '_infovps'
 ShellBot.InlineKeyboardButton --button 'menu1' --line 2 --text 'OTIMIZAR' --callback_data '_otimizar'
 ShellBot.InlineKeyboardButton --button 'menu1' --line 3 --text 'ARQUIVOS' --callback_data '_arqdown'
@@ -2099,7 +2180,7 @@ ShellBot.InlineKeyboardButton --button 'menu2' --line 2 --text 'USUARIOS ONLINE'
 ShellBot.InlineKeyboardButton --button 'menu2' --line 3 --text 'ALTERAR LIMITE' --callback_data '_altlimite2'
 ShellBot.InlineKeyboardButton --button 'menu2' --line 3 --text 'INFO USUARIOS' --callback_data '_verusers2'
 ShellBot.InlineKeyboardButton --button 'menu2' --line 4 --text 'ALTERAR SENHA' --callback_data '_altsenha2'
-ShellBot.InlineKeyboardButton --button 'menu2' --line 4 --text 'EXPIRADOS' --callback_data '_expirados2'
+ShellBot.InlineKeyboardButton --button 'menu2' --line 4 --text 'REMOVER EXPIRADOS' --callback_data '_expirados2'
 ShellBot.InlineKeyboardButton --button 'menu2' --line 5 --text 'ALTERAR DATA' --callback_data '_altdata2'
 ShellBot.InlineKeyboardButton --button 'menu2' --line 5 --text 'REVENDA' --callback_data '_opcoesrev2'
 ShellBot.InlineKeyboardButton --button 'menu2' --line 6 --text 'RELATORIO' --callback_data '_relatorio2'
@@ -2133,7 +2214,7 @@ ShellBot.InlineKeyboardButton --button 'menu3' --line 2 --text 'USUARIOS ONLINE'
 ShellBot.InlineKeyboardButton --button 'menu3' --line 3 --text 'ALTERAR LIMITE' --callback_data '_altlimite3'
 ShellBot.InlineKeyboardButton --button 'menu3' --line 3 --text 'INFO USUARIOS' --callback_data '_verusers3'
 ShellBot.InlineKeyboardButton --button 'menu3' --line 4 --text 'ALTERAR SENHA' --callback_data '_altsenha3'
-ShellBot.InlineKeyboardButton --button 'menu3' --line 4 --text 'EXPIRADOS' --callback_data '_expirados3'
+ShellBot.InlineKeyboardButton --button 'menu3' --line 4 --text 'REMOVER EXPIRADOS' --callback_data '_expirados3'
 ShellBot.InlineKeyboardButton --button 'menu3' --line 5 --text 'ALTERAR DATA' --callback_data '_altdata3'
 ShellBot.InlineKeyboardButton --button 'menu3' --line 5 --text 'AJUDA' --callback_data '_ajuda3'
 ShellBot.regHandleFunction --function fun_adduser --callback_data _criaruser3
@@ -2425,6 +2506,16 @@ while :; do
                         --text "$(echo -e "=×=×=×=×=×=×=×=×=×=×=×\n<b>✅ SENHA ALTERADA !</b> !\n=×=×=×=×=×=×=×=×=×=×=×\n\n<b>Usuario:</b> $(cat /tmp/name-s)\n<b>Nova senha:</b> ${message_text[$id]}")" \
                         --parse_mode html
                     rm /tmp/name-s >/dev/null 2>&1
+                    '🔐 Alterar Senha ROOT 🔐\n\nDigite a nova senha:')
+                    [[ "$_erro" == '1' ]] && break
+                    alterar_senha_root_exec
+                    ;;
+                    'ALTERAR SENHA ROOT')
+                    alterar_senha_root
+                    ;;
+                '👥 Alterar Limite 👥\n\nNome do usuario:')
+                    alterar_senha_root
+                    [[ "$_erro" == '1' ]] && break
                     ;;
                 '👥 Alterar Limite 👥\n\nNome do usuario:')
                     verifica_acesso

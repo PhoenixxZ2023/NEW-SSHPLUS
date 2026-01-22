@@ -69,7 +69,7 @@ SCOLOR='\033[0m'
 			xray-menu
 		} || {
 			cd $HOME
-			https://raw.githubusercontent.com/PhoenixxZ2023/XrayX-TLS/main/installxray.sh; && sudo chmod +x installxray.sh && sudo ./installxray.sh && xray-menu
+			https://raw.githubusercontent.com/PhoenixxZ2023/XrayX-TLS/main/installxray.sh; && sudo chmod +x installxray.sh && sudo ./installxray.sh 
 		}
 
 	}

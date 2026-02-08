@@ -65,14 +65,23 @@ SCOLOR='\033[0m'
 	}
 
 	xray_setup() {
-		[[ -e "/usr/bin/xray-menu" ]] && {
-			xray-menu
-		} || {
-			cd $HOME
-			https://raw.githubusercontent.com/PhoenixxZ2023/XrayX-TLS/main/installxray.sh; && sudo chmod +x installxray.sh && sudo ./installxray.sh 
-		}
+  if command -v xray-menu >/dev/null 2>&1; then
+    xray-menu
+    return
+  fi
 
-	}
+  need_root
+  cd "$HOME" || return 1
+  rm -f installxray.sh
+
+  fun_bar "apt-get update -y" "apt-get install -y curl ca-certificates"
+
+  curl -fsSL "https://raw.githubusercontent.com/PhoenixxZ2023/XrayX-TLS/main/installxray.sh" -o installxray.sh \
+    || die "Falha ao baixar installxray.sh"
+
+  chmod +x installxray.sh
+  ./installxray.sh
+}
 
 
 	inst_sqd() {

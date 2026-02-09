@@ -902,26 +902,6 @@ EOF
     fi
 }
 
-        ws_ssl() {
-		rm -rf /root/*   && wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/refs/heads/main/Modulos/ws_ssl_auto.sh && chmod +x ws_ssl_auto.sh && ./ws_ssl_auto.sh
-		sleep 3
-		fun_conexao
-	}
-	fun_ddos() {
-		sudo apt install dnsutils
-		apt-get install net-tools
-		apt-get install tcpdump
-		apt-get install unzip
-		sudo apt-get install dsniff -y
-		sudo apt install grepcidr
-		wget https://github.com/jgmdev/ddos-deflate/archive/master.zip -O ddos.zip
-		unzip ddos.zip
-		cd ddos-deflate-master
-		./install.sh
-		sleep 9
-		fun_conexao
-	}
-
 fun_openvpn() {
     # Verifica se o script está sendo executado com bash
     if readlink /proc/$$/exe | grep -qs "dash"; then

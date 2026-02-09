@@ -2310,9 +2310,6 @@ EOF
             *) err_txt "OPÇÃO INVÁLIDA!"; sleep 1 ;;
         esac
     done
-fi
-
-
 
 
 elif [[ "$resposta" = '6' ]]; then

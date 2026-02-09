@@ -264,6 +264,9 @@ super_proxy() {
 # instalando rustyproxy by @UlekBR
 bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/RustyProxyOnly/refs/heads/main/install.sh)
 
+# instalando turboproxy 
+bash <(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/turbonetproxy/refs/heads/main/install.sh)
+
 # Instalando checkuser multi-apps by @UlekBR
 wget -qO /bin/checkuser https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/checkuser
 chmod +x /bin/checkuser

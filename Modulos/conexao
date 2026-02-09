@@ -2000,109 +2000,169 @@ elif [[ "$resposta" = '5' ]]; then
     warn_txt() { printf "%b%s%b\n" "${YELLOW_BOLD}" "${*^^}" "${RESET}"; } # AMARELO+NEGRITO+MAIÚSCULO
     ok_txt()   { printf "%b%s%b\n" "${GREEN_BOLD}" "${*^^}" "${RESET}"; }  # VERDE+NEGRITO+MAIÚSCULO
     err_txt()  { printf "%b%s%b\n" "${RED_BOLD}" "${*^^}" "${RESET}"; }    # VERMELHO+NEGRITO+MAIÚSCULO
+    info_txt() { printf "%b%s%b\n" "${BLUE_BOLD}" "$*" "${RESET}"; }       # AZUL (SEM ^^) p/ linhas informativas
 
-    menu_txt "             DRAGONX PROXY               "
-    echo ""
+    menu_item() { local k="$1"; shift; menu_txt "[$k] $*"; }
 
     DRAGONX_DIR="$HOME/DragonX"
     LOG_DIR="$DRAGONX_DIR/logs"
     PORTS_FILE="$DRAGONX_DIR/ports.list"
+    AUTOSTART="/etc/autostart"
     BIN_NAME="dragon_go-x86"
 
-    # (OPCIONAL) DETECTAR ARQUITETURA AUTOMATICAMENTE
-    # ARCH=$(uname -m)
-    # case "$ARCH" in
-    #   x86_64|i386|i686) BIN_NAME="dragon_go-x86" ;;
-    #   aarch64|armv7l|armv6l|arm*) BIN_NAME="dragon_go-ARM" ;;
-    #   *) err_txt "ARQUITETURA NÃO SUPORTADA: $ARCH"; return ;;
-    # esac
+    # ===============================
+    # FUNÇÕES AUXILIARES
+    # ===============================
+    service_name_for_port() { echo "dragonx_port_$1.service"; }
+
+    read_port() {
+        local prompt="${1:-PORTA}"
+        read -p "$prompt: " porta
+        if [[ -z "$porta" ]] || ! [[ "$porta" =~ ^[0-9]+$ ]] || (( porta < 1 || porta > 65535 )); then
+            err_txt "PORTA INVÁLIDA: ${porta:-VAZIA}"
+            sleep 2
+            return 1
+        fi
+        return 0
+    }
+
+    is_port_active() {
+        local svc
+        svc="$(service_name_for_port "$1")"
+        systemctl is-active --quiet "$svc"
+    }
+
+    ensure_ports_file() {
+        [[ -f "$PORTS_FILE" ]] || touch "$PORTS_FILE"
+    }
+
+    add_port_to_list() {
+        ensure_ports_file
+        grep -q "^$1$" "$PORTS_FILE" || echo "$1" >> "$PORTS_FILE"
+    }
+
+    remove_port_from_list() {
+        [[ -f "$PORTS_FILE" ]] || return 0
+        # remove linha exata
+        sed -i "/^$1\$/d" "$PORTS_FILE" 2>/dev/null || true
+        # se ficou vazio, remove
+        [[ -s "$PORTS_FILE" ]] || rm -f "$PORTS_FILE"
+    }
+
+    list_installed_services() {
+        systemctl list-unit-files --type=service 2>/dev/null \
+        | awk '{print $1}' \
+        | grep -E '^dragonx_port_[0-9]+\.service$' || true
+    }
+
+    list_ports_from_file() {
+        [[ -f "$PORTS_FILE" ]] && cat "$PORTS_FILE" || true
+    }
 
     # ===============================
-    # FUNÇÃO DE INSTALAÇÃO
+    # INSTALAÇÃO
     # ===============================
     instalar_dragonx() {
         warn_txt "🔄 INICIANDO INSTALAÇÃO DO DRAGONX PROXY..."
         sleep 1
 
-        # Garante diretórios
         mkdir -p "$DRAGONX_DIR" "$LOG_DIR" >>/tmp/dragonx_install.log 2>&1
 
-        # Dependências
         if command -v apt >/dev/null 2>&1; then
             sudo apt update -y >>/tmp/dragonx_install.log 2>&1
             sudo apt install -y git unzip wget screen >>/tmp/dragonx_install.log 2>&1
         fi
 
-        # Clona repositório
         rm -rf "$DRAGONX_DIR" >>/tmp/dragonx_install.log 2>&1
         git clone --depth 1 https://github.com/PhoenixxZ2023/proxygo.git "$DRAGONX_DIR" >>/tmp/dragonx_install.log 2>&1
 
-        # Permissões e link simbólico
         chmod +x "$DRAGONX_DIR"/* >>/tmp/dragonx_install.log 2>&1
         sudo ln -sf "$DRAGONX_DIR/proxy.sh" /usr/local/bin/dragonx >>/tmp/dragonx_install.log 2>&1
 
-        # Atualiza systemd
         sudo systemctl daemon-reload >>/tmp/dragonx_install.log 2>&1
         sudo systemctl reset-failed >>/tmp/dragonx_install.log 2>&1
 
         ok_txt "✅ INSTALAÇÃO CONCLUÍDA COM SUCESSO!"
-        sleep 2
-        fun_dragonx
+        sleep 1
+    }
+
+    ensure_installed() {
+        mkdir -p "$DRAGONX_DIR" "$LOG_DIR" >/dev/null 2>&1 || true
+        if [[ ! -d "$DRAGONX_DIR" ]] || [[ ! -f "$DRAGONX_DIR/$BIN_NAME" ]]; then
+            instalar_dragonx
+        fi
     }
 
     # ===============================
-    # FUNÇÃO ATIVAR/DESATIVAR
+    # STATUS / LISTAGEM
     # ===============================
-    fun_dragonx() {
-        DRAGONX_CMD="/usr/local/bin/dragonx"
+    status_dragonx() {
+        clear
+        menu_txt "=========== STATUS DRAGONX ==========="
+        echo ""
 
-        fun_dragonxoff() {
-            ok_txt "DESATIVANDO O DRAGONX PROXY"
-            for svc in $(systemctl list-units --type=service --state=running | grep 'dragonx_port_' | awk '{print $1}'); do
-                sudo systemctl stop "$svc" >>/tmp/dragonx_off.log 2>&1
-                sudo systemctl disable "$svc" >>/tmp/dragonx_off.log 2>&1
-                sudo rm -f "/etc/systemd/system/$svc" >>/tmp/dragonx_off.log 2>&1
+        local any=0
+
+        # 1) portas do ports.list
+        if [[ -f "$PORTS_FILE" ]]; then
+            menu_txt "PORTAS REGISTRADAS:"
+            while read -r p; do
+                [[ -z "$p" ]] && continue
+                any=1
+                if is_port_active "$p"; then
+                    info_txt " - PORTA $p (🟢 ATIVA)"
+                else
+                    info_txt " - PORTA $p (🔴 INATIVA)"
+                fi
+            done < "$PORTS_FILE"
+            echo ""
+        fi
+
+        # 2) serviços existentes no systemd (mesmo se ports.list estiver vazio)
+        mapfile -t svcs < <(list_installed_services)
+        if ((${#svcs[@]})); then
+            menu_txt "SERVIÇOS SYSTEMD ENCONTRADOS:"
+            for s in "${svcs[@]}"; do
+                local p="${s#dragonx_port_}"; p="${p%.service}"
+                any=1
+                if systemctl is-active --quiet "$s"; then
+                    info_txt " - $s (🟢 ATIVO) [PORTA $p]"
+                else
+                    info_txt " - $s (🔴 INATIVO) [PORTA $p]"
+                fi
             done
+            echo ""
+        fi
 
-            [[ -f "$PORTS_FILE" ]] && rm -f "$PORTS_FILE"
+        if [[ $any -eq 0 ]]; then
+            warn_txt "NENHUMA PORTA OU SERVIÇO DRAGONX ENCONTRADO"
+            echo ""
+        fi
 
-            # ATENÇÃO: /etc/autostart pode não existir
-            if [[ -f /etc/autostart ]]; then
-                [[ $(grep -wc "dragonx" /etc/autostart) != '0' ]] && sed -i '/dragonx/d' /etc/autostart
-            fi
+        read -p "PRESSIONE ENTER PARA VOLTAR..."
+    }
 
-            sudo systemctl daemon-reload >>/tmp/dragonx_off.log 2>&1
-            ok_txt "DRAGONX PROXY DESATIVADO COM SUCESSO!"
-            sleep 1
-        }
+    # ===============================
+    # ATIVAR (CRIAR/INICIAR PORTA)
+    # ===============================
+    ativar_porta() {
+        ensure_installed
 
-        if systemctl list-units --type=service | grep -q 'dragonx_port_'; then
-            fun_dragonxoff
-        else
-            menu_txt "QUAL PORTA DESEJA UTILIZAR?"
-            read -p "PORTA: " porta
+        menu_txt "CRIAR / INICIAR DRAGONX EM UMA PORTA"
+        if ! read_port "PORTA"; then return; fi
 
-            if [[ -z "$porta" ]]; then
-                err_txt "PORTA INVÁLIDA!"
-                sleep 2
-                return
-            fi
+        mkdir -p "$DRAGONX_DIR" "$LOG_DIR" >>/tmp/dragonx_on.log 2>&1
 
-            if ! [[ "$porta" =~ ^[0-9]+$ ]] || (( porta < 1 || porta > 65535 )); then
-                err_txt "PORTA INVÁLIDA: $porta"
-                sleep 2
-                return
-            fi
+        if [[ ! -f "$DRAGONX_DIR/$BIN_NAME" ]]; then
+            err_txt "ERRO: BINÁRIO $BIN_NAME NÃO ENCONTRADO EM $DRAGONX_DIR"
+            sleep 2
+            return
+        fi
 
-            mkdir -p "$DRAGONX_DIR" "$LOG_DIR" >>/tmp/dragonx_on.log 2>&1
+        local svc
+        svc="$(service_name_for_port "$porta")"
 
-            if [[ ! -f "$DRAGONX_DIR/$BIN_NAME" ]]; then
-                err_txt "ERRO: BINÁRIO $BIN_NAME NÃO ENCONTRADO EM $DRAGONX_DIR"
-                return
-            fi
-
-            SERVICE_NAME="dragonx_port_$porta.service"
-            sudo tee /etc/systemd/system/$SERVICE_NAME >/dev/null <<EOF
+        sudo tee "/etc/systemd/system/$svc" >/dev/null <<EOF
 [Unit]
 Description=DragonX SSH Proxy (Porta $porta)
 After=network.target
@@ -2119,37 +2179,159 @@ StandardError=file:$LOG_DIR/proxy_$porta.log
 WantedBy=multi-user.target
 EOF
 
-            sudo systemctl daemon-reload >>/tmp/dragonx_on.log 2>&1
-            sudo systemctl enable "$SERVICE_NAME" >>/tmp/dragonx_on.log 2>&1
-            sudo systemctl start "$SERVICE_NAME" >>/tmp/dragonx_on.log 2>&1
+        sudo systemctl daemon-reload >>/tmp/dragonx_on.log 2>&1
+        sudo systemctl enable "$svc" >>/tmp/dragonx_on.log 2>&1
+        sudo systemctl start "$svc" >>/tmp/dragonx_on.log 2>&1
 
-            [[ ! -f "$PORTS_FILE" ]] && touch "$PORTS_FILE"
-            grep -q "^$porta$" "$PORTS_FILE" || echo "$porta" >> "$PORTS_FILE"
+        add_port_to_list "$porta"
 
-            # ATENÇÃO: /etc/autostart pode não existir
-            if [[ ! -f /etc/autostart ]]; then
-                sudo touch /etc/autostart
-            fi
-
-            if [[ $(grep -wc "dragonx" /etc/autostart) = '0' ]]; then
-                echo "netstat -tlpn | grep -w $porta > /dev/null || { systemctl start $SERVICE_NAME; }" | sudo tee -a /etc/autostart >/dev/null
-            fi
-
-            ok_txt "DRAGONX PROXY ATIVADO COM SUCESSO NA PORTA: $porta"
-            sleep 2
+        # autostart (seu padrão)
+        if [[ ! -f "$AUTOSTART" ]]; then
+            sudo touch "$AUTOSTART"
         fi
+        if [[ $(grep -wc "dragonx" "$AUTOSTART") = '0' ]]; then
+            echo "netstat -tlpn | grep -w $porta > /dev/null || { systemctl start $svc; }" | sudo tee -a "$AUTOSTART" >/dev/null
+        fi
+
+        ok_txt "DRAGONX ATIVADO NA PORTA: $porta"
+        read -p "PRESSIONE ENTER PARA VOLTAR..."
     }
 
     # ===============================
-    # CHECA INSTALAÇÃO
+    # PARAR UMA PORTA
     # ===============================
-    if [[ ! -d "$DRAGONX_DIR" ]] || [[ ! -f "$DRAGONX_DIR/$BIN_NAME" ]]; then
-        instalar_dragonx
-        # Retorna ao menu principal após instalação
-        bash /etc/bin/conexao
-    else
-        fun_dragonx
-    fi
+    parar_porta() {
+        menu_txt "PARAR DRAGONX EM UMA PORTA"
+        if ! read_port "PORTA"; then return; fi
+
+        local svc
+        svc="$(service_name_for_port "$porta")"
+
+        sudo systemctl stop "$svc" >>/tmp/dragonx_stop.log 2>&1 || true
+        warn_txt "PORTA $porta PARADA (SERVIÇO: $svc)"
+        read -p "PRESSIONE ENTER PARA VOLTAR..."
+    }
+
+    # ===============================
+    # REINICIAR UMA PORTA
+    # ===============================
+    reiniciar_porta() {
+        menu_txt "REINICIAR DRAGONX EM UMA PORTA"
+        if ! read_port "PORTA"; then return; fi
+
+        local svc
+        svc="$(service_name_for_port "$porta")"
+
+        sudo systemctl restart "$svc" >>/tmp/dragonx_restart.log 2>&1 || true
+        ok_txt "PORTA $porta REINICIADA (SERVIÇO: $svc)"
+        read -p "PRESSIONE ENTER PARA VOLTAR..."
+    }
+
+    # ===============================
+    # DESATIVAR (REMOVE SERVIÇOS, MANTÉM ARQUIVOS)
+    # ===============================
+    desativar_dragonx() {
+        warn_txt "🛑 DESATIVANDO DRAGONX (MANTENDO ARQUIVOS)..."
+
+        mapfile -t svcs < <(list_installed_services)
+        if ((${#svcs[@]})); then
+            for svc in "${svcs[@]}"; do
+                sudo systemctl stop "$svc" >>/tmp/dragonx_off.log 2>&1 || true
+                sudo systemctl disable "$svc" >>/tmp/dragonx_off.log 2>&1 || true
+                sudo rm -f "/etc/systemd/system/$svc" "/lib/systemd/system/$svc" >>/tmp/dragonx_off.log 2>&1 || true
+            done
+        else
+            warn_txt "NENHUM SERVIÇO DRAGONX ENCONTRADO"
+        fi
+
+        [[ -f "$PORTS_FILE" ]] && rm -f "$PORTS_FILE"
+
+        if [[ -f "$AUTOSTART" ]]; then
+            sudo sed -i '/dragonx\|DragonX\|dragon_go\|dragonx_port_/d' "$AUTOSTART" >>/tmp/dragonx_off.log 2>&1 || true
+        fi
+
+        sudo systemctl daemon-reload >>/tmp/dragonx_off.log 2>&1 || true
+        sudo systemctl reset-failed >>/tmp/dragonx_off.log 2>&1 || true
+
+        ok_txt "DRAGONX DESATIVADO COM SUCESSO!"
+        read -p "PRESSIONE ENTER PARA VOLTAR..."
+    }
+
+    # ===============================
+    # DESINSTALAR (REMOVE TUDO)
+    # ===============================
+    desinstalar_dragonx() {
+        warn_txt "❌ DESINSTALAR DRAGONX (REMOVER TUDO)"
+        read -r -p "CONFIRMAR DESINSTALAÇÃO COMPLETA? [S/N]: " confirm
+        confirm="${confirm:-N}"
+        if [[ "${confirm^^}" != "S" ]]; then
+            warn_txt "AÇÃO CANCELADA. NENHUMA ALTERAÇÃO FOI FEITA."
+            sleep 2
+            return
+        fi
+
+        warn_txt "REMOVENDO SERVIÇOS, ARQUIVOS E COMANDOS..."
+
+        mapfile -t svcs < <(list_installed_services)
+        if ((${#svcs[@]})); then
+            for svc in "${svcs[@]}"; do
+                sudo systemctl stop "$svc" >>/tmp/dragonx_remove.log 2>&1 || true
+                sudo systemctl disable "$svc" >>/tmp/dragonx_remove.log 2>&1 || true
+                sudo rm -f "/etc/systemd/system/$svc" "/lib/systemd/system/$svc" >>/tmp/dragonx_remove.log 2>&1 || true
+            done
+        fi
+
+        [[ -f "$PORTS_FILE" ]] && rm -f "$PORTS_FILE"
+
+        if [[ -f "$AUTOSTART" ]]; then
+            sudo sed -i '/dragonx\|DragonX\|dragon_go\|dragonx_port_/d' "$AUTOSTART" >>/tmp/dragonx_remove.log 2>&1 || true
+        fi
+
+        if [[ -L /usr/local/bin/dragonx || -f /usr/local/bin/dragonx ]]; then
+            sudo rm -f /usr/local/bin/dragonx >>/tmp/dragonx_remove.log 2>&1 || true
+        fi
+
+        if [[ -d "$DRAGONX_DIR" ]]; then
+            rm -rf "$DRAGONX_DIR" >>/tmp/dragonx_remove.log 2>&1 || true
+        fi
+
+        sudo systemctl daemon-reload >>/tmp/dragonx_remove.log 2>&1 || true
+        sudo systemctl reset-failed >>/tmp/dragonx_remove.log 2>&1 || true
+
+        ok_txt "✅ DRAGONX REMOVIDO COMPLETAMENTE!"
+        read -p "PRESSIONE ENTER PARA VOLTAR..."
+    }
+
+    # ===============================
+    # SUBMENU
+    # ===============================
+    while true; do
+        clear
+        menu_txt "=========== DRAGONX PROXY ==========="
+        menu_item 1 "LISTAR STATUS (PORTAS)"
+        menu_item 2 "ATIVAR (CRIAR/INICIAR PORTA)"
+        menu_item 3 "PARAR UMA PORTA"
+        menu_item 4 "REINICIAR UMA PORTA"
+        menu_item 5 "DESATIVAR (REMOVER SERVIÇOS, MANTER ARQUIVOS)"
+        menu_item 6 "DESINSTALAR (REMOVER TUDO)"
+        menu_item 0 "VOLTAR"
+        menu_txt "===================================="
+        echo ""
+        read -p "ESCOLHA UMA OPÇÃO: " op_dragonx
+
+        case "$op_dragonx" in
+            1) status_dragonx ;;
+            2) ativar_porta ;;
+            3) parar_porta ;;
+            4) reiniciar_porta ;;
+            5) desativar_dragonx ;;
+            6) desinstalar_dragonx ;;
+            0) break ;;
+            *) err_txt "OPÇÃO INVÁLIDA!"; sleep 1 ;;
+        esac
+    done
+fi
+
 
 
 

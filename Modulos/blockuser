@@ -1,94 +1,245 @@
 #!/bin/bash
-clear
-while [  "$op"  !=  "3" ]
-do
-echo -e "\033[0;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-echo -e "\E[44;1;37m            BLOQUEAR USUÁRIO TEMPORÁRIO            \E[0m"
-echo -e "\033[0;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-echo -e "\033[1;31m• \033[1;37mBLOQUEAR E DESBLOQUEAR USUÁRIO TEMPORARIAMENTE!\033[0m"
-echo -e "\033[0;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-echo -e "\033[1;31m[\033[1;36m01\033[1;31m]\033[1;37m • \033[1;37mBLOQUEAR USUÁRIO \033[0;32m"
-echo -e "\033[1;31m[\033[1;36m02\033[1;31m]\033[1;37m • \033[1;37mDESBLOQUEAR USUÁRIO \033[1;37m"
-echo -e "\033[1;31m[\033[1;36m00\033[1;31m]\033[1;37m • \033[1;37mVOLTA AO MENU \033[0;32m"
-echo -e "\033[0;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-echo -e "\E[44;1;37m Usuario         Senha        limite      validade \E[0m"
-[[ ! -e /bin/versao ]] && rm -rf /bin/menu
-for users in `awk -F : '$3 > 900 { print $1 }' /etc/passwd |sort |grep -v "nobody" |grep -vi polkitd |grep -vi system-`
-do
-if [[ $(grep -cw $users $HOME/usuarios.db) == "1" ]]; then
-    lim=$(grep -w $users $HOME/usuarios.db | cut -d' ' -f2)
-else
-    lim="1"
-fi
-if [[ -e "/etc/SSHPlus/senha/$users" ]]; then
-    senha=$(cat /etc/SSHPlus/senha/$users)
-else
-    senha="Null"
-fi
-datauser=$(chage -l $users |grep -i co |awk -F : '{print $2}')
-if [ $datauser = never ] 2> /dev/null
-then
-data="\033[1;37mNunca\033[0m"
-else
-    databr="$(date -d "$datauser" +"%Y%m%d")"
-    hoje="$(date -d today +"%Y%m%d")"
-    if [ $hoje -ge $databr ]
-    then
-    data="\033[1;31mVenceu\033[0m"
-    else
-    dat="$(date -d"$datauser" '+%Y-%m-%d')"
-    data=$(echo -e "$((($(date -ud $dat +%s)-$(date -ud $(date +%Y-%m-%d) +%s))/86400)) \033[1;37mDias\033[0m")
-    fi
-fi
-Usuario=$(printf ' %-15s' "$users")
-Senha=$(printf '%-13s' "$senha")
-Limite=$(printf '%-10s' "$lim")
-Data=$(printf '%-1s' "$data")
-echo -e "\033[1;37m$Usuario \033[1;37m$Senha \033[1;37m$Limite \033[1;32m$Data\033[0m"
-echo -e "\033[0;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-done
-_tuser=$(awk -F: '$3>=1000 {print $1}' /etc/passwd | grep -v nobody | wc -l)
-_ons=$(ps -x | grep sshd | grep -v root | grep priv | wc -l)
-[[ "$(cat /etc/SSHPlus/Exp)" != "" ]] && _expuser=$(cat /etc/SSHPlus/Exp) || _expuser="0"
-[[ -e /etc/openvpn/openvpn-status.log ]] && _onop=$(grep -c "10.8.0" /etc/openvpn/openvpn-status.log) || _onop="0"
-[[ -e /etc/default/dropbear ]] && _drp=$(ps aux | grep dropbear | grep -v grep | wc -l) _ondrp=$(($_drp - 1)) || _ondrp="0"
-_onli=$(($_ons + $_onop + $_ondrp))
-echo -e "\033[1;37m• \033[1;36mTOTAL USUARIOS\033[1;37m $_tuser \033[1;37m• \033[1;32mONLINES\033[1;37m: $_onli \033[1;37m• \033[1;31mVENCIDOS\033[1;37m: $_expuser \033[1;37m•\033[0m"
+# blockuser - Bloquear/Desbloquear usuário (passwd -l / -u)
+# Compat: Ubuntu 20/22, Debian 12
 
-read op
-case $op in
-1)clear
-echo -e "\E[44;1;37m             BLOQUEAR USUÁRIO            \E[0m"
-echo ""
-echo " DIGITE O NOME DE USUÁRIO QUE DESEJA BLOQUEAR : "
-read lock
-passwd -l $lock
-echo -e "\033[1;34m\033[1;37m\033[1;34m\033[1;37m \033[1;37mUSUÁRIO BLOQUEADO COM SUCESSO \033[0;32m"
-echo -e ""
-echo -e ""
-echo -ne "\n\033[1;37mENTER \033[1;37mPARA VOLTAR AO \033[1;37mMENU!\033[0m"; read
-clear
-;;
-2)clear
-echo -e "\E[44;1;37m           DESBLOQUEAR USUÁRIO           \E[0m"
-echo ""
-echo " DIGITE O NOME DE USUÁRIO QUE DESEJA DESBLOQUEAR :   "
-read unlock
-passwd -u  $unlock
-echo -e "\033[1;34m\033[1;37m\033[1;34m\033[1;37m \033[1;37mUSUÁRIO DESBLOQUEADO COM SUCESSO \033[0;32m"
-echo -e ""
-echo -e ""
-echo -ne "\n\033[1;37mENTER \033[1;37mPARA VOLTAR AO \033[1;37mMENU!\033[0m"; read
-clear
-;;
-0)clear
-echo "RETORNANDO...."
-menu
-;;
-*)clear
-echo "Opcao Invalida ..."
-sleep 1s
-clear
-;;
-esac
+set -u
+shopt -s nullglob
+
+DB_USERS="/root/usuarios.db"
+PASS_DIR="/etc/SSHPlus/senha"
+EXP_FILE="/etc/SSHPlus/Exp"
+
+# cores básicas
+LINE="\033[0;37m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+TITLEBG="\E[44;1;37m"
+RESET="\033[0m"
+
+# compat: alguns scripts antigos removem /bin/menu se não existir /bin/versao
+[[ ! -e /bin/versao ]] && rm -rf /bin/menu >/dev/null 2>&1 || true
+
+[[ -f "$DB_USERS" ]] || touch "$DB_USERS" >/dev/null 2>&1 || true
+
+pause_enter() {
+  echo -ne "\n\033[1;37mENTER \033[1;37mPARA VOLTAR!\033[0m"
+  read -r _
+}
+
+is_valid_user() {
+  local u="$1"
+  [[ "$u" =~ ^[a-zA-Z0-9._-]{2,25}$ ]]
+}
+
+is_customer_user() {
+  local u="$1"
+  # existe?
+  id "$u" >/dev/null 2>&1 || return 1
+  # uid>=1000 (clientes)
+  local uid
+  uid="$(id -u "$u" 2>/dev/null || echo 0)"
+  [[ "$uid" -ge 1000 ]]
+}
+
+is_protected_user() {
+  local u="$1"
+  [[ "$u" =~ ^(root|nobody|daemon|sys|sync|games|man|lp|mail|news|uucp|proxy|www-data|backup|list|irc|gnats|systemd-network|systemd-resolve|messagebus|polkitd)$ ]]
+}
+
+get_limit() {
+  local u="$1"
+  awk -v user="$u" '$1==user{print $2; found=1} END{if(!found) print "1"}' "$DB_USERS" 2>/dev/null
+}
+
+get_pass() {
+  local u="$1"
+  [[ -f "${PASS_DIR}/${u}" ]] && cat "${PASS_DIR}/${u}" 2>/dev/null || echo "Null"
+}
+
+get_expire_display() {
+  local u="$1"
+  local exp_line exp_epoch now_epoch dias_rest
+
+  exp_line="$(chage -l "$u" 2>/dev/null | awk -F': ' '/^Account expires/ {print $2; exit}')"
+  [[ -z "${exp_line:-}" ]] && { echo -e "\033[1;37mNunca\033[0m"; return; }
+
+  if [[ "$exp_line" == "never" ]]; then
+    echo -e "\033[1;37mNunca\033[0m"
+    return
+  fi
+
+  exp_epoch="$(date -d "$exp_line" +%s 2>/dev/null || echo "")"
+  now_epoch="$(date +%s)"
+
+  if [[ -z "${exp_epoch:-}" ]]; then
+    echo -e "\033[1;37m${exp_line}\033[0m"
+    return
+  fi
+
+  if (( now_epoch >= exp_epoch )); then
+    echo -e "\033[1;31mVenceu\033[0m"
+  else
+    dias_rest=$(( (exp_epoch - now_epoch) / 86400 ))
+    echo -e "${dias_rest} \033[1;37mDias\033[0m"
+  fi
+}
+
+count_established_on_port() {
+  local port="$1"
+  if command -v ss >/dev/null 2>&1; then
+    ss -tan state established "( sport = :$port )" 2>/dev/null | tail -n +2 | wc -l
+  else
+    netstat -tan 2>/dev/null | awk -v p=":$port" '$6=="ESTABLISHED" && $4~p {c++} END{print c+0}'
+  fi
+}
+
+show_list() {
+  clear
+  echo -e "$LINE"
+  echo -e "${TITLEBG}            BLOQUEAR USUÁRIO TEMPORÁRIO            ${RESET}"
+  echo -e "$LINE"
+  echo -e "\033[1;31m• \033[1;37mBLOQUEAR E DESBLOQUEAR USUÁRIO (PASSWD -L / -U)\033[0m"
+  echo -e "$LINE"
+  echo -e "\033[1;31m[\033[1;36m01\033[1;31m]\033[1;37m • \033[1;37mBLOQUEAR USUÁRIO"
+  echo -e "\033[1;31m[\033[1;36m02\033[1;31m]\033[1;37m • \033[1;37mDESBLOQUEAR USUÁRIO"
+  echo -e "\033[1;31m[\033[1;36m00\033[1;31m]\033[1;37m • \033[1;37mVOLTAR AO MENU"
+  echo -e "$LINE"
+  echo -e "${TITLEBG} Usuario         Senha        limite      validade ${RESET}"
+
+  awk -F: '$3>900 {print $1}' /etc/passwd \
+    | sort \
+    | grep -v -E '^(nobody)$' \
+    | grep -viE 'polkitd|system-' \
+    | while read -r users; do
+        lim="$(get_limit "$users")"
+        senha="$(get_pass "$users")"
+        data="$(get_expire_display "$users")"
+
+        Usuario=$(printf ' %-15s' "$users")
+        Senha=$(printf '%-13s' "$senha")
+        Limite=$(printf '%-10s' "$lim")
+
+        echo -e "\033[1;37m$Usuario \033[1;37m$Senha \033[1;37m$Limite \033[1;32m$data\033[0m"
+        echo -e "$LINE"
+      done
+
+  _tuser=$(awk -F: '$3>=1000 {print $1}' /etc/passwd | grep -v nobody | wc -l)
+
+  # onlines aproximado por portas do sshd/openvpn/dropbear (melhor que ps|grep)
+  _ons=0
+  SSH_PORTS="$(awk '/^\s*Port\s+/{print $2}' /etc/ssh/sshd_config 2>/dev/null | tr '\n' ' ')"
+  for p in $SSH_PORTS; do
+    [[ -n "${p:-}" ]] || continue
+    _ons=$(( _ons + $(count_established_on_port "$p") ))
+  done
+
+  _onop=0
+  if compgen -G "/etc/openvpn/*.conf" >/dev/null 2>&1; then
+    OPENVPN_PORTS="$(awk '/^\s*port\s+/{print $2}' /etc/openvpn/*.conf 2>/dev/null | tr '\n' ' ')"
+    for p in $OPENVPN_PORTS; do
+      [[ -n "${p:-}" ]] || continue
+      _onop=$(( _onop + $(count_established_on_port "$p") ))
+    done
+  fi
+
+  if pgrep -x dropbear >/dev/null 2>&1; then
+    _drp="$(ps -C dropbear --no-headers 2>/dev/null | wc -l)"
+    [[ "$_drp" -gt 0 ]] && _ondrp=$(( _drp - 1 )) || _ondrp=0
+  else
+    _ondrp=0
+  fi
+
+  _onli=$(( _ons + _onop + _ondrp ))
+  _expuser="$(cat "$EXP_FILE" 2>/dev/null || echo "0")"
+
+  echo -e "\033[1;37m• \033[1;36mTOTAL USUARIOS\033[1;37m $_tuser \033[1;37m• \033[1;32mONLINES\033[1;37m: $_onli \033[1;37m• \033[1;31mVENCIDOS\033[1;37m: $_expuser \033[1;37m•\033[0m"
+  echo ""
+}
+
+do_lock() {
+  clear
+  echo -e "${TITLEBG}             BLOQUEAR USUÁRIO             ${RESET}\n"
+  echo -ne "DIGITE O NOME DE USUÁRIO QUE DESEJA BLOQUEAR: "
+  read -r lock
+
+  if ! is_valid_user "${lock:-}"; then
+    echo -e "\n\033[1;31mUsuário inválido!\033[0m"
+    pause_enter
+    return
+  fi
+  if is_protected_user "$lock"; then
+    echo -e "\n\033[1;31mBloqueio negado: usuário protegido.\033[0m"
+    pause_enter
+    return
+  fi
+  if ! is_customer_user "$lock"; then
+    echo -e "\n\033[1;31mUsuário não existe ou não é conta de cliente (uid>=1000).\033[0m"
+    pause_enter
+    return
+  fi
+
+  if passwd -l "$lock" >/dev/null 2>&1; then
+    echo -e "\n\033[1;32mUSUÁRIO BLOQUEADO COM SUCESSO!\033[0m"
+  else
+    echo -e "\n\033[1;31mFalha ao bloquear usuário.\033[0m"
+  fi
+  pause_enter
+}
+
+do_unlock() {
+  clear
+  echo -e "${TITLEBG}           DESBLOQUEAR USUÁRIO            ${RESET}\n"
+  echo -ne "DIGITE O NOME DE USUÁRIO QUE DESEJA DESBLOQUEAR: "
+  read -r unlock
+
+  if ! is_valid_user "${unlock:-}"; then
+    echo -e "\n\033[1;31mUsuário inválido!\033[0m"
+    pause_enter
+    return
+  fi
+  if is_protected_user "$unlock"; then
+    echo -e "\n\033[1;31mDesbloqueio negado: usuário protegido.\033[0m"
+    pause_enter
+    return
+  fi
+  if ! id "$unlock" >/dev/null 2>&1; then
+    echo -e "\n\033[1;31mUsuário não existe.\033[0m"
+    pause_enter
+    return
+  fi
+
+  if passwd -u "$unlock" >/dev/null 2>&1; then
+    echo -e "\n\033[1;32mUSUÁRIO DESBLOQUEADO COM SUCESSO!\033[0m"
+  else
+    echo -e "\n\033[1;31mFalha ao desbloquear usuário.\033[0m"
+  fi
+  pause_enter
+}
+
+# ==========================
+# LOOP PRINCIPAL
+# ==========================
+while true; do
+  show_list
+  echo -ne "\033[1;33mINFORME UMA OPÇÃO: \033[1;37m"
+  read -r op
+
+  case "${op:-}" in
+    1|01) do_lock ;;
+    2|02) do_unlock ;;
+    0|00)
+      clear
+      echo "RETORNANDO...."
+      if declare -F menu >/dev/null 2>&1; then
+        menu
+      elif command -v menu >/dev/null 2>&1; then
+        menu
+      else
+        exit 0
+      fi
+      ;;
+    *)
+      clear
+      echo -e "\033[1;31mOpção inválida...\033[0m"
+      sleep 1
+      ;;
+  esac
 done

@@ -1,119 +1,224 @@
 #!/bin/bash
-clear
-###############################################################
-# Programa para bloquear temporariamente e desbloquear contas de usuario
-###############################################################
-# SMIGOL PRO MANAGER
-###############################################################
+# blockssh.sh - BLOQUEAR / DESBLOQUEAR / LISTAR BLOQUEADOS (SSHPlus)
 
-# Clear the screen at the start
-clear
+set -u
+shopt -s extglob
 
-# Loop to display the menu until the user chooses to exit
-while [ "$op" != "0" ]; do
-  clear
-  echo -e "\E[44;1;37m             BLOQUEAR USUÁRIO SSH            \E[0m"
+BOLD="\033[1m"
+RESET="\033[0m"
+BLUE="\033[1;34m"
+GREEN="\033[1;32m"
+YELLOW="\033[1;33m"
+RED="\033[1;31m"
+WHITE="\033[1;37m"
+
+ttl()  { echo -e "${BLUE}${BOLD}${*^^}${RESET}"; }
+ok()   { echo -e "${GREEN}${BOLD}${*^^}${RESET}"; }
+warn() { echo -e "${YELLOW}${BOLD}${*^^}${RESET}"; }
+err()  { echo -e "${RED}${BOLD}${*^^}${RESET}"; }
+
+DB_USERS="/root/usuarios.db"
+PASS_DIR="/etc/SSHPlus/senha"
+BLOCK_FILE="/root/bloqueado"
+
+# garante arquivo de bloqueados
+init_block_file() {
+  touch "$BLOCK_FILE" >/dev/null 2>&1 || true
+  chmod 600 "$BLOCK_FILE" >/dev/null 2>&1 || true
+}
+
+# valida nome (simples e seguro)
+valid_user_name() {
+  [[ "${1:-}" =~ ^[a-zA-Z0-9._-]{1,32}$ ]]
+}
+
+user_exists() {
+  id "$1" >/dev/null 2>&1
+}
+
+is_root_like() {
+  [[ "$1" == "root" ]]
+}
+
+# adiciona ao arquivo sem duplicar
+blockfile_add() {
+  local u="$1"
+  init_block_file
+  grep -qxF "$u" "$BLOCK_FILE" 2>/dev/null || echo "$u" >> "$BLOCK_FILE"
+}
+
+# remove do arquivo
+blockfile_del() {
+  local u="$1"
+  init_block_file
+  grep -vxF "$u" "$BLOCK_FILE" > "${BLOCK_FILE}.tmp" 2>/dev/null && mv -f "${BLOCK_FILE}.tmp" "$BLOCK_FILE"
+}
+
+list_users_table() {
+  echo -e "\E[44;1;37m USUÁRIO         SENHA         LIMITE        VALIDADE \E[0m"
   echo ""
-  echo -e "\n"
-  echo -e "\033[1;34m[\033[1;37m01 •\033[1;34m]\033[1;37m ➩ \033[1;33mBLOQUEAR USUÁRIO \033[0;32m"
-  echo -e "\033[1;34m[\033[1;37m02 •\033[1;34m]\033[1;37m ➩ \033[1;33mDESBLOQUEAR USUÁRIO \033[1;37m"
-  echo -e "\033[1;34m[\033[1;37m03 •\033[1;34m]\033[1;37m ➩ \033[1;33mLISTAR USUÁRIOS BLOQUEADOS \033[0;32m"
-  echo -e "\033[1;34m[\033[1;37m00 •\033[1;34m]\033[1;37m ➩ \033[1;33mSAIR \033[0;32m"
-  echo -e "\n"
 
-  # Read user input for the menu option
-  read -p "Escolha uma opção: " op
+  awk -F: '$3>=1000 {print $1}' /etc/passwd \
+    | grep -Ev '^(nobody|ubuntu|lxd)$' \
+    | grep -viE 'polkitd|system-' \
+    | sort \
+    | while read -r u; do
 
-  case $op in
-    1)  # Block user
-      clear
-      echo -e "\E[44;1;37m Usuario         Senha       limite      validade \E[0m"
-      echo ""
-
-      for users in $(awk -F : '$3 > 900 { print $1 }' /etc/passwd | sort | grep -v "nobody" | grep -vi polkitd | grep -vi system-); do
-        if [[ $(grep -cw $users $HOME/usuarios.db) == "1" ]]; then
-          lim=$(grep -w $users $HOME/usuarios.db | cut -d' ' -f2)
-        else
-          lim="1"
-        fi
-
-        if [[ -e "/etc/SSHPlus/senha/$users" ]]; then
-          senha=$(cat /etc/SSHPlus/senha/$users)
-        else
-          senha="Null"
-        fi
-
-        datauser=$(chage -l $users | grep -i co | awk -F : '{print $2}')
-        if [ "$datauser" == "never" ]; then
-          data="\033[1;33mNunca\033[0m"
-        else
-          databr=$(date -d "$datauser" +"%Y%m%d")
-          hoje=$(date -d today +"%Y%m%d")
-          if [ "$hoje" -ge "$databr" ]; then
-            data="\033[1;31mVenceu\033[0m"
-          else
-            dat=$(date -d"$datauser" '+%Y-%m-%d')
-            data=$(echo -e "$((($(date -ud $dat +%s) - $(date -ud $(date +%Y-%m-%d) +%s)) / 86400)) \033[1;37mDias\033[0m")
-          fi
-        fi
-
-        Usuario=$(printf ' %-15s' "$users")
-        Senha=$(printf '%-13s' "$senha")
-        Limite=$(printf '%-10s' "$lim")
-        Data=$(printf '%-1s' "$data")
-        echo -e "\033[1;33m$Usuario \033[1;37m$Senha \033[1;37m$Limite \033[1;32m$Data\033[0m"
-        echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-      done
-
-      echo ""
-      _tuser=$(awk -F: '$3>=1000 {print $1}' /etc/passwd | grep -v nobody | wc -l)
-      _ons=$(ps -x | grep sshd | grep -v root | grep priv | wc -l)
-      [[ "$(cat /etc/SSHPlus/Exp)" != "" ]] && _expuser=$(cat /etc/SSHPlus/Exp) || _expuser="0"
-      [[ -e /etc/openvpn/openvpn-status.log ]] && _onop=$(grep -c "10.8.0" /etc/openvpn/openvpn-status.log) || _onop="0"
-      [[ -e /etc/default/dropbear ]] && _drp=$(ps aux | grep dropbear | grep -v grep | wc -l) _ondrp=$(($_drp - 1)) || _ondrp="0"
-      _onli=$(($_ons + $_onop + $_ondrp))
-      echo -e "\033[1;33m• \033[1;36mTOTAL USUARIOS\033[1;37m $_tuser \033[1;33m• \033[1;32mONLINES\033[1;37m: $_onli \033[1;33m• \033[1;31mVENCIDOS\033[1;37m: $_expuser \033[1;33m•\033[0m"
-
-      echo " DIGITE O NOME DE USUÁRIO QUE DESEJA BLOQUEAR : "
-      read lock
-      passwd -l $lock && echo "$lock" >> /root/bloqueado
-      echo -e "\033[1;34m\033[1;37m\033[1;34m\033[1;37m \033[1;33mUSUÁRIO BLOQUEADO COM SUCESSO \033[0;32m"
-      echo -e ""
-      echo -ne "\n\033[1;33mENTER \033[1;33mPARA VOLTAR AO \033[1;33mMENU!\033[0m"
-      read
-      ;;
-    2)  # Unblock user
-      clear
-      cat /root/bloqueado
-      echo " DIGITE O NOME DE USUÁRIO QUE DESEJA DESBLOQUEAR : "
-      read unlock
-      passwd -u $unlock
-      echo -e "\033[1;34m\033[1;37m\033[1;34m\033[1;37m \033[1;33mUSUÁRIO DESBLOQUEADO COM SUCESSO \033[0;32m"
-      echo -e ""
-      echo -ne "\n\033[1;33mENTER \033[1;33mPARA VOLTAR AO \033[1;33mMENU!\033[0m"
-      read
-      ;;
-    3)  # List blocked users
-      clear
-      if [ -e /root/bloqueado ]; then
-        echo -e "\E[44;1;37m USUÁRIOS BLOQUEADOS \E[0m"
-        cat /root/bloqueado
+      # limite
+      if [[ -f "$DB_USERS" ]] && grep -qE "^${u}[[:space:]]+" "$DB_USERS"; then
+        lim="$(awk -v user="$u" '$1==user{print $2; exit}' "$DB_USERS")"
       else
-        echo -e "\033[1;31mNenhum usuário bloqueado encontrado.\033[0m"
+        lim="1"
       fi
-      echo -e ""
-      echo -ne "\n\033[1;33mENTER \033[1;33mPARA VOLTAR AO \033[1;33mMENU!\033[0m"
-      read
-      ;;
-    0)  # Exit
-      clear
-      echo "RETORNANDO...."
-      exit 0
-      menu
-      ;;
-    *)  # Invalid option
-      clear
-      echo "Opcao Invalida ..."
-      ;;
+
+      # senha (se existir)
+      if [[ -f "$PASS_DIR/$u" ]]; then
+        senha="$(cat "$PASS_DIR/$u" 2>/dev/null || echo "Null")"
+      else
+        senha="Null"
+      fi
+
+      # validade
+      exp="$(chage -l "$u" 2>/dev/null | awk -F': ' '/^Account expires/ {print $2; exit}')"
+      if [[ -z "${exp:-}" || "$exp" == "never" ]]; then
+        validade="${YELLOW}NUNCA${RESET}"
+      else
+        exp_epoch="$(date -d "$exp" +%s 2>/dev/null || echo 0)"
+        now_epoch="$(date +%s)"
+        if [[ "$exp_epoch" -eq 0 || "$now_epoch" -ge "$exp_epoch" ]]; then
+          validade="${RED}VENCEU${RESET}"
+        else
+          dias=$(( (exp_epoch - now_epoch) / 86400 ))
+          validade="${WHITE}${dias}${WHITE} ${WHITE}DIAS${RESET}"
+        fi
+      fi
+
+      printf "%b %-14s %b %-12s %b %-11s %b %s\n" \
+        "${YELLOW}" "$u" \
+        "${WHITE}" "$senha" \
+        "${WHITE}" "$lim" \
+        "${GREEN}" "$validade"
+
+      echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+    done
+}
+
+do_block() {
+  clear
+  ttl "BLOQUEAR USUÁRIO"
+  echo ""
+
+  list_users_table
+  echo ""
+
+  echo -ne "${GREEN}${BOLD}DIGITE O NOME DO USUÁRIO PARA BLOQUEAR:${WHITE} ${RESET}"
+  read -r lock
+
+  if ! valid_user_name "${lock:-}"; then
+    echo ""; err "USUÁRIO INVÁLIDO!"
+    echo -ne "${YELLOW}${BOLD}ENTER PARA VOLTAR...${RESET}"; read -r
+    return 0
+  fi
+  if is_root_like "$lock"; then
+    echo ""; err "NÃO É PERMITIDO BLOQUEAR ROOT!"
+    echo -ne "${YELLOW}${BOLD}ENTER PARA VOLTAR...${RESET}"; read -r
+    return 0
+  fi
+  if ! user_exists "$lock"; then
+    echo ""; err "USUÁRIO NÃO EXISTE!"
+    echo -ne "${YELLOW}${BOLD}ENTER PARA VOLTAR...${RESET}"; read -r
+    return 0
+  fi
+
+  if passwd -l "$lock" >/dev/null 2>&1; then
+    blockfile_add "$lock"
+    echo ""; ok "USUÁRIO BLOQUEADO COM SUCESSO!"
+  else
+    echo ""; err "FALHA AO BLOQUEAR (PASSWD -L)."
+  fi
+
+  echo -ne "${YELLOW}${BOLD}ENTER PARA VOLTAR...${RESET}"; read -r
+}
+
+do_unblock() {
+  clear
+  ttl "DESBLOQUEAR USUÁRIO"
+  echo ""
+
+  init_block_file
+  if [[ -s "$BLOCK_FILE" ]]; then
+    warn "USUÁRIOS BLOQUEADOS:"
+    echo -e "${WHITE}$(cat "$BLOCK_FILE")${RESET}"
+  else
+    warn "NENHUM USUÁRIO BLOQUEADO REGISTRADO."
+  fi
+  echo ""
+
+  echo -ne "${GREEN}${BOLD}DIGITE O NOME DO USUÁRIO PARA DESBLOQUEAR:${WHITE} ${RESET}"
+  read -r unlock
+
+  if ! valid_user_name "${unlock:-}"; then
+    echo ""; err "USUÁRIO INVÁLIDO!"
+    echo -ne "${YELLOW}${BOLD}ENTER PARA VOLTAR...${RESET}"; read -r
+    return 0
+  fi
+  if is_root_like "$unlock"; then
+    echo ""; err "ROOT NÃO PRECISA SER DESBLOQUEADO AQUI."
+    echo -ne "${YELLOW}${BOLD}ENTER PARA VOLTAR...${RESET}"; read -r
+    return 0
+  fi
+  if ! user_exists "$unlock"; then
+    echo ""; err "USUÁRIO NÃO EXISTE!"
+    echo -ne "${YELLOW}${BOLD}ENTER PARA VOLTAR...${RESET}"; read -r
+    return 0
+  fi
+
+  if passwd -u "$unlock" >/dev/null 2>&1; then
+    blockfile_del "$unlock"
+    echo ""; ok "USUÁRIO DESBLOQUEADO COM SUCESSO!"
+  else
+    echo ""; err "FALHA AO DESBLOQUEAR (PASSWD -U)."
+  fi
+
+  echo -ne "${YELLOW}${BOLD}ENTER PARA VOLTAR...${RESET}"; read -r
+}
+
+do_list_blocked() {
+  clear
+  ttl "USUÁRIOS BLOQUEADOS"
+  echo ""
+
+  init_block_file
+  if [[ -s "$BLOCK_FILE" ]]; then
+    cat "$BLOCK_FILE"
+  else
+    err "NENHUM USUÁRIO BLOQUEADO ENCONTRADO."
+  fi
+
+  echo ""
+  echo -ne "${YELLOW}${BOLD}ENTER PARA VOLTAR...${RESET}"; read -r
+}
+
+# ===== MENU =====
+op=""
+while [[ "$op" != "0" ]]; do
+  clear
+  echo -e "\E[44;1;37m             BLOQUEAR USUÁRIO SSH             \E[0m"
+  echo ""
+  echo -e "${BLUE}${BOLD}[01]${RESET} ${WHITE}➩ ${YELLOW}${BOLD}BLOQUEAR USUÁRIO${RESET}"
+  echo -e "${BLUE}${BOLD}[02]${RESET} ${WHITE}➩ ${YELLOW}${BOLD}DESBLOQUEAR USUÁRIO${RESET}"
+  echo -e "${BLUE}${BOLD}[03]${RESET} ${WHITE}➩ ${YELLOW}${BOLD}LISTAR USUÁRIOS BLOQUEADOS${RESET}"
+  echo -e "${BLUE}${BOLD}[00]${RESET} ${WHITE}➩ ${YELLOW}${BOLD}SAIR${RESET}"
+  echo ""
+
+  echo -ne "${GREEN}${BOLD}ESCOLHA UMA OPÇÃO:${WHITE} ${RESET}"
+  read -r op
+
+  case "$op" in
+    1|01) do_block ;;
+    2|02) do_unblock ;;
+    3|03) do_list_blocked ;;
+    0|00) exit 0 ;;
+    *) echo ""; err "OPÇÃO INVÁLIDA!"; sleep 1 ;;
   esac
 done

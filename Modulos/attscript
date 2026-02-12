@@ -1,29 +1,71 @@
 #!/bin/bash
+set -euo pipefail
+
 clear
 
-# - Verifica Arquitetura Compativel
+# ====== CONFIG ======
+REPO_RAW_BASE="https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main"
+BIN_DIR="/usr/local/bin"
+BIN_NAME="Plus"
+BIN_PATH="${BIN_DIR}/${BIN_NAME}"
+
+# ====== DETECTA ARQUITETURA ======
+arch=""
 case "$(uname -m)" in
-    'amd64' | 'x86_64')
-        arch='64'
-        ;;
-    'aarch64' | 'armv8')
-        arch='arm64'
-        ;;
+  amd64|x86_64) arch="64" ;;
+  aarch64|armv8*) arch="arm64" ;;
+  *)
+    echo -e "\n\033[1;31mARQUITETURA NÃO SUPORTADA: $(uname -m)\033[0m"
+    echo -e "\033[1;33mSUPORTADAS: x86_64/amd64 e aarch64/armv8\033[0m"
+    exit 1
+  ;;
 esac
 
-echo -e "\n\033[1;32m  INICIANDO ATUALIZACAO..."
+echo -e "\n\033[1;32mINICIANDO ATUALIZAÇÃO...\033[0m"
+sleep 1
 
-sleep 3
+# ====== GARANTE 1 BINÁRIO SÓ ======
+# Se existir /bin/Plus, remove para evitar conflito
+if [[ -e /bin/Plus ]]; then
+  rm -f /bin/Plus >/dev/null 2>&1 || true
+fi
 
-[[ -e Plus ]] && rm Plus
-wget raw.githubusercontent.com/root719/TMY-SSH-PLUS-V3/main/script/${arch}/Plus && chmod 777 Plus && ./Plus
+mkdir -p "$BIN_DIR"
 
+# ====== BAIXA DO SEU REPO ======
+tmp_file="$(mktemp)"
+cleanup() { rm -f "$tmp_file" >/dev/null 2>&1 || true; }
+trap cleanup EXIT
+
+# Mantém o mesmo padrão de path que você usava, só trocando para o seu repo:
+# /script/64/Plus e /script/arm64/Plus
+url="${REPO_RAW_BASE}/script/${arch}/Plus"
+
+# curl mais “duro”: falha se der erro, segue redirect, silencioso
+if command -v curl >/dev/null 2>&1; then
+  curl -fsSL "$url" -o "$tmp_file"
+else
+  # fallback pro wget
+  wget -qO "$tmp_file" "$url"
+fi
+
+chmod 0755 "$tmp_file"
+mv -f "$tmp_file" "$BIN_PATH"
+
+# ====== EXECUTA ======
 clear
+echo -e "\033[1;32mSCRIPT ATUALIZADO COM SUCESSO!\033[0m\n"
+echo -e "\033[1;33mINSTALADO EM:\033[0m \033[1;37m${BIN_PATH}\033[0m\n"
 
-echo -e "\033[1;32mSCRIPT ATUALIZADO COM SUCESSO\033[0m\n"
+# Remove marcador antigo se existir
+rm -f /tmp/att >/dev/null 2>&1 || true
 
-rm /tmp/att > /dev/null 2>&1
+echo -ne "\033[1;31mENTER \033[1;33mPARA RETORNAR AO MENU!\033[0m"
+read -r
 
-echo -ne "\033[1;31mENTER \033[1;33mpara retornar ao \033[1;32mMENU!\033[0m"; read
-
-menu
+# Se existir função/menu no ambiente, chama. Senão, executa o Plus.
+if command -v menu >/dev/null 2>&1; then
+  menu
+else
+  exec "$BIN_PATH"
+fi

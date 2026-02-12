@@ -1,13 +1,28 @@
 #!/bin/bash
-fun_exp () {
+
+fun_exp() {
 (
-for _user in $(awk -F: '$3>=1000 {print $1}' /etc/passwd | grep -v nobody); do
-   if [[ $(chage -l $_user |grep "Account expires" |awk -F ': ' '{print $2}') != never ]]; then
-       [[ $(date +%s) -gt $(date '+%s' -d"$(chage -l $_user |grep "Account expires" |awk -F ': ' '{print $2}')") ]] && userexp=$(expr $userexp + 1)
-   fi
-   [[ userexp == [0-9] ]] && userexp=0$userexp
-done
-echo "$userexp" > /etc/SSHPlus/Exp
+  userexp=0
+  mkdir -p /etc/SSHPlus
+
+  while read -r _user; do
+    exp_str="$(chage -l "$_user" 2>/dev/null | awk -F': ' '/Account expires/ {print $2}')"
+
+    # Sem data = não vence
+    [[ -z "$exp_str" || "$exp_str" == "never" ]] && continue
+
+    exp_epoch="$(date -d "$exp_str" +%s 2>/dev/null || echo "")"
+    [[ -z "$exp_epoch" ]] && continue
+
+    now_epoch="$(date +%s)"
+
+    if (( now_epoch > exp_epoch )); then
+      userexp=$((userexp + 1))
+    fi
+  done < <(awk -F: '$3>=1000 {print $1}' /etc/passwd | grep -v nobody)
+
+  printf "%02d\n" "$userexp" > /etc/SSHPlus/Exp
 ) &
 }
-fun_exp > /dev/null 2>&1
+
+fun_exp >/dev/null 2>&1

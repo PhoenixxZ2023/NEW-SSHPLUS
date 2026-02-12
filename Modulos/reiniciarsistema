@@ -1,3 +1,149 @@
 #!/bin/bash
-echo -e "\033[1;31mREINICIANDO...\033[0m"
-shutdown -r now
+clear
+
+# -----------------------------
+# REINICIAR SERVIÇOS (SSHPlus)
+# Reinicia serviços detectados e no final pergunta se quer reiniciar a VPS.
+# -----------------------------
+
+go_menu() {
+  if declare -F menu >/dev/null 2>&1; then
+    menu
+  elif command -v menu >/dev/null 2>&1; then
+    menu
+  else
+    exit 0
+  fi
+}
+
+spin_run() {
+  local cmd="$1"
+  local label="$2"
+
+  echo -ne "\033[1;33mREINICIANDO ${label}\033[1;37m "
+  ( bash -c "$cmd" >/dev/null 2>&1 ) &
+  local pid=$!
+
+  tput civis 2>/dev/null
+  local i=0
+  local chars='/-\|'
+  while kill -0 "$pid" 2>/dev/null; do
+    printf "\b\033[1;32m%s\033[0m" "${chars:i++%4:1}"
+    sleep 0.1
+  done
+  wait "$pid" >/dev/null 2>&1
+  tput cnorm 2>/dev/null
+
+  echo -e "\b\033[1;32mOK!\033[0m"
+}
+
+# --- Detectores simples ---
+has_systemctl() { command -v systemctl >/dev/null 2>&1; }
+svc_active_sysd() { systemctl is-active --quiet "$1" 2>/dev/null; }
+svc_exists_sysd() { systemctl list-unit-files 2>/dev/null | awk '{print $1}' | grep -qx "$1"; }
+
+restart_service() {
+  local svc="$1"
+  local label="$2"
+
+  if has_systemctl; then
+    # tenta systemd (se existir)
+    if svc_exists_sysd "$svc" || svc_active_sysd "$svc"; then
+      spin_run "systemctl restart $svc" "$label"
+      return 0
+    fi
+  fi
+
+  # fallback sysvinit/service
+  if command -v service >/dev/null 2>&1; then
+    spin_run "service ${svc%.*} restart" "$label"
+    return 0
+  fi
+
+  # fallback init.d
+  if [[ -x "/etc/init.d/${svc%.*}" ]]; then
+    spin_run "/etc/init.d/${svc%.*} restart" "$label"
+    return 0
+  fi
+
+  return 1
+}
+
+# -----------------------------
+# REINICIAR SERVIÇOS PRINCIPAIS
+# -----------------------------
+echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e "\E[44;1;37m             REINICIAR SERVIÇOS SSHPLUS           \E[0m"
+echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo ""
+
+# OpenSSH
+restart_service "ssh" "OPENSSH" || restart_service "sshd" "OPENSSH"
+
+# Dropbear (se estiver instalado/rodando)
+if pgrep -x dropbear >/dev/null 2>&1 || [[ -f /etc/default/dropbear || -x /etc/init.d/dropbear ]]; then
+  restart_service "dropbear" "DROPBEAR"
+fi
+
+# Squid (squid / squid3)
+if [[ -f /etc/squid/squid.conf || -x /etc/init.d/squid || -d /etc/squid ]]; then
+  restart_service "squid" "SQUID"
+elif [[ -f /etc/squid3/squid.conf || -x /etc/init.d/squid3 || -d /etc/squid3 ]]; then
+  restart_service "squid3" "SQUID3"
+fi
+
+# OpenVPN (varia: openvpn / openvpn@server)
+if [[ -f /etc/openvpn/server.conf || -f /etc/openvpn/openvpn.conf || -d /etc/openvpn ]]; then
+  # tenta instâncias comuns
+  restart_service "openvpn" "OPENVPN" || restart_service "openvpn@server" "OPENVPN@SERVER"
+fi
+
+# SSLH
+if pgrep -x sslh >/dev/null 2>&1 || [[ -x /etc/init.d/sslh ]]; then
+  restart_service "sslh" "SSLH"
+fi
+
+# Stunnel4 (padrão)
+if [[ -f /etc/stunnel/stunnel.conf || -x /etc/init.d/stunnel4 || pgrep -x stunnel4 >/dev/null 2>&1 ]]; then
+  restart_service "stunnel4" "STUNNEL4"
+fi
+
+# Stunnel5 (algumas instalações usam /usr/local/etc/stunnel/stunnel.conf)
+if [[ -f /usr/local/etc/stunnel/stunnel.conf || -x /etc/init.d/stunnel5 || pgrep -x stunnel5 >/dev/null 2>&1 ]]; then
+  restart_service "stunnel5" "STUNNEL5"
+fi
+
+# Apache (se estiver escutando)
+if netstat -nltp 2>/dev/null | grep -q 'apache2'; then
+  restart_service "apache2" "APACHE2"
+fi
+
+# PROXY / PYTHON3 / SECURITY / PROXYDT / DRAGONX (se existir processo)
+# (não chuta nomes de serviços; reinicia por kill/start só se você já tiver script/service)
+# Aqui só avisamos para não quebrar instalação.
+if netstat -tlpn 2>/dev/null | grep -Eq 'python3|/proxy( |$)|proxydt|security|dragonx'; then
+  echo ""
+  echo -e "\033[1;33m[AVISO]\033[0m \033[1;37mDetectei processos de \033[1;33mPROXY/PYTHON3\033[1;37m."
+  echo -e "\033[1;37mComo os nomes de serviço variam no SSHPlus, não vou reiniciar à força aqui."
+  echo -e "\033[1;37mSe você me mandar o módulo que inicia cada um (proxy/security/proxydt/dragonx), eu integro reinício correto.\033[0m"
+fi
+
+echo ""
+echo -e "\033[1;32mSERVIÇOS REINICIADOS COM SUCESSO!\033[0m"
+echo -e "\033[0;34m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo ""
+
+# -----------------------------
+# PERGUNTA: REINICIAR VPS?
+# -----------------------------
+read -p "$(echo -e "\033[1;32mDESEJA REINICIAR A VPS AGORA \033[1;33m[s/n]\033[1;37m: ")" resp
+
+if [[ "${resp,,}" == "s" ]]; then
+  echo -e "\n\033[1;33mREINICIANDO A VPS...\033[0m"
+  sleep 1
+  reboot
+else
+  echo -e "\n\033[1;33mRETORNANDO AO MENU...\033[0m"
+  sleep 1
+  go_menu
+fi

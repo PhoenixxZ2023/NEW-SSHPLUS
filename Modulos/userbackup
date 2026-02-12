@@ -1,201 +1,212 @@
 #!/bin/bash
+set -euo pipefail
+
 clear
-backbot=$1
-[[ -z $backbot ]] && {
-	IP=$(wget -qO- ipv4.icanhazip.com)
-	apchon() {
-		if netstat -nltp | grep 'dropbear' >/dev/null; then
-			[[ ! -d /var/www/html ]] && mkdir /var/www/html
-			[[ ! -d /var/www/html/backup ]] && mkdir /var/www/html/backup
-			touch /var/www/html/backup/index.html
-			/etc/init.d/apache2 restart
-		else
-			apt-get install apache2 zip -y
-			sed -i "s/Listen 80/Listen 81/g" /etc/apache2/ports.conf
-			service apache2 restart
-			[[ ! -d /var/www/html ]] && mkdir /var/www/html
-			[[ ! -d /var/www/html/backup ]] && mkdir /var/www/html/backup
-			touch /var/www/html/backup/index.html
-			chmod -R 755 /var/www
-			/etc/init.d/apache2 restart
-		fi
-	}
-	fun_temp() {
-		helice() {
-			apchon >/dev/null 2>&1 &
-			tput civis
-			while [ -d /proc/$! ]; do
-				for i in / - \\ \|; do
-					sleep .1
-					echo -ne "\e[1D$i"
-				done
-			done
-			tput cnorm
-		}
-		echo -ne "\033[1;33mAGUARDE\033[1;31m.\033[1;32m.\033[1;33m. \033[1;32m"
-		helice
-		echo -e "\e[1DOk"
-	}
-	geralink() {
-		if [ -d /var/www/html/backup ]; then
-			rm -rf /var/www/html/backup/backup.vps >/dev/null 2>&1
-			cp $HOME/backup.vps /var/www/html/backup/backup.vps
-			sleep 2
-		fi
-	}
-	fun_temp2() {
-		helice() {
-			geralink >/dev/null 2>&1 &
-			tput civis
-			while [ -d /proc/$! ]; do
-				for i in / - \\ \|; do
-					sleep .1
-					echo -ne "\e[1D$i"
-				done
-			done
-			tput cnorm
-		}
-		echo -ne "\033[1;33mGERANDO LINK\033[1;31m.\033[1;32m.\033[1;33m. \033[1;32m"
-		helice
-		echo -e "\e[1DOk"
-	}
-	echo -e "\E[44;1;37m             Gerenciador De Backups              \E[0m"
-	echo ""
-	echo -e "\033[1;31m[\033[1;36m1\033[1;31m] \033[1;37m• \033[1;33mCRIAR BACKUP"
-	echo -e "\033[1;31m[\033[1;36m2\033[1;31m] \033[1;37m• \033[1;33mRESTAURAR BACKUP"
-	echo -e "\033[1;31m[\033[1;36m3\033[1;31m] \033[1;37m• \033[1;33mVOLTAR\033[1;37m"
-	echo ""
-	echo -ne "\033[1;32mOQUE DESEJA FAZER\033[1;31m ?\033[1;37m : "
-	read opcao
-	if [[ "$opcao" = '1' ]]; then
-		if [ -f "/root/usuarios.db" ]; then
-			[[ -e "/etc/openvpn" ]] && {
-				echo ""
-				echo -e "\033[1;32mCertificado Ovpn localizado...\033[0m"
-				rm -rf $HOME/backup.vps >/dev/null 2>&1
-				sleep 1
-				tar cvf /root/backup.vps /root/usuarios.db /etc/shadow /etc/passwd /etc/group /etc/gshadow /etc/SSHPlus/senha /etc/SSHPlus/v2ray /etc/openvpn $HOME/BOT/permitidos $HOME/BOT/revenda >/dev/null 2>&1
-				echo ""
-				echo -e "\033[1;32mBACKUP CRIADO COM SUCESSO !\033[0m"
-				echo ""
-			} || {
-				rm -rf $HOME/backup.vps >/dev/null 2>&1
-				sleep 1
-				tar cvf /root/backup.vps /etc/shadow /etc/passwd /etc/group /etc/gshadow /etc/SSHPlus/senha /etc/SSHPlus/v2ray $HOME/BOT/permitidos $HOME/BOT/revenda >/dev/null 2>&1
-				echo ""
-				echo -e "\033[1;32mBACKUP CRIADO COM SUCESSO !\033[0m"
-				echo ""
+backbot="${1:-}"
 
-			}
-			echo -ne "\033[1;32mGERAR LINK PARA DOWNLOAD \033[1;31m? \033[1;33m[s/n]:\033[1;37m "
-			read resp
-			if [[ "$resp" = "s" ]]; then
-				echo ""
-				fun_temp
-				echo ""
-				fun_temp2
-				echo ""
-				if [ -e /var/www/html/backup/backup.vps ]; then
-					if [[ "$VERSION_ID" = 'VERSION_ID="14.04"' ]]; then
-						echo -e "\033[1;32mLINK\033[1;37m: \033[1;36m$IP:81/html/backup/backup.vps\033[0m"
-					else
-						echo -e "\033[1;32mLINK\033[1;37m: \033[1;36m$IP:81/backup/backup.vps\033[0m"
-					fi
-				else
-					echo -e "\033[1;32mDisponivel em\033[1;31m" ~/"backup.vps\033[0m"
-				fi
-			else
-				echo -e "\n\033[1;32mDisponivel em\033[1;31m" ~/"backup.vps\033[0m"
-				sleep 2
-				menu
-			fi
-		else
-			[[ -e "/etc/openvpn" ]] && {
-				echo ""
-				echo -e "\033[1;32mCertificado Ovpn localizado...\033[0m"
-				echo ""
-				echo -e "\033[1;32mCriando backup...\033[0m"
-				echo ""
-				tar cvf /root/backup.vps /etc/shadow /etc/passwd /etc/group /etc/gshadow /etc/SSHPlus/senha /etc/SSHPlus/v2ray /etc/openvpn $HOME/BOT/permitidos $HOME/BOT/revenda >/dev/null 2>&1
-				sleep 2s
-				echo ""
-				echo -e "\033[1;33mO Arquivo \033[1;32mbackup.vps"
-				echo -e "\033[1;33mfoi criado com sucesso no diretório \033[1;31m/root\033[0m"
-				echo ""
-			} || {
-				echo ""
-				echo -e "\033[1;32mCriando backup...\033[0m"
-				echo ""
-				tar cvf /root/backup.vps /etc/shadow /etc/passwd /etc/group /etc/gshadow /etc/SSHPlus/senha /etc/SSHPlus/v2ray $HOME/BOT/permitidos $HOME/BOT/revenda >/dev/null 2>&1
-				sleep 2s
-				echo ""
-				echo -e "\033[1;33mO Arquivo \033[1;32mbackup.vps"
-				echo -e "\033[1;33mfoi criado com sucesso no diretório \033[1;31m/root\033[0m"
-				echo ""
+DB="/root/usuarios.db"
+BKP="/root/backup.vps"
+WEB_DIR="/var/www/html/backup"
 
-			}
-
-		fi
-	fi
-	if [[ "$opcao" = '2' ]]; then
-		if [ -f "/root/backup.vps" ]; then
-			[[ -e "/etc/openvpn" ]] && {
-				read -p "O certificado Ovpn também será restaurado, deseja continuar? [s/n]: " -e -i s resposta
-				[[ "$resposta" = 's' ]] && {
-					echo ""
-					echo -e "\033[1;36mRestaurando backup..."
-					echo ""
-					cp /etc/openvpn/server.conf /root
-					sleep 2s
-					cp /root/backup.vps /backup.vps
-					cd /
-					tar -xvf backup.vps
-					rm /backup.vps
-					mv /root/server.conf /etc/openvpn
-					/etc/init.d/openvpn restart
-					echo ""
-					echo -e "\033[1;36mUsuários e\033[1;36m senhas importados com sucesso.\033[0m"
-					echo ""
-					exit
-				} || {
-					echo -e "\033[1;36mSaindo...\033[0m"
-					echo ""
-					sleep 1
-					exit
-				}
-
-			} || {
-				echo ""
-				echo -e "\033[1;36mRestaurando backup..."
-				echo ""
-				sleep 2s
-				cp /root/backup.vps /backup.vps
-				cd /
-				tar -xvf backup.vps
-				rm /backup.vps
-				[[ -e "/etc/openvpn" ]] && {
-					rm -rf /etc/openvpn >/dev/null 2>&1
-				}
-				echo ""
-				echo -e "\033[1;36mUsuários e\033[1;36m senhas importados com sucesso.\033[0m"
-				echo ""
-				exit
-
-			}
-		else
-			echo ""
-			echo -e "\033[1;33mO arquivo \033[1;32mbackup.vps \033[1;33mnão foi encontrado!\033[0m"
-			echo -e "\033[1;33mCeritifique-se que ele esteja localizado no diretório /root/ com o nome \033[1;32mbackup.vps\033[0m"
-			echo ""
-			exit
-		fi
-	fi
-	if [[ "$opcao" = '3' ]]; then
-		menu
-	fi
-} || {
-	rm /root/backup.vps 1>/dev/null 2>/dev/null
-	tar cvf /root/backup.vps /root/usuarios.db /etc/shadow /etc/passwd /etc/group /etc/gshadow /etc/bot /etc/SSHPlus/senha /etc/SSHPlus/v2ray /etc/openvpn $HOME/BOT/permitidos $HOME/BOT/revenda >/dev/null 2>&1
-	[[ -d "/etc/SSHPlus/backups" ]] && mv /root/backup.vps /etc/SSHPlus/backups/backup.vps
-	exit
+get_ip() {
+  # tenta primeiro o padrão que você usa em outros módulos
+  if [[ -s /etc/IP ]]; then
+    cat /etc/IP
+    return
+  fi
+  local ip=""
+  ip="$(wget -qO- ipv4.icanhazip.com 2>/dev/null || true)"
+  [[ -n "${ip:-}" ]] && { echo "$ip"; return; }
+  ip="$(hostname -I 2>/dev/null | awk '{print $1}' || true)"
+  [[ -n "${ip:-}" ]] && { echo "$ip"; return; }
+  echo "127.0.0.1"
 }
+
+have_cmd(){ command -v "$1" >/dev/null 2>&1; }
+
+is_dropbear_running() {
+  if have_cmd ss; then
+    ss -lntp 2>/dev/null | grep -q dropbear
+  else
+    netstat -nltp 2>/dev/null | grep -q dropbear
+  fi
+}
+
+ensure_pkgs() {
+  export DEBIAN_FRONTEND=noninteractive
+  apt-get update -y >/dev/null 2>&1 || true
+  apt-get install -y apache2 zip >/dev/null 2>&1
+}
+
+ensure_apache_81() {
+  ensure_pkgs
+
+  mkdir -p "$WEB_DIR"
+  touch "$WEB_DIR/index.html"
+  chmod -R 755 /var/www
+
+  # garantir Listen 81 sem quebrar outros
+  if ! grep -qE '^\s*Listen\s+81\b' /etc/apache2/ports.conf 2>/dev/null; then
+    echo "Listen 81" >> /etc/apache2/ports.conf
+  fi
+
+  # ajustar site default para 81 (do jeito mais simples)
+  if [[ -f /etc/apache2/sites-available/000-default.conf ]]; then
+    sed -i 's/<VirtualHost \*:80>/<VirtualHost *:81>/g' /etc/apache2/sites-available/000-default.conf
+  fi
+
+  service apache2 restart >/dev/null 2>&1 || /etc/init.d/apache2 restart >/dev/null 2>&1 || true
+}
+
+safe_tar_validate() {
+  local src="$1"
+  # bloqueia entradas perigosas (path traversal)
+  if tar -tf "$src" | grep -qE '(^/|^\.\.|/\.\./)'; then
+    echo -e "\n\033[1;31mBACKUP INVALIDO (CAMINHOS PERIGOSOS NO TAR).\033[0m"
+    return 1
+  fi
+  return 0
+}
+
+make_backup() {
+  rm -rf "$BKP" >/dev/null 2>&1 || true
+
+  # Mantendo como estava: inclui system accounts e ovpn/bot se existir
+  if [[ -e "/etc/openvpn" ]]; then
+    tar cvf "$BKP" \
+      /root/usuarios.db \
+      /etc/shadow /etc/passwd /etc/group /etc/gshadow \
+      /etc/SSHPlus/senha /etc/SSHPlus/v2ray /etc/openvpn \
+      "$HOME/BOT/permitidos" "$HOME/BOT/revenda" \
+      >/dev/null 2>&1
+  else
+    tar cvf "$BKP" \
+      /etc/shadow /etc/passwd /etc/group /etc/gshadow \
+      /etc/SSHPlus/senha /etc/SSHPlus/v2ray \
+      "$HOME/BOT/permitidos" "$HOME/BOT/revenda" \
+      >/dev/null 2>&1
+  fi
+
+  [[ -f "$BKP" ]] || return 1
+  safe_tar_validate "$BKP"
+}
+
+publish_link() {
+  rm -rf "$WEB_DIR/backup.vps" >/dev/null 2>&1 || true
+  cp "$BKP" "$WEB_DIR/backup.vps"
+}
+
+restore_backup() {
+  local src="$1"
+  [[ -f "$src" ]] || return 1
+  safe_tar_validate "$src"
+
+  cp "$src" /backup.vps
+  cd /
+  tar -xvf backup.vps >/dev/null 2>&1
+  rm -f /backup.vps
+}
+
+# --------- modo bot (mantendo sua lógica) ----------
+if [[ -n "$backbot" ]]; then
+  rm -f /root/backup.vps >/dev/null 2>&1 || true
+  tar cvf /root/backup.vps \
+    /root/usuarios.db \
+    /etc/shadow /etc/passwd /etc/group /etc/gshadow \
+    /etc/bot /etc/SSHPlus/senha /etc/SSHPlus/v2ray /etc/openvpn \
+    "$HOME/BOT/permitidos" "$HOME/BOT/revenda" \
+    >/dev/null 2>&1
+
+  mkdir -p /etc/SSHPlus/backups
+  [[ -d "/etc/SSHPlus/backups" ]] && mv /root/backup.vps /etc/SSHPlus/backups/backup.vps
+  exit 0
+fi
+
+# --------- menu ----------
+IP="$(get_ip)"
+[[ -r /etc/os-release ]] && . /etc/os-release || true
+
+echo -e "\E[44;1;37m             Gerenciador De Backups              \E[0m"
+echo ""
+echo -e "\033[1;31m[\033[1;36m1\033[1;31m] \033[1;37m• \033[1;33mCRIAR BACKUP"
+echo -e "\033[1;31m[\033[1;36m2\033[1;31m] \033[1;37m• \033[1;33mRESTAURAR BACKUP"
+echo -e "\033[1;31m[\033[1;36m3\033[1;31m] \033[1;37m• \033[1;33mVOLTAR\033[1;37m"
+echo ""
+echo -ne "\033[1;32mOQUE DESEJA FAZER\033[1;31m ?\033[1;37m : "
+read -r opcao
+
+if [[ "$opcao" = '1' ]]; then
+  if make_backup; then
+    echo ""
+    echo -e "\033[1;32mBACKUP CRIADO COM SUCESSO !\033[0m"
+    echo ""
+    echo -ne "\033[1;32mGERAR LINK PARA DOWNLOAD \033[1;31m? \033[1;33m[s/n]:\033[1;37m "
+    read -r resp
+    if [[ "${resp,,}" = "s" ]]; then
+      echo ""
+      ensure_apache_81
+      publish_link
+      echo ""
+      # Mantendo compat com seu print antigo (14.04)
+      if [[ "${VERSION_ID:-}" == "14.04" ]]; then
+        echo -e "\033[1;32mLINK\033[1;37m: \033[1;36m$IP:81/html/backup/backup.vps\033[0m"
+      else
+        echo -e "\033[1;32mLINK\033[1;37m: \033[1;36m$IP:81/backup/backup.vps\033[0m"
+      fi
+      echo ""
+    else
+      echo -e "\n\033[1;32mDisponivel em\033[1;31m $BKP\033[0m"
+      sleep 2
+      menu
+    fi
+  else
+    echo -e "\n\033[1;31mFalha ao criar backup.\033[0m"
+  fi
+
+elif [[ "$opcao" = '2' ]]; then
+  if [[ -f "$BKP" ]]; then
+    if [[ -e "/etc/openvpn" ]]; then
+      read -p "O certificado Ovpn também será restaurado, deseja continuar? [s/n]: " -e -i s resposta
+      if [[ "${resposta,,}" = "s" ]]; then
+        echo ""
+        echo -e "\033[1;36mRestaurando backup..."
+        echo ""
+        cp /etc/openvpn/server.conf /root/server.conf.bak 2>/dev/null || true
+        restore_backup "$BKP"
+        [[ -f /root/server.conf.bak ]] && mv -f /root/server.conf.bak /etc/openvpn/server.conf 2>/dev/null || true
+        /etc/init.d/openvpn restart >/dev/null 2>&1 || service openvpn restart >/dev/null 2>&1 || true
+        echo ""
+        echo -e "\033[1;36mUsuários e\033[1;36m senhas importados com sucesso.\033[0m"
+        echo ""
+        exit 0
+      else
+        echo -e "\033[1;36mSaindo...\033[0m"
+        echo ""
+        exit 0
+      fi
+    else
+      echo ""
+      echo -e "\033[1;36mRestaurando backup..."
+      echo ""
+      restore_backup "$BKP"
+      [[ -e "/etc/openvpn" ]] || rm -rf /etc/openvpn >/dev/null 2>&1 || true
+      echo ""
+      echo -e "\033[1;36mUsuários e\033[1;36m senhas importados com sucesso.\033[0m"
+      echo ""
+      exit 0
+    fi
+  else
+    echo ""
+    echo -e "\033[1;33mO arquivo \033[1;32mbackup.vps \033[1;33mnão foi encontrado!\033[0m"
+    echo -e "\033[1;33mCeritifique-se que ele esteja localizado no diretório /root/ com o nome \033[1;32mbackup.vps\033[0m"
+    echo ""
+    exit 1
+  fi
+
+elif [[ "$opcao" = '3' ]]; then
+  menu
+else
+  echo -e "\n\033[1;31mOpcao invalida !\033[0m"
+  sleep 1
+  menu
+fi

@@ -1,70 +1,121 @@
 #!/bin/bash
+# criarusuario.sh (revisado)
+# Compatível: Ubuntu 20/22, Debian 12
+# Mantém DB /root/usuarios.db e senhas em /etc/SSHPlus/senha/
+# OpenVPN: gera .ovpn e .zip se /etc/openvpn/server.conf existir
+
+set -u
 shopt -s extglob
 
-IP="$(cat /etc/IP 2>/dev/null || echo "127.0.0.1")"
+# =========================
+# CORES / ESTILO
+# =========================
+BOLD='\033[1m'
+RESET='\033[0m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[1;34m'
+CYAN='\033[1;36m'
+WHITE='\033[1;37m'
+BG_BLUE='\E[44;1;37m'
+BG_RED='\E[41;1;37m'
+BG_CYAN='\E[46;1;97m'
 
-cor1='\033[41;1;37m'
-cor2='\033[44;1;37m'
-scor='\033[0m'
+title() { echo -e "${BLUE}╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮${RESET}"; echo -e "${BLUE}┃${BG_BLUE}$(printf '%-41s' " $* ")${RESET}${BLUE}┃${RESET}"; echo -e "${BLUE}╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯${RESET}"; }
+warn()  { echo -e "${YELLOW}${BOLD}${*^^}${RESET}"; }
+ok()    { echo -e "${GREEN}${BOLD}${*^^}${RESET}"; }
+err()   { echo -e "${RED}${BOLD}${*^^}${RESET}"; }
 
+# =========================
+# PATHS SSHPLUS
+# =========================
+IP="$(cat /etc/IP 2>/dev/null || wget -qO- ipv4.icanhazip.com 2>/dev/null || echo "127.0.0.1")"
 DB_USERS="/root/usuarios.db"
 PASS_DIR="/etc/SSHPlus/senha"
 EXP_FILE="/etc/SSHPlus/Exp"
 
 # =========================
-# DB sem duplicar (atualiza limite)
+# PROGRESS BAR (mantém seu estilo)
+# =========================
+fun_bar() {
+  local cmd1="$1"
+  local cmd2="${2:-true}"
+  (
+    [[ -e $HOME/fim ]] && rm -f "$HOME/fim"
+    bash -c "$cmd1" >/dev/null 2>&1
+    bash -c "$cmd2" >/dev/null 2>&1
+    touch "$HOME/fim"
+  ) >/dev/null 2>&1 &
+
+  tput civis
+  echo -ne "${YELLOW}${BOLD}AGUARDE${RESET} ${WHITE}- ${YELLOW}[${RESET}"
+  while true; do
+    for ((i=0; i<18; i++)); do
+      echo -ne "${RED}#${RESET}"
+      sleep 0.08
+    done
+    [[ -e $HOME/fim ]] && rm -f "$HOME/fim" && break
+    echo -e "${YELLOW}]${RESET}"
+    sleep 0.5
+    tput cuu1
+    tput dl1
+    echo -ne "${YELLOW}${BOLD}AGUARDE${RESET} ${WHITE}- ${YELLOW}[${RESET}"
+  done
+  echo -e "${YELLOW}]${RESET}${WHITE} -${GREEN} OK !${RESET}"
+  tput cnorm
+}
+
+# =========================
+# DB: upsert do limite (sem duplicar)
 # =========================
 db_upsert_limit() {
   local user="$1" limit="$2"
   mkdir -p "$(dirname "$DB_USERS")" >/dev/null 2>&1 || true
   touch "$DB_USERS"
 
-  awk -v u="$user" -v l="$limit" '
-    BEGIN{found=0}
-    $1==u {print u, l; found=1; next}
-    {print}
-    END{if(!found) print u, l}
-  ' "$DB_USERS" > /tmp/.usuarios.db.$$ && mv /tmp/.usuarios.db.$$ "$DB_USERS"
+  if grep -qE "^${user}[[:space:]]+" "$DB_USERS"; then
+    sed -i -E "s/^${user}[[:space:]]+.*/${user} ${limit}/" "$DB_USERS"
+  else
+    echo "${user} ${limit}" >> "$DB_USERS"
+  fi
 }
 
 # =========================
-# Recalcular EXP como NUMERO em /etc/SSHPlus/Exp
-# (Opcional: lista em /etc/SSHPlus/Exp.list)
+# Expirados: recalcular lista (opcional, mas mantém coerência)
 # =========================
 recalc_expired_list() {
   mkdir -p "$(dirname "$EXP_FILE")" >/dev/null 2>&1 || true
-
-  local now count=0
-  now="$(date +%s)"
-
-  : > /etc/SSHPlus/Exp.list 2>/dev/null || true
+  : > "$EXP_FILE" 2>/dev/null || true
 
   while IFS=: read -r u _ uid _ _ _ _; do
     [[ "$uid" -ge 1000 ]] || continue
     [[ "$u" =~ ^(nobody|ubuntu|lxd)$ ]] && continue
 
-    local exp_line exp_val
+    local exp_line exp_epoch now
     exp_line="$(chage -l "$u" 2>/dev/null | awk -F': ' '/^Account expires/ {print $2; exit}')"
-    [[ -z "$exp_line" ]] && continue
-    [[ "$exp_line" == "never" ]] && continue
+    [[ -z "$exp_line" || "$exp_line" == "never" ]] && continue
 
-    exp_val="$(date -d "$exp_line" +%s 2>/dev/null)" || continue
+    exp_epoch="$(date -d "$exp_line" +%s 2>/dev/null || echo "")"
+    [[ -z "$exp_epoch" ]] && continue
 
-    if (( exp_val < now )); then
-      ((count++))
-      echo "$u" >> /etc/SSHPlus/Exp.list 2>/dev/null || true
+    now="$(date +%s)"
+    if (( exp_epoch < now )); then
+      echo "$u" >> "$EXP_FILE"
     fi
   done < /etc/passwd
-
-  echo "$count" > "$EXP_FILE"
 }
 
 # =========================
-# OpenVPN helpers
+# OpenVPN helpers (se existir)
 # =========================
+openvpn_detect() {
+  [[ -e /etc/openvpn/server.conf && -e /etc/openvpn/client-common.txt && -d /etc/openvpn/easy-rsa ]]
+}
+
 newclient() {
   local user="$1"
-  cp /etc/openvpn/client-common.txt "/root/${user}.ovpn"
+  cp /etc/openvpn/client-common.txt "/root/${user}.ovpn" || return 1
 
   {
     echo "<ca>"
@@ -82,6 +133,33 @@ newclient() {
   } >> "/root/${user}.ovpn"
 }
 
+ovpn_read_host_label() {
+  local port hst
+  port="$(awk '/^\s*port\s+/{print $2; exit}' /etc/openvpn/server.conf 2>/dev/null)"
+  [[ -z "$port" ]] && port="1194"
+
+  hst="$(sed -n '8p' /etc/openvpn/client-common.txt 2>/dev/null | awk '{print $4}')"
+
+  local vivo1="portalrecarga.vivo.com.br/recarga"
+  local vivo3="navegue.vivo.com.br/pre/"
+  local oi="d1n212ccp6ldpw.cloudfront.net"
+  local bypass="net_gateway"
+
+  if [[ "$hst" == "$vivo1" ]]; then
+    echo "PORTAL RECARGA"
+  elif [[ "$hst" == "$vivo3" ]]; then
+    echo "PORTAL NAVEGUE"
+  elif [[ "$hst" == "${IP}:${port}" ]]; then
+    echo "VIVO MMS"
+  elif [[ "$hst" == "$oi" ]]; then
+    echo "OI"
+  elif [[ "$hst" == "$bypass" ]]; then
+    echo "MODO BYPASS"
+  else
+    echo "CUSTOMIZADO"
+  fi
+}
+
 fun_geraovpn() {
   cd /etc/openvpn/easy-rsa/ || return 1
   [[ -x ./easyrsa ]] || return 1
@@ -89,223 +167,199 @@ fun_geraovpn() {
   ./easyrsa build-client-full "$username" nopass >/dev/null 2>&1 || return 1
   newclient "$username" || return 1
 
+  # incluir auth-user-pass embutido, se solicitado
   if [[ "${respost:-n}" = @(s|S) ]]; then
     sed -e "s;auth-user-pass;<auth-user-pass>\n${username}\n${password}\n</auth-user-pass>;g" \
       "/root/${username}.ovpn" > "/root/tmp.ovpn" && mv -f "/root/tmp.ovpn" "/root/${username}.ovpn"
   fi
-
   return 0
 }
 
-# Ler info do OpenVPN (se existir)
-if [[ -e /etc/openvpn/server.conf && -e /etc/openvpn/client-common.txt ]]; then
-  _Port="$(awk '/^\s*port\s+/{print $2; exit}' /etc/openvpn/server.conf 2>/dev/null)"
-  [[ -z "${_Port:-}" ]] && _Port="1194"
+fun_edithost() {
+  local port rmt2 rmt3 prx payload1 payload2 cert01 host_now
+  port="$(awk '/^\s*port\s+/{print $2; exit}' /etc/openvpn/server.conf 2>/dev/null)"
+  [[ -z "$port" ]] && port="1194"
 
-  hst="$(sed -n '8p' /etc/openvpn/client-common.txt 2>/dev/null | awk '{print $4}')"
   rmt2='/SSHPLUS?'
   rmt3='www.vivo.com.br 8088'
   prx='200.142.130.104'
   payload1='#payload "HTTP/1.0 [crlf]Host: m.youtube.com[crlf]CONNECT HTTP/1.0[crlf][crlf]|[crlf]"'
   payload2='#payload "CONNECT 127.0.0.1:1194[split][crlf] HTTP/1.0 [crlf][crlf]#"'
-
-  vivo1="portalrecarga.vivo.com.br/recarga"
-  vivo3="navegue.vivo.com.br/pre/"
-  oi="d1n212ccp6ldpw.cloudfront.net"
-  bypass="net_gateway"
   cert01="/etc/openvpn/client-common.txt"
 
-  if [[ "$hst" == "$vivo1" ]]; then
-    Host="Portal Recarga"
-  elif [[ "$hst" == "$vivo3" ]]; then
-    Host="Portal Navegue"
-  elif [[ "$hst" == "$IP:${_Port}" ]]; then
-    Host="Vivo MMS"
-  elif [[ "$hst" == "$oi" ]]; then
-    Host="Oi"
-  elif [[ "$hst" == "$bypass" ]]; then
-    Host="Modo Bypass"
-  else
-    Host="Customizado"
-  fi
+  local vivo1="portalrecarga.vivo.com.br/recarga"
+  local vivo3="navegue.vivo.com.br/pre/"
+
+  host_now="$(ovpn_read_host_label)"
+
+  clear
+  echo -e "${BG_BLUE}          ALTERAR HOST OVPN          ${RESET}"
+  echo ""
+  echo -e "${YELLOW}${BOLD}HOST EM USO:${RESET} ${GREEN}${host_now}${RESET}"
+  echo ""
+  echo -e "${RED}[${CYAN}1${RED}] ${YELLOW}${BOLD}VIVO RECARGA${RESET}"
+  echo -e "${RED}[${CYAN}2${RED}] ${YELLOW}${BOLD}VIVO NAVEGUE PRE${RESET}"
+  echo -e "${RED}[${CYAN}0${RED}] ${YELLOW}${BOLD}VOLTAR${RESET}"
+  echo ""
+  echo -ne "${GREEN}${BOLD}QUAL HOST DESEJA UTILIZAR?${RESET} ${WHITE}"; read -r respo
+
+  case "${respo:-}" in
+    1)
+      fun_bar "sed -i '7,9d' '$cert01' && sed -i \"7i\\remote $rmt2 $port\\nhttp-proxy-option CUSTOM-HEADER Host $vivo1\\nhttp-proxy $IP 80\" '$cert01'"
+      ;;
+    2)
+      fun_bar "sed -i '7,9d' '$cert01' && sed -i \"7i\\remote $rmt2 $port\\nhttp-proxy-option CUSTOM-HEADER Host $vivo3\\nhttp-proxy $IP 80\" '$cert01'"
+      ;;
+    0) return 0 ;;
+    *)
+      err "opcao invalida"
+      sleep 1.5
+      return 0
+      ;;
+  esac
+  ok "host atualizado"
+  sleep 1
+}
+
+# =========================
+# MAIN
+# =========================
+if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
+  err "execute como root"
+  exit 1
 fi
 
-fun_bar() {
-  comando[0]="$1"
-  comando[1]="${2:-true}"
-  (
-    [[ -e $HOME/fim ]] && rm -f "$HOME/fim"
-    bash -c "${comando[0]}" >/dev/null 2>&1
-    bash -c "${comando[1]}" >/dev/null 2>&1
-    touch "$HOME/fim"
-  ) >/dev/null 2>&1 &
-
-  tput civis
-  echo -ne "\033[1;33mAGUARDE \033[1;37m- \033[1;33m["
-  while true; do
-    for ((i=0; i<18; i++)); do
-      echo -ne "\033[1;31m#"
-      sleep 0.1s
-    done
-    [[ -e $HOME/fim ]] && rm -f "$HOME/fim" && break
-    echo -e "\033[1;33m]"
-    sleep 1s
-    tput cuu1
-    tput dl1
-    echo -ne "\033[1;33mAGUARDE \033[1;37m- \033[1;33m["
-  done
-  echo -e "\033[1;33m]\033[1;37m -\033[1;32m OK !\033[1;37m"
-  tput cnorm
-}
-
-fun_edithost() {
-  [[ -z "${_Port:-}" ]] && return 0
-  clear
-  echo -e "\E[44;1;37m          ALTERAR HOST OVPN            \E[0m"
-  echo ""
-  echo -e "\033[1;33mHOST EM USO\033[1;37m: \033[1;32m${Host:-Indefinido}"
-  echo ""
-  echo -e "\033[1;31m[\033[1;36m1\033[1;31m] \033[1;33mVIVO RECARGA"
-  echo -e "\033[1;31m[\033[1;36m2\033[1;31m] \033[1;33mVIVO NAVEGUE PRE"
-  echo -e "\033[1;31m[\033[1;36m0\033[1;31m] \033[1;33mVOLTAR"
-  echo ""
-  echo -ne "\033[1;32mQUAL HOST DESEJA ULTILIZAR \033[1;33m?\033[1;37m "
-  read -r respo
-  [[ -z "${respo:-}" ]] && { echo -e "\n\033[1;31mOpcao invalida!"; sleep 2; fun_edithost; }
-
-  case "$respo" in
-    1)
-      fun_bar "sed -i '7,9d' '$cert01' && sed -i \"7i\\remote $rmt2 $_Port\\nhttp-proxy-option CUSTOM-HEADER Host $vivo1\\nhttp-proxy $IP 80\" '$cert01'"
-      fun_geraovpn ;;
-    2)
-      fun_bar "sed -i '7,9d' '$cert01' && sed -i \"7i\\remote $rmt2 $_Port\\nhttp-proxy-option CUSTOM-HEADER Host $vivo3\\nhttp-proxy $IP 80\" '$cert01'"
-      fun_geraovpn ;;
-    0) return 0 ;;
-    *) echo -e "\n\033[1;31mOpcao invalida !\033[0m"; sleep 2; fun_edithost ;;
-  esac
-
-  echo -e "\n\033[1;32mHOST/OVPN atualizado!\033[0m"
-  sleep 1.2
-}
-
-# =========================
-# UI
-# =========================
 clear
-echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-echo -e "\033[0;34m┃\E[44;1;37m            CRIAR USUARIO SSH            \E[0m\033[0;34m┃"
-echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+title "CRIAR USUARIO SSH"
 echo ""
 
-echo -ne "\033[1;32m🗣️  USUÁRIO:\033[1;37m "
+echo -ne "${GREEN}${BOLD}🗣️  USUARIO:${RESET} ${WHITE}"
 read -r username
 
 if [[ -z "${username:-}" ]]; then
-  echo -e "\n${cor1}usuário vazio ou invalido!${scor}\n"; exit 1
+  echo -e "\n${BG_RED} USUARIO VAZIO OU INVALIDO! ${RESET}\n"
+  exit 1
 fi
+
+# 2..25, seguro para /etc/passwd e arquivos
 if ! [[ "$username" =~ ^[a-zA-Z0-9._-]{2,25}$ ]]; then
-  echo -e "\n${cor1}Usuário inválido! Use 2-25 chars: letras/números . _ -${scor}\n"; exit 1
+  echo -e "\n${BG_RED} USUARIO INVALIDO! USE 2-25 CHARS: LETRAS/NUMEROS . _ - ${RESET}\n"
+  exit 1
 fi
+
 if id "$username" >/dev/null 2>&1; then
-  echo -e "\n${cor1}Este usuário já existe. tente outro nome!${scor}\n"; exit 1
+  echo -e "\n${BG_RED} ESTE USUARIO JA EXISTE. TENTE OUTRO! ${RESET}\n"
+  exit 1
 fi
 
-echo -ne "\033[1;32m🔑 SENHA:\033[1;37m "
+echo -ne "${GREEN}${BOLD}🔑 SENHA:${RESET} ${WHITE}"
 read -r password
+
 if [[ -z "${password:-}" || ${#password} -lt 4 ]]; then
-  echo -e "\n${cor1}Senha vazia ou curta! (min 4)${scor}\n"; exit 1
+  echo -e "\n${BG_RED} SENHA VAZIA OU MUITO CURTA (MIN 4)! ${RESET}\n"
+  exit 1
 fi
 
-echo -ne "\033[1;32m⌛ DIAS PARA EXPIRA:\033[1;37m "
+echo -ne "${GREEN}${BOLD}⌛ DIAS PARA EXPIRAR:${RESET} ${WHITE}"
 read -r dias
+
 if [[ -z "${dias:-}" || ! "$dias" =~ ^[0-9]+$ || "$dias" -lt 1 ]]; then
-  echo -e "\n${cor1}Número de dias inválido!${scor}\n"; exit 1
+  echo -e "\n${BG_RED} NUMERO DE DIAS INVALIDO! ${RESET}\n"
+  exit 1
 fi
 
-echo -ne "\033[1;32m📲 LIMITE DE CONEXÕES:\033[1;37m "
+echo -ne "${GREEN}${BOLD}📲 LIMITE DE CONEXOES:${RESET} ${WHITE}"
 read -r sshlimiter
+
 if [[ -z "${sshlimiter:-}" || ! "$sshlimiter" =~ ^[0-9]+$ || "$sshlimiter" -lt 1 ]]; then
-  echo -e "\n${cor1}Limite inválido!${scor}\n"; exit 1
+  echo -e "\n${BG_RED} LIMITE INVALIDO! ${RESET}\n"
+  exit 1
 fi
 
 final="$(date "+%Y-%m-%d" -d "+$dias days")"
 gui="$(date "+%d/%m/%Y" -d "+$dias days")"
 
-# cria usuário (sem mascarar erro)
-if ! useradd -M -s /bin/false "$username" >/dev/null 2>&1; then
-  echo -e "\n${cor1}Falha ao criar usuário!${scor}\n"
-  exit 1
-fi
+# cria usuário (sem home, shell false)
+fun_bar "useradd -M -s /bin/false '$username'"
 
-# define senha e expiração
-echo "${username}:${password}" | chpasswd
+# define senha (forma compatível)
+echo "${username}:${password}" | chpasswd >/dev/null 2>&1 || {
+  err "falha ao definir senha"
+  userdel -f "$username" >/dev/null 2>&1 || true
+  exit 1
+}
+
+# aplica expiração
 chage -E "$final" "$username" >/dev/null 2>&1 || true
 
-# salva senha
+# salva senha no padrão do projeto
 mkdir -p "$PASS_DIR" >/dev/null 2>&1 || true
 echo "$password" > "${PASS_DIR}/${username}"
+chmod 600 "${PASS_DIR}/${username}" >/dev/null 2>&1 || true
 
-# DB limite (upsert)
+# DB sem duplicar
 db_upsert_limit "$username" "$sshlimiter"
 
-# recalcular expirados (Exp = numero)
+# Atualiza lista de expirados (mantém coerência pro menu)
 recalc_expired_list
 
 # =========================
-# OVPN opcional
+# OpenVPN opcional
 # =========================
-if [[ -e /etc/openvpn/server.conf ]]; then
-  echo -ne "\033[1;32mGerar Arquivo Ovpn \033[1;31m? \033[1;33m[s/n]:\033[1;37m "
+if openvpn_detect; then
+  echo ""
+  echo -ne "${GREEN}${BOLD}GERAR ARQUIVO OVPN?${RESET} ${YELLOW}[s/n]:${RESET} ${WHITE}"
   read -r resp
 
-  if [[ "$resp" = @(s|S) ]]; then
+  if [[ "${resp:-n}" = @(s|S) ]]; then
     rm -f "/root/${username}.zip" "/root/${username}.ovpn" >/dev/null 2>&1 || true
 
-    echo -ne "\033[1;32mGerar Com usuário e Senha \033[1;31m? \033[1;33m[s/n]:\033[1;37m "
+    echo -ne "${GREEN}${BOLD}GERAR COM USUARIO E SENHA EMBUTIDOS?${RESET} ${YELLOW}[s/n]:${RESET} ${WHITE}"
     read -r respost
 
-    echo -ne "\033[1;32mHost Atual\033[1;37m: \033[1;31m(\033[1;37m${Host:-Customizado}\033[1;31m) \033[1;37m- \033[1;32mAlterar \033[1;31m? \033[1;33m[s/n]:\033[1;37m "
+    local_host="$(ovpn_read_host_label)"
+    echo -ne "${GREEN}${BOLD}HOST ATUAL:${RESET} ${WHITE}(${YELLOW}${local_host}${WHITE}) ${GREEN}${BOLD}- ALTERAR?${RESET} ${YELLOW}[s/n]:${RESET} ${WHITE}"
     read -r oprc
 
-    if [[ "$oprc" = @(s|S) ]]; then
+    if [[ "${oprc:-n}" = @(s|S) ]]; then
       fun_edithost
-    else
-      fun_geraovpn
     fi
 
-    if [[ -e "/root/${username}.ovpn" && ! -e "/root/${username}.zip" ]]; then
+    # gerar ovpn
+    fun_bar "fun_geraovpn"
+
+    # zip
+    if [[ -e "/root/${username}.ovpn" ]]; then
       zip -q "/root/${username}.zip" "/root/${username}.ovpn" >/dev/null 2>&1 || true
     fi
 
     clear
-    echo -e "\033[0;34m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-    echo -e "\033[0;34m┃\E[44;1;37m            CONTA SSH CRIADA             \E[0m\033[0;34m┃"
-    echo -e "\033[0;34m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
-    echo -e "\033[1;32m 🗣️ USUARIO: \033[1;37m$username"
-    echo -e "\033[1;32m 🔑 SENHA: \033[1;37m$password"
-    echo -e "\033[1;32m ⌛ EXPIRA EM: \033[1;37m$gui"
-    echo -e "\033[1;32m 📲 LIMITE: \033[1;37m$sshlimiter"
+    title "CONTA SSH CRIADA"
+    echo -e "${GREEN}${BOLD}🗣️  USUARIO:${RESET} ${WHITE}${username}${RESET}"
+    echo -e "${GREEN}${BOLD}🔑 SENHA:${RESET} ${WHITE}${password}${RESET}"
+    echo -e "${GREEN}${BOLD}⌛ EXPIRA EM:${RESET} ${WHITE}${gui}${RESET}"
+    echo -e "${GREEN}${BOLD}📲 LIMITE:${RESET} ${WHITE}${sshlimiter}${RESET}"
     echo ""
 
     if [[ -d /var/www/html/openvpn && -e "/root/${username}.zip" ]]; then
       mv "/root/${username}.zip" "/var/www/html/openvpn/${username}.zip" >/dev/null 2>&1 || true
-      echo -e "\033[1;32mLINK\033[1;37m: \033[1;36mhttp://$IP:81/openvpn/${username}.zip"
+      echo -e "${GREEN}${BOLD}LINK:${RESET} ${CYAN}http://${IP}:81/openvpn/${username}.zip${RESET}"
     else
-      echo -e "\033[1;32mDisponível em:\033[1;31m /root/${username}.zip\033[0m"
+      echo -e "${GREEN}${BOLD}DISPONIVEL EM:${RESET} ${RED}/root/${username}.zip${RESET}"
     fi
 
-    echo -ne "\n\033[1;33mENTER \033[1;33mPARA VOLTAR AO \033[1;33mMENU!\033[0m"; read -r
+    echo -ne "\n${YELLOW}${BOLD}ENTER${RESET} ${WHITE}PARA VOLTAR AO MENU!${RESET}"; read -r
     exit 0
   fi
 fi
 
 # =========================
-# final (sem ovpn)
+# Final sem ovpn
 # =========================
 clear
-echo -e "\E[44;1;37m======🦸 DADOS DE ACESSO 🦸‍♀️======\E[0m"
-echo -e "\033[1;32m 🗣️ USUARIO: \033[1;37m$username"
-echo -e "\033[1;32m 🔑 SENHA: \033[1;37m$password"
-echo -e "\033[1;32m ⌛ EXPIRA EM: \033[1;37m$gui"
-echo -e "\033[1;32m 📲 LIMITE: \033[1;37m$sshlimiter"
-echo -ne "\n\033[1;33mENTER \033[1;33mPARA VOLTAR AO \033[1;33mMENU!\033[0m"; read -r
+echo -e "${BG_BLUE}====== 🦸 DADOS DE ACESSO 🦸‍♀️ ======${RESET}"
+echo -e "${GREEN}${BOLD}🗣️  USUARIO:${RESET} ${WHITE}${username}${RESET}"
+echo -e "${GREEN}${BOLD}🔑 SENHA:${RESET} ${WHITE}${password}${RESET}"
+echo -e "${GREEN}${BOLD}⌛ EXPIRA EM:${RESET} ${WHITE}${gui}${RESET}"
+echo -e "${GREEN}${BOLD}📲 LIMITE:${RESET} ${WHITE}${sshlimiter}${RESET}"
+echo -ne "\n${YELLOW}${BOLD}ENTER${RESET} ${WHITE}PARA VOLTAR AO MENU!${RESET}"; read -r

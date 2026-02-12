@@ -1,73 +1,152 @@
 #!/bin/bash
-IP=$(cat /etc/IP)
-if [ ! -d /etc/SSHPlus/userteste ]; then
-mkdir /etc/SSHPlus/userteste
+set -euo pipefail
+
+DB="/root/usuarios.db"
+PASS_DIR="/etc/SSHPlus/senha"
+TEST_DIR="/etc/SSHPlus/userteste"
+IP_FILE="/etc/IP"
+
+# -------- helpers --------
+get_ip() {
+  if [[ -s "$IP_FILE" ]]; then
+    cat "$IP_FILE"
+  else
+    hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1"
+  fi
+}
+
+db_upsert_limit() {
+  local user="$1" limit="$2"
+  touch "$DB"
+  if grep -qE "^${user}[[:space:]]+" "$DB"; then
+    sed -i -E "s/^${user}[[:space:]]+.*/${user} ${limit}/" "$DB"
+  else
+    echo "${user} ${limit}" >> "$DB"
+  fi
+}
+
+require_at() {
+  if ! command -v at >/dev/null 2>&1; then
+    tput setaf 7; tput setab 1; tput bold
+    echo ""
+    echo "ERRO: COMANDO 'at' NÃO ENCONTRADO. INSTALE: apt-get install at"
+    echo ""
+    tput sgr0
+    exit 1
+  fi
+  # tenta garantir serviço (sem falhar se não existir systemctl)
+  if command -v systemctl >/dev/null 2>&1; then
+    systemctl enable --now atd >/dev/null 2>&1 || true
+  else
+    service atd start >/dev/null 2>&1 || true
+  fi
+}
+
+# -------- init --------
+IP="$(get_ip)"
+mkdir -p "$TEST_DIR" "$PASS_DIR"
+touch "$DB"
+
+tput setaf 7 ; tput setab 4 ; tput bold ; printf '%30s%s%-15s\n' "CRIAR USUARIO TESTE" ; tput sgr0
+echo ""
+
+if [[ -n "$(ls -A "$TEST_DIR" 2>/dev/null || true)" ]]; then
+  echo -e "\033[1;32mTESTE ATIVO!\033[1;37m"
+else
+  echo -e "\033[1;31mNENHUM TESTE ATIVO!\033[0m"
 fi
-tput setaf 7 ; tput setab 4 ; tput bold ; printf '%30s%s%-15s\n' "Criar usuario teste" ; tput sgr0
+
 echo ""
-[ "$(ls -A /etc/SSHPlus/userteste)" ] && echo -e "\033[1;32mTeste Ativo!\033[1;37m" || echo -e "\033[1;31mNenhum test ativo!\033[0m"
+ls "$TEST_DIR" 2>/dev/null | sort | sed 's/\.sh$//g' || true
 echo ""
-for testeson in $(ls /etc/SSHPlus/userteste |sort |sed 's/.sh//g')
-do
-echo "$testeson"
-done
-echo ""
-echo -ne "\033[1;32mNome do usuario\033[1;37m: "; read nome
-if [[ -z $nome ]]
-then
-echo ""
-tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "Nome vazio ou invalido." ; echo "" ; tput sgr0
-	exit 1
+
+# -------- inputs --------
+echo -ne "\033[1;32mNOME DO USUARIO\033[1;37m: "
+read -r nome
+
+if [[ -z "${nome:-}" ]]; then
+  tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "NOME VAZIO OU INVALIDO." ; echo "" ; tput sgr0
+  exit 1
 fi
-awk -F : ' { print $1 }' /etc/passwd > /tmp/users 
-if grep -Fxq "$nome" /tmp/users
-then
-	tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "Este usuário já existe." ; echo "" ; tput sgr0
-	exit 1
+
+# username seguro: 2..25 chars, letras/números e . _ -
+if ! [[ "$nome" =~ ^[a-zA-Z0-9._-]{2,25}$ ]]; then
+  tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "USUARIO INVALIDO! USE 2-25 CHARS: LETRAS/NUMEROS . _ -" ; echo "" ; tput sgr0
+  exit 1
 fi
-echo -ne "\033[1;32mSenha\033[1;37m: "; read pass
-if [[ -z $pass ]]
-then
-echo ""
-tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "Senha vazia ou invalida." ; echo "" ; tput sgr0
-	exit 1
+
+if id "$nome" >/dev/null 2>&1; then
+  tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "ESTE USUARIO JA EXISTE." ; echo "" ; tput sgr0
+  exit 1
 fi
-echo -ne "\033[1;32mLimite\033[1;37m: "; read limit
-if [[ -z $limit ]]
-then
-echo ""
-tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "Limite vazio ou invalido." ; echo "" ; tput sgr0
-	exit 1
+
+echo -ne "\033[1;32mSENHA\033[1;37m: "
+read -r pass
+if [[ -z "${pass:-}" || ${#pass} -lt 4 ]]; then
+  tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "SENHA VAZIA OU INVALIDA (MIN 4)." ; echo "" ; tput sgr0
+  exit 1
 fi
-echo -ne "\033[1;32mMinutos \033[1;33m(\033[1;31mEx: \033[1;37m60\033[1;33m)\033[1;37m: "; read u_temp
-if [[ -z $limit ]]
-then
-echo ""
-tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "Limite vazio ou invalido." ; echo "" ; tput sgr0
-	exit 1
+
+echo -ne "\033[1;32mLIMITE\033[1;37m: "
+read -r limit
+if [[ -z "${limit:-}" || ! "$limit" =~ ^[0-9]+$ || "$limit" -lt 1 ]]; then
+  tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "LIMITE VAZIO OU INVALIDO (NUMERO > 0)." ; echo "" ; tput sgr0
+  exit 1
 fi
-useradd -M -s /bin/false $nome
-(echo $pass;echo $pass) |passwd $nome > /dev/null 2>&1
-echo "$pass" > /etc/SSHPlus/senha/$nome
-echo "$nome $limit" >> /root/usuarios.db
-echo "#!/bin/bash
-pkill -f "$nome"
-userdel --force $nome
-grep -v ^$nome[[:space:]] /root/usuarios.db > /tmp/ph ; cat /tmp/ph > /root/usuarios.db
-rm /etc/SSHPlus/senha/$nome > /dev/null 2>&1
-rm -rf /etc/SSHPlus/userteste/$nome.sh
-exit" > /etc/SSHPlus/userteste/$nome.sh
-chmod +x /etc/SSHPlus/userteste/$nome.sh
-at -f /etc/SSHPlus/userteste/$nome.sh now + $u_temp min > /dev/null 2>&1
+
+echo -ne "\033[1;32mMINUTOS \033[1;33m(\033[1;31mEX:\033[1;37m 60\033[1;33m)\033[1;37m: "
+read -r u_temp
+if [[ -z "${u_temp:-}" || ! "$u_temp" =~ ^[0-9]+$ || "$u_temp" -lt 1 ]]; then
+  tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "MINUTOS VAZIO OU INVALIDO (NUMERO > 0)." ; echo "" ; tput sgr0
+  exit 1
+fi
+
+require_at
+
+# -------- create user --------
+useradd -M -s /bin/false "$nome"
+echo "${nome}:${pass}" | chpasswd
+echo "$pass" > "${PASS_DIR}/${nome}"
+db_upsert_limit "$nome" "$limit"
+
+# -------- removal script (safe) --------
+rm_script="${TEST_DIR}/${nome}.sh"
+cat > "$rm_script" <<EOF
+#!/bin/bash
+set -euo pipefail
+
+USER="${nome}"
+DB="${DB}"
+PASS_FILE="${PASS_DIR}/${nome}"
+SELF="${rm_script}"
+
+pkill -f "\${USER}" >/dev/null 2>&1 || true
+userdel --force "\${USER}" >/dev/null 2>&1 || true
+
+if [[ -f "\${DB}" ]]; then
+  grep -v "^\${USER}[[:space:]]" "\${DB}" > /tmp/ph.\$\$ || true
+  cat /tmp/ph.\$\$ > "\${DB}" || true
+  rm -f /tmp/ph.\$\$
+fi
+
+rm -f "\${PASS_FILE}" >/dev/null 2>&1 || true
+rm -f "\${SELF}" >/dev/null 2>&1 || true
+exit 0
+EOF
+
+chmod 700 "$rm_script"
+at -f "$rm_script" now + "$u_temp" minutes >/dev/null 2>&1
+
+# -------- output --------
 clear
-echo -e "\E[44;1;37m     Usuario Teste Criado     \E[0m"
+echo -e "\E[44;1;37m     USUARIO TESTE CRIADO     \E[0m"
 echo ""
 echo -e "\033[1;32mIP:\033[1;37m $IP"
-echo -e "\033[1;32mUsuario:\033[1;37m $nome"
-echo -e "\033[1;32mSenha:\033[1;37m $pass"
-echo -e "\033[1;32mLimite:\033[1;37m $limit"
-echo -e "\033[1;32mValidade:\033[1;37m $u_temp Minutos"
+echo -e "\033[1;32mUSUARIO:\033[1;37m $nome"
+echo -e "\033[1;32mSENHA:\033[1;37m $pass"
+echo -e "\033[1;32mLIMITE:\033[1;37m $limit"
+echo -e "\033[1;32mVALIDADE:\033[1;37m $u_temp MINUTOS"
 echo ""
-echo -e "\033[1;33mApos o tempo definido o usuario"
-echo -e "\033[1;32m$nome \033[1;33msera desconectado e deletado.\033[0m"
-exit
+echo -e "\033[1;33mAPOS O TEMPO DEFINIDO O USUARIO"
+echo -e "\033[1;32m$nome \033[1;33mSERA DESCONECTADO E DELETADO.\033[0m"
+exit 0

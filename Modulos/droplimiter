@@ -1,70 +1,131 @@
 #!/bin/bash
 database="/root/usuarios.db"
 echo $$ > /tmp/pids
-fun_drop () {
-port_dropbear=`ps aux | grep dropbear | awk NR==1 | awk '{print $17;}'`
-log=/var/log/auth.log
-loginsukses='Password auth succeeded'
-clear
-pids=`ps ax |grep dropbear |grep  " $port_dropbear" |awk -F" " '{print $1}'`
-for pid in $pids
-do
-    pidlogs=`grep $pid $log |grep "$loginsukses" |awk -F" " '{print $3}'`
-    i=0
-    for pidend in $pidlogs
-    do
-      let i=i+1
-    done
-    if [ $pidend ];then
-       login=`grep $pid $log |grep "$pidend" |grep "$loginsukses"`
-       PID=$pid
-       user=`echo $login |awk -F" " '{print $10}' | sed -r "s/'/ /g"`
-       waktu=`echo $login |awk -F" " '{print $2"-"$1,$3}'`
-       while [ ${#waktu} -lt 13 ]; do
-           waktu=$waktu" "
-       done
-       while [ ${#user} -lt 16 ]; do
-           user=$user" "
-       done
-       while [ ${#PID} -lt 8 ]; do
-           PID=$PID" "
-       done
-       echo "$user $PID $waktu"
-    fi
-done
-} 
-if [ ! -f "$database" ]
-then
-	echo "Arquivo /root/usuarios.db não encontrado"
-	exit 1
+
+# -------- validações básicas --------
+if [[ ! -f "$database" ]]; then
+  echo "Arquivo $database não encontrado"
+  exit 1
 fi
-while true
-do
-	clear
-	echo -e "\E[42;1;37m               LIMITER DROPBEAR                \E[0m"
-    echo -e "\E[42;1;37m Ususario                       Conexao/Limite \E[0m"
-    while read usline
-    do
-		user="$(echo $usline | cut -d' ' -f1)"
-		s2ssh="$(echo $usline | cut -d' ' -f2)"
-		s3drop="$(fun_drop | grep "$user" | wc -l)"
-		if [ -z "$user" ] ; then
-		    echo "" > /dev/null
-		else
-		    fun_drop | grep "$user" | awk '{print $2}' |cut -d' ' -f2 > /tmp/userpid
-		    sed -n '2 p' /tmp/userpid > /tmp/tmp2
-		    rm /tmp/userpid
-		    tput setaf 3 ; tput bold ; printf '  %-35s%s\n' $user $s3drop/$s2ssh; tput sgr0
-		    if [ "$s3drop" -gt "$s2ssh" ]; then
-		        echo -e "\E[41;1;37m Usuário desconectado por ultrapassar o limite! \E[0m"
-		        while read line
-		        do
-		           tmp="$(echo $line | cut -d' ' -f1)"
-		           kill $tmp
-		        done < /tmp/tmp2
-		        rm /tmp/tmp2
-		    fi
-		fi
-     done < "$database"
-     sleep 6
+
+# -------- tempfiles --------
+TMP_DROP="$(mktemp)"
+TMP_KILL="$(mktemp)"
+cleanup() {
+  rm -f "$TMP_DROP" "$TMP_KILL"
+}
+trap cleanup EXIT
+
+# -------- coleta dropbear logins (PID -> USER) --------
+# Saída: "USER PID"
+build_drop_map() {
+  : > "$TMP_DROP"
+
+  # preferir auth.log, senão tentar journalctl
+  if [[ -f /var/log/auth.log ]]; then
+    # Padrões comuns do dropbear:
+    # "Password auth succeeded for 'user' from ..."
+    # ou variações sem aspas
+    # Também pode aparecer "Exit before auth" etc (ignora)
+    awk '
+      /dropbear/ && /Password auth succeeded/ {
+        # tenta pegar usuario e pid
+        pid=""
+        user=""
+        # pid entre colchetes: dropbear[1234]:
+        if (match($0, /dropbear\[[0-9]+\]/)) {
+          pid=substr($0, RSTART+9, RLENGTH-10)
+        }
+        # user entre aspas: for '\''user'\''
+        if (match($0, /for '\''[^'\'']+'\''/)) {
+          user=substr($0, RSTART+5, RLENGTH-6)
+        } else if (match($0, /for [^ ]+/)) {
+          user=substr($0, RSTART+4, RLENGTH-4)
+        }
+        if (pid != "" && user != "") print user, pid
+      }
+    ' /var/log/auth.log >> "$TMP_DROP"
+  else
+    # fallback journald (Debian 12 minimal / rsyslog off)
+    if command -v journalctl >/dev/null 2>&1; then
+      journalctl -u dropbear -n 2000 --no-pager 2>/dev/null | awk '
+        /Password auth succeeded/ {
+          pid=""
+          user=""
+          if (match($0, /dropbear\[[0-9]+\]/)) {
+            pid=substr($0, RSTART+9, RLENGTH-10)
+          }
+          if (match($0, /for '\''[^'\'']+'\''/)) {
+            user=substr($0, RSTART+5, RLENGTH-6)
+          } else if (match($0, /for [^ ]+/)) {
+            user=substr($0, RSTART+4, RLENGTH-4)
+          }
+          if (pid != "" && user != "") print user, pid
+        }
+      ' >> "$TMP_DROP"
+    fi
+  fi
+
+  # manter só PIDs que ainda existem (dropbear vivo)
+  # evita PID reciclado antigo
+  awk '{print $1, $2}' "$TMP_DROP" | while read -r u p; do
+    [[ -n "$u" && -n "$p" ]] || continue
+    if ps -p "$p" -o comm= 2>/dev/null | grep -q '^dropbear$'; then
+      echo "$u $p"
+    fi
+  done > "${TMP_DROP}.live"
+
+  mv -f "${TMP_DROP}.live" "$TMP_DROP"
+}
+
+is_number() { [[ "$1" =~ ^[0-9]+$ ]]; }
+
+while true; do
+  clear
+  echo -e "\E[42;1;37m               LIMITER DROPBEAR                \E[0m"
+  echo -e "\E[42;1;37m USUARIO                       CONEXAO/LIMITE \E[0m"
+
+  # gera mapa uma vez por ciclo
+  build_drop_map
+
+  # percorre DB
+  while read -r user limit; do
+    # pular linhas inválidas
+    [[ -n "${user:-}" ]] || continue
+    [[ "$user" =~ ^# ]] && continue
+
+    # normaliza limite
+    if ! is_number "${limit:-}"; then
+      limit=1
+    fi
+    (( limit < 1 )) && limit=1
+
+    # conta conexões (PIDs dropbear autenticados por esse user)
+    conn="$(awk -v u="$user" '$1==u{c++} END{print c+0}' "$TMP_DROP")"
+
+    tput setaf 3; tput bold
+    printf '  %-35s%s\n' "$user" "$conn/$limit"
+    tput sgr0
+
+    if (( conn > limit )); then
+      echo -e "\E[41;1;37m USUÁRIO EXCEDEU O LIMITE! DESCONECTANDO... \E[0m"
+
+      # mata somente excedentes:
+      # pega lista de PIDs do user, remove os primeiros "limit" e mata o resto
+      awk -v u="$user" '$1==u{print $2}' "$TMP_DROP" > "$TMP_KILL"
+
+      # remover os "limit" primeiros (mantém os mais antigos vivos)
+      # se você preferir derrubar os mais antigos, invertimos a lógica.
+      awk -v keep="$limit" 'NR>keep{print}' "$TMP_KILL" | while read -r pid; do
+        [[ -n "$pid" ]] || continue
+        kill "$pid" >/dev/null 2>&1
+      done
+
+      rm -f "$TMP_KILL"
+      TMP_KILL="$(mktemp)"
+    fi
+
+  done < <(awk 'NF>=2{print $1, $2}' "$database")
+
+  sleep 6
 done

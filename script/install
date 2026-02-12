@@ -120,7 +120,7 @@ for _arq in "${_mdls[@]}"; do
   fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/${_arq}" "${_dir1}/${_arq}" \
     || { echo "Falha ao baixar: ${_arq}"; exit 1; }
 
-  chmod 755 "${_dir1}/${_arq}"
+  chmod 777 "${_dir1}/${_arq}"
 done
 
 # mover alguns para /etc/SSHPlus como antes
@@ -215,13 +215,13 @@ chmod 755 mainproxy
 fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/security" "security"
 fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/pub.key" "security.pub.key"
 fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/priv.pem" "security.priv.pem"
-chmod 755 security
-chmod 644 security.pub.key
-chmod 600 security.priv.pem
+chmod 777 security
+chmod 777 security.pub.key
+chmod 777 security.priv.pem
 
 # proxydt
 fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/proxydt" "proxydt"
-chmod 755 proxydt
+chmod 777 proxydt
 
 cd "$HOME"
 

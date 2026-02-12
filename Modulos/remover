@@ -1,187 +1,275 @@
 #!/bin/bash
+# remover.sh (revisado)
+# Remove usuários SSHPlus com opção: um usuário / todos
+# Compatível: Ubuntu 20/22, Debian 12
+# OBS: ao final sempre volta para "menu" (se existir)
+
+set -u
 shopt -s extglob
 
-DB="/root/usuarios.db"
+# =========================
+# CORES / ESTILO
+# =========================
+BOLD='\033[1m'
+RESET='\033[0m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[1;36m'
+WHITE='\033[1;37m'
+BG_RED='\E[41;1;37m'
+
+title_bar() { tput setaf 7; tput setab 4; tput bold; printf '%32s%s%-13s\n' "REMOVER USUARIO SSH" ; tput sgr0; }
+err() { echo -e "${BG_RED} ${*^^} ${RESET}"; }
+ok()  { echo -e "${GREEN}${BOLD}${*^^}${RESET}"; }
+warn(){ echo -e "${YELLOW}${BOLD}${*^^}${RESET}"; }
+
+back_menu() {
+  # volta pro menu principal
+  if declare -F menu >/dev/null 2>&1; then
+    menu
+  else
+    return 0
+  fi
+}
+
+# =========================
+# PATHS
+# =========================
+DB_USERS="/root/usuarios.db"
 PASS_DIR="/etc/SSHPlus/senha"
-EXP_FILE="/etc/SSHPlus/Exp"
+
+# =========================
+# Progress bar (igual ao seu)
+# =========================
+fun_bar() {
+  local cmd1="$1"
+  local cmd2="${2:-true}"
+  (
+    [[ -e $HOME/fim ]] && rm -f "$HOME/fim"
+    bash -c "$cmd1" >/dev/null 2>&1
+    bash -c "$cmd2" >/dev/null 2>&1
+    touch "$HOME/fim"
+  ) >/dev/null 2>&1 &
+
+  tput civis
+  echo -ne "${YELLOW}${BOLD}AGUARDE${RESET} ${WHITE}- ${YELLOW}[${RESET}"
+  while true; do
+    for ((i=0; i<18; i++)); do
+      echo -ne "${RED}#${RESET}"
+      sleep 0.08
+    done
+    [[ -e $HOME/fim ]] && rm -f "$HOME/fim" && break
+    echo -e "${YELLOW}]${RESET}"
+    sleep 0.5
+    tput cuu1
+    tput dl1
+    echo -ne "${YELLOW}${BOLD}AGUARDE${RESET} ${WHITE}- ${YELLOW}[${RESET}"
+  done
+  echo -e "${YELLOW}]${RESET}${WHITE} -${GREEN} OK !${RESET}"
+  tput cnorm
+}
 
 # =========================
 # Helpers
 # =========================
-rm_db_user() {
-  local user="$1"
-  [[ -e "$DB" ]] || touch "$DB"
-  awk -v u="$user" '$1!=u{print}' "$DB" > /tmp/.usuarios.db.$$ && mv /tmp/.usuarios.db.$$ "$DB"
-}
+is_root() { [[ "${EUID:-$(id -u)}" -eq 0 ]]; }
 
-recalc_expired_count() {
-  local now count=0
-  now="$(date +%s)"
-
-  mkdir -p "$(dirname "$EXP_FILE")" >/dev/null 2>&1 || true
-  : > /etc/SSHPlus/Exp.list 2>/dev/null || true
-
-  while IFS=: read -r u _ uid _ _ _ _; do
-    [[ "$uid" -ge 1000 ]] || continue
-    [[ "$u" =~ ^(nobody|ubuntu|lxd)$ ]] && continue
-
-    exp_line="$(chage -l "$u" 2>/dev/null | awk -F': ' '/^Account expires/ {print $2; exit}')"
-    [[ -z "$exp_line" || "$exp_line" == "never" ]] && continue
-
-    exp_val="$(date -d "$exp_line" +%s 2>/dev/null)" || continue
-    if (( exp_val < now )); then
-      ((count++))
-      echo "$u" >> /etc/SSHPlus/Exp.list 2>/dev/null || true
-    fi
-  done < /etc/passwd
-
-  echo "$count" > "$EXP_FILE"
-}
-
-remove_ovp() {
-  local user="$1" GROUPNAME="nogroup"
-
-  [[ -e /etc/debian_version ]] && GROUPNAME="nogroup"
-  [[ -e /etc/redhat-release ]] && GROUPNAME="nobody"
-
-  cd /etc/openvpn/easy-rsa/ 2>/dev/null || return 0
-  [[ -x ./easyrsa ]] || return 0
-
-  ./easyrsa --batch revoke "$user" >/dev/null 2>&1 || true
-  ./easyrsa gen-crl >/dev/null 2>&1 || true
-
-  rm -f "pki/reqs/$user.req" "pki/private/$user.key" "pki/issued/$user.crt" >/dev/null 2>&1 || true
-
-  rm -f /etc/openvpn/crl.pem >/dev/null 2>&1 || true
-  cp /etc/openvpn/easy-rsa/pki/crl.pem /etc/openvpn/crl.pem >/dev/null 2>&1 || true
-  chown nobody:"$GROUPNAME" /etc/openvpn/crl.pem >/dev/null 2>&1 || true
-
-  [[ -e "$HOME/$user.ovpn" ]] && rm -f "$HOME/$user.ovpn" >/dev/null 2>&1 || true
-  [[ -e "/var/www/html/openvpn/$user.zip" ]] && rm -f "/var/www/html/openvpn/$user.zip" >/dev/null 2>&1 || true
-}
-
-del_user_system() {
-  local user="$1"
-  # mata tudo do usuário (mais correto que pkill -f "user")
-  pkill -KILL -u "$user" >/dev/null 2>&1 || true
-
-  if command -v deluser >/dev/null 2>&1; then
-    deluser --force "$user" >/dev/null 2>&1 || return 1
-  else
-    userdel --force "$user" >/dev/null 2>&1 || return 1
-  fi
-
+valid_user() {
+  local u="$1"
+  [[ -n "$u" ]] || return 1
+  [[ "$u" =~ ^[a-zA-Z0-9._-]{2,25}$ ]] || return 1
+  id "$u" >/dev/null 2>&1 || return 1
   return 0
 }
 
-# =========================
-# UI Menu
-# =========================
-clear
-tput setaf 7 ; tput setab 4 ; tput bold ; printf '%32s%s%-13s\n' "Remover Usuário SSH" ; tput sgr0
-echo ""
-echo -e "\033[1;31m[\033[1;36m1\033[1;31m]\033[1;33m REMOVER UM USUARIO"
-echo -e "\033[1;31m[\033[1;36m2\033[1;31m]\033[1;33m REMOVER TODOS USUARIOS"
-echo -e "\033[1;31m[\033[1;36m3\033[1;31m]\033[1;33m VOLTAR"
-echo ""
+db_remove_user() {
+  local u="$1"
+  [[ -f "$DB_USERS" ]] || return 0
+  grep -v -E "^${u}[[:space:]]+" "$DB_USERS" > /tmp/sshplus_db.$$ 2>/dev/null || true
+  cat /tmp/sshplus_db.$$ > "$DB_USERS" 2>/dev/null || true
+  rm -f /tmp/sshplus_db.$$ >/dev/null 2>&1 || true
+}
 
-read -p "$(echo -e "\033[1;32mOQUE DESEJA FAZER\033[1;31m ?\033[1;37m : ")" -e -i 1 resp
+kill_user_sessions() {
+  local u="$1"
+  # Mais seguro que pkill -f "$u"
+  pkill -KILL -u "$u" >/dev/null 2>&1 || true
+}
 
-if [[ "$resp" = "1" ]]; then
-  clear
-  tput setaf 7 ; tput setab 4 ; tput bold ; printf '%32s%s%-13s\n' "Remover Usuário SSH" ; tput sgr0
+openvpn_detect() {
+  [[ -e /etc/openvpn/server.conf && -d /etc/openvpn/easy-rsa && -e /etc/openvpn/easy-rsa/pki/ca.crt ]]
+}
+
+openvpn_groupname() {
+  # Debian/Ubuntu: nogroup normalmente existe.
+  echo "nogroup"
+}
+
+openvpn_revoke_user() {
+  local u="$1"
+  openvpn_detect || return 0
+
+  local grp
+  grp="$(openvpn_groupname)"
+
+  (
+    cd /etc/openvpn/easy-rsa/ || exit 0
+    [[ -x ./easyrsa ]] || exit 0
+
+    ./easyrsa --batch revoke "$u" >/dev/null 2>&1 || true
+    ./easyrsa gen-crl >/dev/null 2>&1 || true
+
+    rm -f "pki/reqs/${u}.req" "pki/private/${u}.key" "pki/issued/${u}.crt" >/dev/null 2>&1 || true
+    rm -f /etc/openvpn/crl.pem >/dev/null 2>&1 || true
+    cp -f /etc/openvpn/easy-rsa/pki/crl.pem /etc/openvpn/crl.pem >/dev/null 2>&1 || true
+    chown nobody:"$grp" /etc/openvpn/crl.pem >/dev/null 2>&1 || true
+
+    rm -f "$HOME/${u}.ovpn" "/root/${u}.ovpn" >/dev/null 2>&1 || true
+    rm -f "/var/www/html/openvpn/${u}.zip" "/root/${u}.zip" >/dev/null 2>&1 || true
+  ) >/dev/null 2>&1
+}
+
+remove_user_everywhere() {
+  local u="$1"
+
+  kill_user_sessions "$u"
+  userdel --force "$u" >/dev/null 2>&1 || true
+
+  db_remove_user "$u"
+  rm -f "${PASS_DIR}/${u}" >/dev/null 2>&1 || true
+
+  openvpn_revoke_user "$u"
+}
+
+list_human_users() {
+  awk -F: '$3>=1000{print $1}' /etc/passwd | grep -Ev '^(nobody|ubuntu|lxd)$'
+}
+
+select_user_menu() {
+  local users
+  users="$(list_human_users)"
+  [[ -n "$users" ]] || { err "nao ha usuarios para remover"; return 1; }
+
+  echo -e "${YELLOW}${BOLD}LISTA DE USUARIOS:${RESET}\n"
+  local i=0
+  local map=""
+  while read -r u; do
+    [[ -n "$u" ]] || continue
+    i=$((i+1))
+    local idx
+    idx="$(printf "%02d" "$i")"
+    echo -e "${RED}[${CYAN}${idx}${RED}] ${WHITE}- ${GREEN}${u}${RESET}"
+    map+=$'\n'"${i}:${u}"
+  done <<< "$users"
+
+  local total="$i"
   echo ""
-  echo -e "\033[1;33mLISTA DE USUARIOS: \033[0m"
-  echo ""
+  echo -ne "${GREEN}${BOLD}DIGITE O NUMERO OU NOME DO USUARIO${RESET} ${YELLOW}[1-${total}]${RESET}${WHITE}: "
+  read -r opt
+  [[ -n "${opt:-}" ]] || return 1
 
-  mapfile -t USERS < <(awk -F: '$3>=1000 {print $1}' /etc/passwd | grep -Ev '^(nobody|ubuntu|lxd)$')
-  total="${#USERS[@]}"
-
-  if (( total == 0 )); then
-    echo -e "\n\033[1;31mNenhum usuário para remover.\033[0m"
-    sleep 2
-    menu
-    exit 0
-  fi
-
-  for i in "${!USERS[@]}"; do
-    n=$((i+1))
-    printf "\033[1;31m[\033[1;36m%02d\033[1;31m] \033[1;37m- \033[1;32m%s\033[0m\n" "$n" "${USERS[$i]}"
-  done
-
-  echo ""
-  echo -ne "\033[1;32mDigite ou selecione um usuario \033[1;33m[\033[1;36m1\033[1;31m-\033[1;36m$total\033[1;33m]\033[1;37m: "
-  read -r option
-
-  if [[ -z "${option:-}" || ! "$option" =~ ^[0-9]+$ || "$option" -lt 1 || "$option" -gt "$total" ]]; then
-    tput setaf 7 ; tput setab 1 ; tput bold ; echo "" ; echo "  Usuario vazio ou inválido!   " ; echo "" ; tput sgr0
-    exit 1
-  fi
-
-  user="${USERS[$((option-1))]}"
-
-  if id "$user" >/dev/null 2>&1; then
-    echo ""
-    if del_user_system "$user"; then
-      echo -e "\E[41;1;37m Usuario $user removido com sucesso! \E[0m"
-      rm_db_user "$user"
-      rm -f "$PASS_DIR/$user" >/dev/null 2>&1 || true
-
-      if [[ -e /etc/openvpn/server.conf ]]; then
-        remove_ovp "$user"
-      fi
-
-      recalc_expired_count
-      exit 0
-    else
-      echo -e "\n\033[1;31mFalha ao remover o usuário $user.\033[0m"
-      exit 1
-    fi
+  if [[ "$opt" =~ ^[0-9]+$ ]]; then
+    echo -e "$map" | awk -F: -v n="$opt" '$1==n{print $2; exit}'
   else
-    tput setaf 7 ; tput setab 4 ; tput bold ; echo "" ; echo "O usuário $user não existe!" ; echo "" ; tput sgr0
-    exit 1
+    echo "$opt"
   fi
+}
 
-elif [[ "$resp" = "2" ]]; then
-  clear
-  tput setaf 7 ; tput setab 4 ; tput bold ; printf '%32s%s%-13s\n' "Remover Usuário SSH" ; tput sgr0
-  echo ""
-  echo -ne "\033[1;33mREALMENTE DESEJA REMOVER TODOS USUARIOS \033[1;37m[s/n]: "
-  read -r opc
+# =========================
+# MAIN
+# =========================
+if ! is_root; then
+  err "execute como root"
+  sleep 1.5
+  back_menu
+fi
 
-  if [[ "$opc" = @(s|S) ]]; then
-    echo -e "\n\033[1;33mAguarde\033[1;32m.\033[1;31m.\033[1;33m.\033[0m"
+mkdir -p "$PASS_DIR" >/dev/null 2>&1 || true
+touch "$DB_USERS" >/dev/null 2>&1 || true
 
-    while IFS=: read -r user _ uid _ _ _ _; do
-      [[ "$uid" -ge 1000 ]] || continue
-      [[ "$user" =~ ^(nobody|ubuntu|lxd)$ ]] && continue
+clear
+title_bar
+echo ""
+echo -e "${RED}[${CYAN}1${RED}]${YELLOW} REMOVER UM USUARIO${RESET}"
+echo -e "${RED}[${CYAN}2${RED}]${YELLOW} REMOVER TODOS USUARIOS${RESET}"
+echo -e "${RED}[${CYAN}3${RED}]${YELLOW} VOLTAR${RESET}"
+echo ""
 
-      del_user_system "$user" >/dev/null 2>&1 || true
-      rm -f "$PASS_DIR/$user" >/dev/null 2>&1 || true
+read -p "$(echo -e "${GREEN}${BOLD}O QUE DESEJA FAZER?${RESET} ${WHITE}: ")" -e -i 1 resp
 
-      if [[ -e /etc/openvpn/server.conf ]]; then
-        remove_ovp "$user"
-      fi
-    done < /etc/passwd
+case "${resp:-1}" in
+  1)
+    clear
+    title_bar
+    echo ""
 
-    : > "$DB" 2>/dev/null || true
+    u="$(select_user_menu || true)"
+    if [[ -z "${u:-}" ]]; then
+      err "usuario vazio ou invalido"
+      sleep 1.5
+      back_menu
+    fi
+
+    if ! valid_user "$u"; then
+      err "usuario nao existe"
+      sleep 1.5
+      back_menu
+    fi
+
+    echo ""
+    warn "removendo usuario: $u"
+    fun_bar "remove_user_everywhere '$u'" "sleep 0.5"
+
+    ok "usuario $u removido com sucesso"
+    sleep 1.5
+    back_menu
+    ;;
+
+  2)
+    clear
+    title_bar
+    echo ""
+    warn "atencao: isso removera TODOS usuarios (uid>=1000)"
+    echo -ne "${YELLOW}${BOLD}DIGITE CONFIRMO PARA CONTINUAR:${RESET} ${WHITE}"
+    read -r confirm
+
+    if [[ "${confirm:-}" != "CONFIRMO" ]]; then
+      err "acao cancelada"
+      sleep 1.5
+      back_menu
+    fi
+
+    users="$(list_human_users)"
+    if [[ -z "$users" ]]; then
+      err "nao ha usuarios para remover"
+      sleep 1.5
+      back_menu
+    fi
+
+    fun_bar "true" "sleep 0.5"
+
+    while read -r u; do
+      [[ -n "$u" ]] || continue
+      [[ "$u" == "root" ]] && continue
+      remove_user_everywhere "$u"
+    done <<< "$users"
+
+    : > "$DB_USERS" 2>/dev/null || true
     rm -f /root/*.zip >/dev/null 2>&1 || true
 
-    recalc_expired_count
+    ok "usuarios removidos com sucesso"
+    sleep 1.5
+    back_menu
+    ;;
 
-    echo -e "\n\033[1;32mUSUARIOS REMOVIDOS COM SUCESSO!\033[0m"
-    sleep 2
-    menu
-  else
-    echo -e "\n\033[1;31mRetornando ao menu...\033[0m"
-    sleep 2
-    menu
-  fi
+  3)
+    back_menu
+    ;;
 
-elif [[ "$resp" = "3" ]]; then
-  menu
-else
-  echo -e "\n\033[1;31mOpcao invalida !\033[0m"
-  sleep 1.5s
-  menu
-fi
+  *)
+    err "opcao invalida"
+    sleep 1.5
+    back_menu
+    ;;
+esac

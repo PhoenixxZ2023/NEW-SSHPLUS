@@ -1,14 +1,47 @@
 #!/bin/bash
-## 1 - "LIMPEZA DE DNS"
-ip -s -s neigh flush all
-ip neigh flush dev eth0
-## 2 - "CACHE DO SISTEMA"
-echo 3 > /proc/sys/vm/drop_caches
-## 2 - "LIMPAR LOGS"
-echo > /var/log/messages
-echo > /var/log/kern.log
-echo > /var/log/daemon.log
-echo > /var/log/kern.log
-echo > /var/log/dpkg.log
-echo > /var/log/syslog
-echo > /va/log/auth.log
+set -euo pipefail
+
+# Requer root
+if [[ $EUID -ne 0 ]]; then
+  echo -e "\033[1;31mERRO:\033[0m EXECUTE COMO ROOT."
+  exit 1
+fi
+
+# Detecta interface padrão (melhor que fixar eth0)
+IFACE="$(ip route | awk '/default/ {print $5; exit}')"
+[[ -z "${IFACE:-}" ]] && IFACE="eth0"
+
+clear
+echo -e "\033[44;1;37m            LIMPEZA / OTIMIZACAO            \033[0m"
+echo
+
+echo -e "\033[1;33m[1]\033[1;37m LIMPAR CACHE ARP/NEIGHBOR (\033[1;32m$IFACE\033[0m)"
+ip -s -s neigh flush all >/dev/null 2>&1 || true
+ip neigh flush dev "$IFACE" >/dev/null 2>&1 || true
+
+echo -e "\033[1;33m[2]\033[1;37m LIMPAR CACHE DO SISTEMA (DROP_CACHES)"
+sync
+echo 3 > /proc/sys/vm/drop_caches || true
+
+echo -e "\033[1;33m[3]\033[1;37m LIMPAR LOGS (TRUNCATE)"
+# Lista compatível com Debian/Ubuntu (e ignora o que não existir)
+LOGS=(
+  /var/log/auth.log
+  /var/log/syslog
+  /var/log/kern.log
+  /var/log/daemon.log
+  /var/log/dpkg.log
+  /var/log/messages
+)
+
+for f in "${LOGS[@]}"; do
+  if [[ -f "$f" ]]; then
+    : > "$f"
+  fi
+done
+
+echo
+echo -e "\033[1;32mCONCLUIDO!\033[0m"
+echo -ne "\033[1;37mENTER PARA VOLTAR AO MENU...\033[0m"
+read -r
+menu

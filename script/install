@@ -1,244 +1,91 @@
-#!/usr/bin/env bash
-set -euo pipefail
-IFS=$'\n\t'
-
-have(){ command -v "$1" >/dev/null 2>&1; }
-
-fetch() { # fetch <url> <dest>
-  local url="$1" dest="$2"
-  if have curl; then
-    curl -fsSL "$url" -o "$dest"
-  else
-    wget -qO "$dest" "$url"
-  fi
-}
-
-fetch_stdout() { # fetch_stdout <url>
-  local url="$1"
-  if have curl; then
-    curl -fsSL "$url"
-  else
-    wget -qO- "$url"
-  fi
-}
-
-restart_service() {
-  local svc="$1"
-  systemctl restart "$svc" >/dev/null 2>&1 || service "$svc" restart >/dev/null 2>&1 || true
-}
-
-# -------------------------
-# Versão e IP
-# -------------------------
-_lvk="$(fetch_stdout "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/versao" 2>/dev/null || true)"
-
-IP="$(fetch_stdout ipv4.icanhazip.com 2>/dev/null || true)"
-IP2="$(fetch_stdout http://whatismyip.akamai.com/ 2>/dev/null || true)"
-[[ -n "${IP2:-}" && "${IP:-}" != "${IP2:-}" ]] && ipdovps="$IP2" || ipdovps="$IP"
-echo -e "${ipdovps:-0.0.0.0}" >/etc/IP
-
-# -------------------------
-# Timezone (mantendo seu padrão)
-# -------------------------
+#!/bin/bash
+_lvk=$(wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/versao)
+IP=$(wget -qO- ipv4.icanhazip.com)
+IP2=$(wget -qO- http://whatismyip.akamai.com/)
+[[ "$IP" != "$IP2" ]] && ipdovps="$IP2" || ipdovps="$IP"
+echo -e "$ipdovps" >/etc/IP
 echo -e "America/Sao_Paulo" >/etc/timezone
-ln -fs /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime >/dev/null 2>&1 || true
-dpkg-reconfigure --frontend noninteractive tzdata >/dev/null 2>&1 || true
-
-# -------------------------
-# Diretórios
-# -------------------------
-mkdir -p /etc/SSHPlus/{v2ray,xray,openvpn,stunnel5,criarusuario,senha,userteste,.tmp}
-mkdir -p /etc/bot/{info-users,arquivos,revenda,suspensos}
-mkdir -p /etc/rec
-touch /etc/SSHPlus/Exp
-touch /etc/bot/lista_ativos /etc/bot/lista_suspensos
-
-# -------------------------
-# Dependências mínimas usadas aqui
-# -------------------------
-export DEBIAN_FRONTEND=noninteractive
-apt-get update -y >/dev/null 2>&1 || true
-apt-get install -y --no-install-recommends ca-certificates curl wget iproute2 net-tools procps cron jq >/dev/null 2>&1 || true
-
-# -------------------------
-# Apache: se estiver ouvindo 80 -> muda pra 81 (sem netstat)
-# -------------------------
-if ss -lntp 2>/dev/null | grep -qE ':80\s+.*apache2'; then
-  sed -i "s/Listen 80/Listen 81/g" /etc/apache2/ports.conf >/dev/null 2>&1 || true
-  restart_service apache2
-fi
-
-# -------------------------
-# SSH: garantir Port 22 e PasswordAuthentication yes
-# (drop-in é mais compatível com Ubuntu 22/24 e Debian 12/13)
-# -------------------------
-if grep -qE '^\s*#\s*Port\s+22\s*$' /etc/ssh/sshd_config 2>/dev/null; then
-  sed -i 's/^\s*#\s*Port\s\+22/Port 22/' /etc/ssh/sshd_config >/dev/null 2>&1 || true
-fi
-
-mkdir -p /etc/ssh/sshd_config.d
-cat >/etc/ssh/sshd_config.d/99-sshplus.conf <<'EOF'
-# Managed by SSHPlus
-PasswordAuthentication yes
-EOF
-
-restart_service ssh
-restart_service sshd
-
-# -------------------------
-# Paths
-# -------------------------
+ln -fs /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime >/dev/null 2>&1
+dpkg-reconfigure --frontend noninteractive tzdata >/dev/null 2>&1
+[[ ! -d /etc/SSHPlus ]] && mkdir /etc/SSHPlus
+[[ ! -d /etc/SSHPlus/v2ray ]] && mkdir /etc/SSHPlus/v2ray
+[[ ! -d /etc/SSHPlus/xray ]] && mkdir /etc/SSHPlus/xray
+[[ ! -d /etc/SSHPlus/openvpn ]] && mkdir /etc/SSHPlus/openvpn
+[[ ! -d /etc/SSHPlus/stunnel5 ]] && mkdir /etc/SSHPlus/stunnel5
+[[ ! -d /etc/SSHPlus/criarusuario ]] && mkdir /etc/SSHPlus/criarusuario
+[[ ! -d /etc/SSHPlus/senha ]] && mkdir /etc/SSHPlus/senha
+[[ ! -e /etc/SSHPlus/Exp ]] && touch /etc/SSHPlus/Exp
+[[ ! -d /etc/SSHPlus/userteste ]] && mkdir /etc/SSHPlus/userteste
+[[ ! -d /etc/SSHPlus/.tmp ]] && mkdir /etc/SSHPlus/.tmp
+[[ ! -d /etc/bot ]] && mkdir /etc/bot
+[[ ! -d /etc/bot/info-users ]] && mkdir /etc/bot/info-users
+[[ ! -d /etc/bot/arquivos ]] && mkdir /etc/bot/arquivos
+[[ ! -d /etc/bot/revenda ]] && mkdir /etc/bot/revenda
+[[ ! -d /etc/bot/suspensos ]] && mkdir /etc/bot/suspensos
+[[ ! -d /etc/rec ]] && mkdir /etc/rec
+[[ ! -e /etc/bot/lista_ativos ]] && touch /etc/bot/lista_ativos
+[[ ! -e /etc/bot/lista_suspensos ]] && touch /etc/bot/lista_suspensos
+netstat -nplt | grep -w 'apache2' | grep -w '80' && sed -i "s/Listen 80/Listen 81/g" /etc/apache2/ports.conf && service apache2 restart
+[[ "$(grep -o '#Port 22' /etc/ssh/sshd_config)" == "#Port 22" ]] && sed -i "s;#Port 22;Port 22;" /etc/ssh/sshd_config && service ssh restart
+grep -v "^PasswordAuthentication" /etc/ssh/sshd_config >/tmp/passlogin && mv /tmp/passlogin /etc/ssh/sshd_config
+echo "PasswordAuthentication yes" >>/etc/ssh/sshd_config
 _dir1='/bin'
 _dir2='/etc/SSHPlus'
-
-# remove resíduos antigos (como você fazia)
-rm -f "$_dir2/ShellBot.sh" "$_dir2/cabecalho" "$_dir2/open.py" "$_dir2/proxy.py" "$_dir2/wsproxy.py" >/dev/null 2>&1 || true
-
-# -------------------------
-# Lista completa de módulos (IGUAL À ANTIGA)
-# -------------------------
-_mdls=(
-  "addhost" "ajuda" "alterarlimite" "alterarsenha" "apache2menu" "tcptweaker.sh" "checkers"
-  "checkmanager" "utili" "multi" "check" "chuser" "limit" "rps_cpu" "attscript" "Autobackup"
-  "badvpn" "banner" "bashtop" "ddos" "blocksite" "blockt" "blockuser" "bot" "botssh" "cabecalho"
-  "conexao" "criarteste" "criarusuario" "delhost" "delscript" "detalhes" "droplimiter"
-  "expcleaner" "fr" "infousers" "inst-botteste" "initcheck" "instsqd" "limiter" "mainproxy"
-  "menu" "menub" "menuudp" "mudardata" "mtuning" "multi" "onlineapp" "openvpn.sh" "open.py"
-  "otimizar" "painelv2ray" "prissh" "prnet.sh" "proxydt" "proxy.py" "reiniciarservicos"
-  "reiniciarsistema" "remover" "rustyproxy" "security" "senharoot" "ShellBot.sh" "slowdns"
-  "slow_dns" "speedtest" "sshmonitor" "suspenderusuario.sh" "stunnel5" "swapmemory"
-  "trafegototal" "trojan-go" "uexpired" "userbackup" "velocity" "verifatt" "verifbot"
-  "v2raymanager" "v2ray" "xray" "xraymanager" "webmin.sh" "websocket.sh" "wsproxy.py" "pkill.sh"
-)
-
-# -------------------------
-# Baixar módulos para /bin (mantendo seu padrão)
-# -------------------------
-for _arq in "${_mdls[@]}"; do
-  rm -f "${_dir1}/${_arq}" >/dev/null 2>&1 || true
-
-  fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/${_arq}" "${_dir1}/${_arq}" \
-    || { echo "Falha ao baixar: ${_arq}"; exit 1; }
-
-  chmod 777 "${_dir1}/${_arq}"
+rm $_dir2/ShellBot.sh $_dir2/cabecalho $_dir2/open.py $_dir2/proxy.py $_dir2/wsproxy.py >/dev/null 2>&1
+_mdls=("addhost" "ajuda" "alterarlimite" "alterarsenha" "apache2menu" "tcptweaker.sh" "checkers" "checkmanager" "utili" "multi" "check" "chuser" "limit" "rps_cpu" "attscript" "Autobackup" "badvpn" "banner" "bashtop" "ddos" "blocksite" "blockt" "blockuser" "bot" "botssh" "cabecalho" "conexao" "criarteste" "criarusuario" "delhost" "delscript" "detalhes" "droplimiter" "expcleaner" "fr" "infousers" "inst-botteste" "initcheck" "instsqd" "limiter" "mainproxy" "menu" "menub" "menuudp" "mudardata" "mtuning" "multi" "onlineapp" "openvpn.sh" "open.py" "otimizar" "painelv2ray" "prissh" "prnet.sh" "proxydt" "proxy.py" "reiniciarservicos" "reiniciarsistema" "remover" "rustyproxy" "security" "senharoot" "ShellBot.sh" "slowdns" "slow_dns" "speedtest" "sshmonitor" "suspenderusuario.sh" "stunnel5" "swapmemory" "trafegototal" "trojan-go" "uexpired" "userbackup" "velocity" "verifatt" "verifbot" "v2raymanager" "v2ray" "xray" "xraymanager" "webmin.sh" "websocket.sh" "wsproxy.py" "pkill.sh")
+for _arq in ${_mdls[@]}; do
+	[[ -e $_dir1/$_arq ]] && rm $_dir1/$_arq >/dev/null 2>&1
+	wget -c -P $_dir1 https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/$_arq
+	chmod +x $_dir1/$_arq
 done
-
-# mover alguns para /etc/SSHPlus como antes
-mv -f "${_dir1}/cabecalho" "${_dir1}/bot" "${_dir1}/open.py" "${_dir1}/proxy.py" "${_dir1}/wsproxy.py" "${_dir2}/" \
-  >/dev/null 2>&1 || true
-
-# -------------------------
-# (Mantido) /etc/hosts - OBS: eu mantive, mas isso é invasivo.
-# -------------------------
+mv $_dir1/cabecalho $_dir1/bot $_dir1/open.py $_dir1/proxy.py $_dir1/wsproxy.py $_dir2
 _arq_host="/etc/hosts"
-_host=(
-  "d1n212ccp6ldpw.cloudfront.net"
-  "dns.whatsapp.net"
-  "portalrecarga.vivo.com.br/recarga"
-  "navegue.vivo.com.br/controle/"
-  "navegue.vivo.com.br/pre/"
-  "www.whatsapp.net"
-  "/SSHPLUS?"
-)
-for host in "${_host[@]}"; do
-  if [[ "$(grep -w "$host" "$_arq_host" 2>/dev/null | wc -l)" = "0" ]]; then
-    sed -i "3i\127.0.0.1 $host" "$_arq_host" >/dev/null 2>&1 || true
-  fi
+_host[0]="d1n212ccp6ldpw.cloudfront.net"
+_host[1]="dns.whatsapp.net"
+_host[2]="portalrecarga.vivo.com.br/recarga"
+_host[3]="navegue.vivo.com.br/controle/"
+_host[4]="navegue.vivo.com.br/pre/"
+_host[5]="www.whatsapp.net"
+_host[6]="/SSHPLUS?"
+for host in ${_host[@]}; do
+	if [[ "$(grep -w "$host" $_arq_host | wc -l)" = "0" ]]; then
+		sed -i "3i\127.0.0.1 $host" $_arq_host
+	fi
 done
-
-# -------------------------
-# Autostart (sem cron a cada minuto)
-# -------------------------
-if [[ ! -e /etc/autostart ]]; then
-  cat >/etc/autostart <<'EOF'
-#!/bin/bash
+[[ ! -e /etc/autostart ]] && {
+	echo '#!/bin/bash
 clear
-# INICIO AUTOMATICO
-EOF
-  chmod 755 /etc/autostart
-else
-  # limpa screens antigas como você fazia
-  for proc in $(ps x | grep 'dmS' | grep -v 'grep' | awk '{print $1}'); do
-    screen -r -S "$proc" -X quit >/dev/null 2>&1 || true
-  done
-  screen -wipe >/dev/null 2>&1 || true
-
-  cat >/etc/autostart <<'EOF'
-#!/bin/bash
+#INICIO AUTOMATICO' >/etc/autostart
+	chmod +x /etc/autostart
+} || {
+	[[ $(ps x | grep "bot_plus" | grep -v grep | wc -l) != '0' ]] && wget -qO- https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/ShellBot.sh
+	for proc in $(ps x | grep 'dmS' | grep -v 'grep' | awk {'print $1'}); do
+		screen -r -S "$proc" -X quit	
+done
+	screen -wipe >/dev/null
+	echo '#!/bin/bash
 clear
-# INICIO AUTOMATICO
-EOF
-  chmod 755 /etc/autostart
-fi
-
-# -------------------------
-# Cron (mantendo suas tarefas essenciais, removendo o "* * * * * /etc/autostart")
-# -------------------------
-crontab -r >/dev/null 2>&1 || true
+#INICIO AUTOMATICO' >/etc/autostart
+	chmod +x /etc/autostart
+}
+crontab -r >/dev/null 2>&1
 (
-  crontab -l 2>/dev/null || true
-  echo "@daily /bin/verifatt"
-  echo "@reboot /etc/autostart"
-  echo "0 */6 * * * /bin/uexpired"
+	crontab -l 2>/dev/null
+	echo "@daily /bin/verifatt"
+	echo "@reboot /etc/autostart"
+	echo "* * * * * /etc/autostart"
+	echo "0 */6 * * * /bin/uexpired"
 ) | crontab -
-
-# -------------------------
-# Versão
-# -------------------------
-echo "${_lvk:-unknown}" >/bin/versao
-cat /bin/versao > /home/sshplus 2>/dev/null || true
-
-# -------------------------
-# /opt/sshplus (mantido)
-# -------------------------
-mkdir -p /opt/sshplus
-: > /opt/sshplus/sshplus
-
-# -------------------------
-# /etc/SSHPlus extras (WebSocket/mainproxy/security/proxydt + keys) - mantido e corrigido
-# -------------------------
-cd /etc/SSHPlus/
-
-# WebSocket + keys
-fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/WebSocket" "WebSocket"
-fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/pub.key" "pub.key"
-fetch "https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Modulos/priv.pem" "priv.pem"
-chmod 755 WebSocket
-chmod 644 pub.key
-chmod 600 priv.pem
-
-# mainproxy
-fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/mainproxy" "mainproxy"
-chmod 755 mainproxy
-
-# security + keys
-fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/security" "security"
-fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/pub.key" "security.pub.key"
-fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/priv.pem" "security.priv.pem"
-chmod 777 security
-chmod 777 security.pub.key
-chmod 777 security.priv.pem
-
-# proxydt
-fetch "https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/proxydt" "proxydt"
-chmod 777 proxydt
-
-cd "$HOME"
-
-# -------------------------
-# usuarios.db (corrigido - UID>=1000 e awk correto)
-# (se você quiser manter opção de "preservar", isso fica no Plus; aqui só garante existir)
-# -------------------------
-if [[ ! -f "$HOME/usuarios.db" ]]; then
-  awk -F: '$3>=1000 {print $1 " 1"}' /etc/passwd | grep -Ev '^(nobody|ubuntu|lxd)$' > "$HOME/usuarios.db"
-fi
-
-# -------------------------
-# Restart serviços
-# -------------------------
-restart_service cron
-restart_service ssh
-restart_service sshd
-[[ -d /var/www/html/openvpn ]] && restart_service apache2
-
-exit 0
+echo "$_lvk" >/bin/versao && cat /bin/versao > /home/sshplus
+wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/jq-linux64 >/dev/null 2>&1
+chmod +x jq-linux64 && mv jq-linux64 $(which jq)
+service cron restart >/dev/null 2>&1
+service ssh restart >/dev/null 2>&1
+[[ -d /var/www/html/openvpn ]] && service apache2 restart >/dev/null 2>&1
+rm -rf $lst1/list >/dev/null 2>&1
+mkdir /opt/sshplus
+echo > /opt/sshplus/sshplus
+cd /etc/SSHPlus/ && wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/WebSocket && wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/pub.key && wget https://raw.githubusercontent.com/PhoenixxZ2023/PLUS/main/Modulos/priv.pem && chmod 777 WebSocket && cd $HOME
+cd /etc/SSHPlus/ && wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Modulos/mainproxy && chmod 777 mainproxy && cd $HOME
+cd /etc/SSHPlus/ && wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/security && wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/pub.key && wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/priv.pem && chmod 777 security && cd $HOME
+cd /etc/SSHPlus/ && wget https://raw.githubusercontent.com/PhoenixxZ2023/NEW-SSHPLUS/main/Install/proxydt && chmod 777 proxydt && cd $HOME

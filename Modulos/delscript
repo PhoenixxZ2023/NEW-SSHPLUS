@@ -33,7 +33,6 @@ if [[ "$resp" =~ ^[sS]$ ]]; then
   stop_service_any dropbear
   stop_service_any squid
   stop_service_any squid3
-  stop_service_any apache2
   stop_service_any openvpn
   stop_service_any fail2ban
   stop_service_any sslh

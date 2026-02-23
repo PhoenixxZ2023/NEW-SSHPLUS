@@ -428,7 +428,7 @@ menu () {
           press_enter
         fi
       ;;
-      13) clear; velocity; press_enter ;;
+      13) clear; velocity ;;
       14) clear; run_safe banner; sleep 2 ;;
       15)
         clear

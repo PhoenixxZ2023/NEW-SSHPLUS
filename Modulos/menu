@@ -155,46 +155,35 @@ calc_status() {
 }
 
 velocity () {
-  aguarde () {
-    comando[0]="$1"
-    comando[1]="${2:-sleep 1}"
-    (
-      [[ -e "$HOME/fim" ]] && rm -f "$HOME/fim"
-      [[ ! -d /etc/SSHPlus ]] && rm -rf /bin/menu
-      bash -c "${comando[0]}" >/dev/null 2>&1
-      bash -c "${comando[1]}" >/dev/null 2>&1
-      touch "$HOME/fim"
-    ) >/dev/null 2>&1 &
-    tput civis
-    echo -ne "  \033[1;37mAGUARDE \033[1;37m- \033[1;37m["
-    while true; do
-      for ((i=0; i<18; i++)); do
-        echo -ne "\033[1;31m#"
-        sleep 0.1
-      done
-      [[ -e "$HOME/fim" ]] && rm -f "$HOME/fim" && break
-      echo -e "\033[1;37m]"
-      sleep 1
-      tput cuu1
-      tput dl1
-      echo -ne "  \033[1;37mAGUARDE \033[1;37m- \033[1;37m["
-    done
-    echo -e "\033[1;37m]\033[1;37m -\033[1;32m OK !\033[1;37m"
-    tput cnorm
-  }
-
   local SPEED_FILE="$HOME/speed"
   local png="" down="" upl="" lnk=""
-  local runner=""
 
-  # Detecta qual speedtest existe
+  clear
+  echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+  echo -e "\E[38;5;18m┃\E[44;1;37m    TESTANDO A VELOCIDADE DO SERVIDOR    \E[0m\E[38;5;18m┃"
+  echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+  echo ""
+
+  rm -f "$SPEED_FILE"
+
+  # ----------------------------
+  # Executa speedtest (sem aguarde/fun_bar)
+  # ----------------------------
+  echo -ne "\033[1;37mAGUARDE \033[1;33mexecutando speedtest...\033[0m"
+
   if cmd_exists speedtest; then
-    # Ookla
-    runner='speedtest --accept-license --accept-gdpr --format=human-readable 2>/dev/null || speedtest --secure --share 2>/dev/null'
+    # Tenta Ookla com flags modernas; se falhar, tenta modo legado
+    (
+      speedtest --accept-license --accept-gdpr --format=human-readable > "$SPEED_FILE" 2>&1 \
+      || speedtest --secure --share > "$SPEED_FILE" 2>&1
+    )
   elif cmd_exists speedtest-cli; then
-    # speedtest-cli (python)
-    runner='speedtest-cli --share --secure 2>/dev/null || speedtest-cli --share 2>/dev/null'
+    (
+      speedtest-cli --share --secure > "$SPEED_FILE" 2>&1 \
+      || speedtest-cli --share > "$SPEED_FILE" 2>&1
+    )
   else
+    echo ""
     echo -e "\n\033[1;31mComando speedtest não instalado!\033[0m"
     echo -e "\033[1;33mInstale um destes:\033[0m"
     echo -e "\033[1;37m - apt install speedtest-cli -y\033[0m"
@@ -203,14 +192,7 @@ velocity () {
     return 1
   fi
 
-  echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-  echo -e "\E[38;5;18m┃\E[44;1;37m    TESTANDO A VELOCIDADE DO SERVIDOR    \E[0m\E[38;5;18m┃"
-  echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
-  echo ""
-
-  rm -f "$SPEED_FILE"
-  aguarde "$runner > \"$SPEED_FILE\""
-  clear
+  echo -e " \033[1;32mOK!\033[0m"
 
   if [[ ! -s "$SPEED_FILE" ]]; then
     echo -e "\n\033[1;31mFalha ao gerar resultado do speedtest.\033[0m"
@@ -218,46 +200,56 @@ velocity () {
     return 1
   fi
 
-  # ----------------------------
-  # PARSE ROBUSTO (Ookla + speedtest-cli)
-  # ----------------------------
+  # Se houve erro textual (sem resultados)
+  if grep -qiE 'error|cannot|failed|permission|denied|timeout|exception' "$SPEED_FILE"; then
+    # Se mesmo assim existir download/upload, segue
+    if ! grep -qiE 'Download:|Upload:' "$SPEED_FILE"; then
+      clear
+      echo -e "\n\033[1;31mSpeedtest retornou erro no servidor.\033[0m"
+      echo -e "\033[1;33mSaída detectada:\033[0m"
+      head -n 8 "$SPEED_FILE"
+      press_enter
+      rm -f "$SPEED_FILE"
+      return 1
+    fi
+  fi
 
-  # Ping/latência
-  png=$(grep -im1 -E '(^\s*Ping:|latency:|Latency:)' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
-  [[ -z "$png" ]] && png=$(grep -im1 -E 'Hosted by|Server:' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
+  # ----------------------------
+  # Parse robusto (Ookla + speedtest-cli)
+  # ----------------------------
+  png=$(grep -im1 -E '(^[[:space:]]*Ping:|Latency:|latency:)' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
+  [[ -z "$png" ]] && png=$(grep -im1 -E 'Server:|Hosted by' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
   [[ -z "$png" ]] && png="N/D"
 
-  # Download
-  down=$(grep -im1 -E '(^\s*Download:|Download[[:space:]]speed:)' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
-  [[ -z "$down" ]] && down=$(grep -im1 -E 'Download:' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
+  down=$(grep -im1 -E '^[[:space:]]*Download:' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
+  [[ -z "$down" ]] && down=$(grep -im1 -E 'Download[[:space:]]speed:' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
   [[ -z "$down" ]] && down="N/D"
 
-  # Upload
-  upl=$(grep -im1 -E '(^\s*Upload:|Upload[[:space:]]speed:)' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
-  [[ -z "$upl" ]] && upl=$(grep -im1 -E 'Upload:' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
+  upl=$(grep -im1 -E '^[[:space:]]*Upload:' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
+  [[ -z "$upl" ]] && upl=$(grep -im1 -E 'Upload[[:space:]]speed:' "$SPEED_FILE" | sed 's/^[[:space:]]*//')
   [[ -z "$upl" ]] && upl="N/D"
 
-  # Link compartilhável
   lnk=$(grep -Eo 'https?://[^[:space:]]+' "$SPEED_FILE" | tail -n1)
   [[ -z "$lnk" ]] && lnk="N/D"
 
-  # fallback legado (se formato antigo)
+  # Fallback legado (linhas fixas)
   if [[ "$down" == "N/D" && "$upl" == "N/D" ]]; then
-    png=$(sed -n '5p' "$SPEED_FILE" | awk -F: '{print $NF}')
-    down=$(sed -n '7p' "$SPEED_FILE" | awk -F: '{print $NF}')
-    upl=$(sed -n '9p' "$SPEED_FILE" | awk -F: '{print $NF}')
-    [[ -z "$lnk" || "$lnk" == "N/D" ]] && lnk=$(sed -n '10p' "$SPEED_FILE" | awk '{print $NF}')
-    [[ -z "$png" ]] && png="N/D"
-    [[ -z "$down" ]] && down="N/D"
-    [[ -z "$upl" ]] && upl="N/D"
-    [[ -z "$lnk" ]] && lnk="N/D"
+    local _png _down _upl _lnk
+    _png=$(sed -n '5p' "$SPEED_FILE" | awk -F: '{print $NF}')
+    _down=$(sed -n '7p' "$SPEED_FILE" | awk -F: '{print $NF}')
+    _upl=$(sed -n '9p' "$SPEED_FILE" | awk -F: '{print $NF}')
+    _lnk=$(sed -n '10p' "$SPEED_FILE" | awk '{print $NF}')
+    [[ -n "$_png" ]] && png="$_png"
+    [[ -n "$_down" ]] && down="$_down"
+    [[ -n "$_upl" ]] && upl="$_upl"
+    [[ -n "$_lnk" ]] && lnk="$_lnk"
   fi
 
+  clear
   echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
   echo -e "\E[38;5;18m┃\E[44;1;37m    TESTANDO A VELOCIDADE DO SERVIDOR    \E[0m\E[38;5;18m┃"
   echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
   echo ""
-
   echo -e "\E[38;5;18m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
   echo -e "\033[1;32mPING (LATENCIA):\033[1;37m $png"
   echo -e "\033[1;32mDOWNLOAD:\033[1;37m $down"

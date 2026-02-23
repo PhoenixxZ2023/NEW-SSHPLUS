@@ -97,57 +97,62 @@ calc_status() {
   autm=$(grep "menu;" /etc/profile >/dev/null 2>&1 && echo -e "\033[0;92m⬤ " || echo -e "\033[0;31m⬤ ")
 }
 
+IP=$(cat /etc/IP)
+x="ok"
+menu ()
+{
 velocity () {
-  aguarde () {
-    comando[0]="$1"
-    (
-      [[ -e $HOME/fim ]] && rm -f "$HOME/fim"
-      bash -c "${comando[0]}" >/dev/null 2>&1
-      touch "$HOME/fim"
-    ) >/dev/null 2>&1 &
-    tput civis
-    echo -ne "  \033[1;37mAGUARDE \033[1;37m- \033[1;37m["
-    while true; do
-      for((i=0; i<18; i++)); do
-        echo -ne "\033[1;31m#"
-        sleep 0.1
-      done
-      [[ -e $HOME/fim ]] && rm -f "$HOME/fim" && break
-      echo -e "\033[1;37m]"
-      sleep 1
-      tput cuu1
-      tput dl1
-      echo -ne "  \033[1;37mAGUARDE \033[1;37m- \033[1;37m["
-    done
-    echo -e "\033[1;37m]\033[1;37m -\033[1;32m OK !\033[1;37m"
-    tput cnorm
-  }
-
-  fun_tst() { speedtest --share --secure > speed; }
-
-  echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-  echo -e "\E[38;5;18m┃\E[44;1;37m    TESTANDO A VELOCIDADE DO SERVIDOR    \E[0m\E[38;5;18m┃"
-  echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
-  echo ""
-  aguarde 'fun_tst'
-  clear
-  echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
-  echo -e "\E[38;5;18m┃\E[44;1;37m    TESTANDO A VELOCIDADE DO SERVIDOR    \E[0m\E[38;5;18m┃"
-  echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
-  echo ""
-
-  png=$(sed -n '5p' speed | awk -F: '{printf $NF}')
-  down=$(sed -n '7p' speed | awk -F: '{print $NF}')
-  upl=$(sed -n '9p' speed | awk -F: '{print $NF}')
-  lnk=$(sed -n '10p' speed | awk '{print $NF}')
-
-  echo -e "\E[38;5;18m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-  echo -e "\033[1;32mPING (LATENCIA):\033[1;37m$png"
-  echo -e "\033[1;32mDOWNLOAD:\033[1;37m$down"
-  echo -e "\033[1;32mUPLOAD:\033[1;37m$upl"
-  echo -e "\033[1;32mLINK: \E[38;5;33m$lnk"
-  echo -e "\E[38;5;18m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
-  rm -f "$HOME/speed"
+aguarde () {
+comando[0]="$1"
+comando[1]="$2"
+ (
+[[ -e $HOME/fim ]] && rm $HOME/fim
+[[ ! -d /etc/SSHPlus ]] && rm -rf /bin/menu
+${comando[0]} > /dev/null 2>&1
+${comando[1]} > /dev/null 2>&1
+touch $HOME/fim
+ ) > /dev/null 2>&1 &
+ tput civis
+echo -ne "  \033[1;37mAGUARDE \033[1;37m- \033[1;37m["
+while true; do
+   for((i=0; i<18; i++)); do
+   echo -ne "\033[1;31m#"
+   sleep 0.1s
+   done
+   [[ -e $HOME/fim ]] && rm $HOME/fim && break
+   echo -e "\033[1;37m]"
+   sleep 1s
+   tput cuu1
+   tput dl1
+   echo -ne "  \033[1;37mAGUARDE \033[1;37m- \033[1;37m["
+done
+echo -e "\033[1;37m]\033[1;37m -\033[1;32m OK !\033[1;37m"
+tput cnorm
+}
+fun_tst () {
+speedtest --share > speed --secure
+}
+echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;18m┃\E[44;1;37m    TESTANDO A VELOCIDADE DO SERVIDOR    \E[0m\E[38;5;18m┃"
+echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
+aguarde 'fun_tst'
+clear
+echo -e "\E[38;5;18m╭━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╮\033[0m"
+echo -e "\E[38;5;18m┃\E[44;1;37m    TESTANDO A VELOCIDADE DO SERVIDOR    \E[0m\E[38;5;18m┃"
+echo -e "\E[38;5;18m╰━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╯\033[0m"
+echo ""
+png=$(cat speed | sed -n '5 p' |awk -F : {'printf $NF'})
+down=$(cat speed | sed -n '7 p' |awk -F :  {'print $NF'})
+upl=$(cat speed | sed -n '9 p' |awk -F :  {'print $NF'})
+lnk=$(cat speed | sed -n '10 p' |awk {'print $NF'})
+echo -e "\E[38;5;18m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+echo -e "\033[1;32mPING (LATENCIA):\033[1;37m$png"
+echo -e "\033[1;32mDOWNLOAD:\033[1;37m$down"
+echo -e "\033[1;32mUPLOAD:\033[1;37m$upl"
+echo -e "\033[1;32mLINK: \E[38;5;33m$lnk"
+echo -e "\E[38;5;18m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m"
+rm -rf $HOME/speed
 }
 
 limit1 () {

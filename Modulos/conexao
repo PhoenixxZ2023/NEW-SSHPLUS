@@ -274,8 +274,6 @@ inst_ssl5() {
         git clone https://github.com/mtrojnar/stunnel.git /tmp/stunnel > /dev/null 2>&1
         cd /tmp/stunnel || exit 1
         
-        # --- O TRUQUE MÁGICO AQUI ---
-        # Lista as tags, filtra as que começam com 'stunnel-', ordena numericamente e pega a última
         LATEST_TAG=$(git tag | grep '^stunnel-' | sort -V | tail -n 1)
         
         if [[ -z "$LATEST_TAG" ]]; then
@@ -310,11 +308,11 @@ inst_ssl5() {
         local connect_port=$2
         mkdir -p /usr/local/etc/stunnel
         
-        # OTIMIZAÇÕES TURBO
+        # OTIMIZAÇÕES TURBO E CORREÇÃO DO PID (pid = )
         cat > /usr/local/etc/stunnel/stunnel.conf <<EOF
 cert = /usr/local/etc/stunnel/stunnel.pem
 client = no
-pid = /usr/local/var/run/stunnel.pid
+pid = 
 socket = a:SO_REUSEADDR=1
 socket = l:TCP_NODELAY=1
 socket = r:TCP_NODELAY=1
@@ -335,7 +333,7 @@ EOF
             -out /usr/local/etc/stunnel/stunnel.pem \
             -keyout /usr/local/etc/stunnel/stunnel.pem \
             -subj "/C=BR/ST=SaoPaulo/L=SaoPaulo/O=Private/OU=IT/CN=localhost" > /dev/null 2>&1
-        chmod 777 /usr/local/etc/stunnel/stunnel.pem
+        chmod 600 /usr/local/etc/stunnel/stunnel.pem
         echo -e "\033[1;32mCertificado gerado com sucesso.\033[0m"
     }
 
@@ -390,10 +388,8 @@ EOF
 
     fun_finssl() {
         echo -e "\033[1;32mConfigurando o serviço systemd do stunnel5...\033[0m"
-        mkdir -p /usr/local/var/run/
-        chmod 777 /usr/local/var/run/
-        chown root:root /usr/local/var/run/
-
+        
+        # SERVIÇO CORRIGIDO (Sem a linha PIDFile)
         cat > /etc/systemd/system/stunnel5.service <<EOF
 [Unit]
 Description=stunnel5 TLS Tunneling Service
@@ -402,7 +398,6 @@ After=network.target
 [Service]
 Type=forking
 ExecStart=/usr/local/bin/stunnel5 /usr/local/etc/stunnel/stunnel.conf
-PIDFile=/usr/local/var/run/stunnel.pid
 Restart=always
 TimeoutStartSec=300
 LimitNOFILE=65535
@@ -420,8 +415,6 @@ EOF
         echo -e "\033[1;32mParando e desabilitando os serviços...\033[0m"
         systemctl stop stunnel5 > /dev/null 2>&1
         systemctl disable stunnel5 > /dev/null 2>&1
-        
-        # DESATIVA O PROXY WS NA REMOÇÃO
         systemctl stop proxy_ws > /dev/null 2>&1
         systemctl disable proxy_ws > /dev/null 2>&1
         
@@ -433,16 +426,9 @@ EOF
         
         rm -f /usr/local/bin/stunnel5
         rm -rf /usr/local/etc/stunnel
-        rm -f /usr/local/var/run/stunnel.pid
-        rmdir /usr/local/var/run 2>/dev/null
-        rm -rf /usr/local/lib/stunnel 2>/dev/null
-        rm -rf /usr/local/share/stunnel 2>/dev/null
-        rm -rf /usr/local/man/man8/stunnel* 2>/dev/null
     }
 
-    # --- Lógica Principal do Script ---
     if command -v stunnel5 >/dev/null 2>&1 && [[ -f /etc/systemd/system/stunnel5.service ]]; then
-        # CORREÇÃO APLICADA AQUI: netstat em vez de ss
         sslt=$(netstat -nltp | grep 'stunnel5' | awk '{print $4}' | awk -F ":" '{print $NF}' | xargs)
         [[ -z "$sslt" ]] && sslt="\033[1;31mINDISPONÍVEL"
 
@@ -474,7 +460,6 @@ EOF
                 systemctl restart stunnel5
                 sleep 2
                 
-                # CORREÇÃO APLICADA AQUI
                 if netstat -nltp | grep -q ":$porta.*stunnel5"; then
                     echo -e "\n\033[1;32mPORTA ALTERADA COM SUCESSO!\033[0m"
                 else
@@ -534,7 +519,6 @@ EOF
             install_dependencies
             compile_stunnel5
             
-            # SE A OPÇÃO 2 FOI ESCOLHIDA, CHAMA A FUNÇÃO DO PROXY
             if [[ "$ws_mod" == "true" ]]; then
                 setup_proxy_ws
             fi
@@ -544,7 +528,6 @@ EOF
             fun_finssl
             
             echo -e "\n\033[1;32m--- INSTALAÇÃO CONCLUÍDA ---\033[0m"
-            # CORREÇÃO APLICADA AQUI
             if netstat -nltp | grep -q ":$porta.*stunnel5"; then
                 echo -e "\033[1;32mSSL STUNNEL5 instalado com sucesso na porta \033[1;33m$porta\033[0m"
                 [[ "$ws_mod" == "true" ]] && echo -e "\033[1;36mProxy WebSocket ativado na porta 80.\033[0m"

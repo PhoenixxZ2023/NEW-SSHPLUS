@@ -128,6 +128,9 @@ definir_versao_python() {
         "ubuntu-22.04"|"debian-12")
             PACOTE_PYTHON="python3.10"
             ;;
+        "ubuntu-24.04"|"debian-13")
+            PACOTE_PYTHON="python3.12"
+            ;;
         *)
             echo -e "\033[1;31m[ERRO] Sistema não suportado: $OS_VERSION\033[0m"
             echo -e "\033[1;33mApenas Ubuntu 20.04/22.04 e Debian 11/12 são compatíveis.\033[0m"

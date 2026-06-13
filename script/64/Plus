@@ -161,6 +161,9 @@ configurar_python_alternatives() {
         "ubuntu-22.04"|"debian-12")
             PYTHON_VERSION_NUM="3.10"
             ;;
+        "ubuntu-24.04"|"debian-13")
+            PYTHON_VERSION_NUM="3.12"
+            ;;
     esac
 
     if [[ -n "$PYTHON_VERSION_NUM" ]]; then
